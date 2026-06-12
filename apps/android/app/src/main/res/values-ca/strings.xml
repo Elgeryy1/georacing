@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">GeoRacing</string>
+
+    <!-- Identitat -->
+    <string name="georacing_title">GEORACING</string>
+
+    <!-- Estat del circuit -->
+    <string name="circuit_status_label">ESTAT DEL CIRCUIT</string>
+
+    <!-- Seccions i menús -->
+    <string name="menu_title">MENÚ</string>
+    <string name="section_principal">PRINCIPAL</string>
+    <string name="section_servicios">SERVEIS</string>
+    <string name="section_movilidad">MOBILITAT</string>
+    <string name="section_experiencia">EXPERIÈNCIA</string>
+    <string name="quick_access">ACCÉS RÀPID</string>
+
+    <!-- Accions ràpides -->
+    <string name="guia_ar">Guia AR</string>
+    <string name="incidencias">Incidències</string>
+    <string name="ajustes">Configuració</string>
+    <string name="sos_emergencia">SOS / EMERGÈNCIA</string>
+
+    <!-- Menú lateral -->
+    <string name="menu_mapa_circuito">Mapa del Circuit</string>
+    <string name="menu_mi_localidad">La Meva Localitat</string>
+    <string name="menu_grupo">Grup</string>
+    <string name="menu_pedidos">Comandes</string>
+    <string name="menu_momentos">Moments</string>
+    <string name="menu_alertas">Alertes</string>
+    <string name="menu_parking">Aparcament</string>
+    <string name="menu_transporte">Transport</string>
+    <string name="menu_climasmart">ClimaSmart</string>
+    <string name="menu_ecometer">EcoMeter</string>
+    <string name="menu_fan_immersive">Fan Immersive</string>
+
+    <!-- Graella de funcions -->
+    <string name="feature_map_title">Mapa en Directe</string>
+    <string name="feature_map_desc">Traçat en temps real</string>
+    <string name="feature_orders_title">Comandes Express</string>
+    <string name="feature_orders_desc">Evita cues de menjar</string>
+    <string name="feature_group_title">El Meu Grup</string>
+    <string name="feature_group_desc">Connecta amb amics</string>
+    <string name="feature_moments_title">Moments Èpics</string>
+    <string name="feature_moments_desc">Comparteix fotos i vídeos</string>
+    <string name="feature_alerts_title">Alertes Circuit</string>
+    <string name="feature_alerts_desc">Notificacions en directe</string>
+    <string name="feature_poi_title">Punts d\'Interès</string>
+    <string name="feature_poi_desc">Serveis i zones</string>
+
+    <!-- Accessibilitat -->
+    <string name="cd_menu">Obrir menú</string>
+    <string name="cd_profile">Veure perfil</string>
+    <string name="cd_close">Tancar</string>
+    <string name="cd_camera">Càmera</string>
+    <string name="cd_back">Tornar</string>
+
+    <!-- Newsletter / Alertes -->
+    <string name="newsletter_title">Newsletter del Circuit</string>
+    <string name="newsletter_subtitle">Mantingues-te informat sobre la cursa</string>
+    <string name="news_category_all">Totes</string>
+    <string name="news_empty_title">No hi ha notícies</string>
+    <string name="news_empty_message">Quan hi hagi actualitzacions de la cursa, apareixeran aquí</string>
+    <string name="news_time_now">Ara mateix</string>
+    <string name="news_time_minutes">fa %d min</string>
+    <string name="news_time_hours">fa %d h</string>
+
+    <!-- Incidències -->
+    <string name="incident_report_title">Reportar Incidència</string>
+    <string name="incident_category_label">Categoria</string>
+    <string name="incident_description_label">Descripció del problema</string>
+    <string name="incident_description_hint">Descriu detalladament el problema perquè el personal pugui atendre\'l</string>
+    <string name="incident_photos_label">Fotos (opcional)</string>
+    <string name="incident_add_photo">Afegir foto</string>
+    <string name="incident_send">Enviar al Personal</string>
+    <string name="incident_success">Incidència enviada al personal correctament</string>
+    <string name="incident_error">Error en enviar incidència</string>
+    <string name="incident_validation_error">Si us plau, completa tots els camps requerits</string>
+
+    <!-- Circuit de Catalunya -->
+    <string name="circuit_name">Circuit de Barcelona-Catalunya</string>
+    <string name="circuit_location">Montmeló, Barcelona</string>
+    <string name="circuit_welcome">Benvingut al Circuit de Barcelona-Catalunya</string>
+    <string name="circuit_subtitle">La teva experiència completa al circuit</string>
+
+    <!-- Banderes de cursa -->
+    <string name="flag_green">🟢 BANDERA VERDA</string>
+    <string name="flag_yellow">🟡 BANDERA GROGA</string>
+    <string name="flag_red">🔴 BANDERA VERMELLA</string>
+    <string name="race_in_progress">🟢 Cursa en Curs</string>
+    <string name="race_stopped">⚠️ CURSA ATURADA</string>
+    <string name="race_status_title">🏁 Estat del Circuit</string>
+    <string name="caution_yellow_flag">Precaució. Bandera groga. Redueixi la velocitat.</string>
+    <string name="attention_red_flag">Atenció. Bandera vermella. Cursa aturada. Mantingui la calma.</string>
+
+    <!-- Emergència mèdica -->
+    <string name="medical_emergency">🆘 EMERGÈNCIA MÈDICA</string>
+    <string name="scan_for_id">Escanejar per identificació</string>
+    <string name="blood_type">GRUP SANGUINI</string>
+    <string name="allergies_label">⚠️ AL·LÈRGIES</string>
+    <string name="emergency_contact_label">📞 CONTACTE EMERGÈNCIA</string>
+    <string name="medical_notes_label">📋 NOTES MÈDIQUES</string>
+    <string name="medical_disclaimer">Aquesta informació pot salvar una vida</string>
+
+    <!-- Transport -->
+    <string name="transport_title">Transport al Circuit</string>
+    <string name="transport_train_r2nord">Rodalies R2 Nord</string>
+    <string name="transport_station_montmelo">Estació de Montmeló</string>
+    <string name="transport_shuttle">Bus Llançadora</string>
+    <string name="transport_walking">A peu des de l\'estació</string>
+
+    <!-- Clima -->
+    <string name="weather_title">ClimaSmart</string>
+    <string name="weather_subtitle">Clima al Circuit de Barcelona-Catalunya</string>
+    <string name="weather_uv_index">Índex UV</string>
+    <string name="weather_humidity">Humitat</string>
+    <string name="weather_wind">Vent</string>
+
+    <!-- Cerca -->
+    <string name="search_title">Cercar</string>
+    <string name="search_hint">Cercar al circuit…</string>
+    <string name="search_no_results">Sense resultats</string>
+    <string name="search_recent">Cerques recents</string>
+
+    <!-- Assoliments / Gamificació -->
+    <string name="achievements_title">Assoliments</string>
+    <string name="achievements_subtitle">El teu progrés com a fan</string>
+    <string name="achievements_xp">XP</string>
+    <string name="achievements_level">Nivell</string>
+    <string name="achievements_unlocked">Desbloquejat</string>
+
+    <!-- Aparcament -->
+    <string name="parking_save_location">Guardar ubicació actual</string>
+    <string name="parking_navigate">Navegar al cotxe</string>
+    <string name="parking_delete">Esborrar ubicació</string>
+    <string name="parking_car_location">Ubicació del cotxe</string>
+
+    <!-- Errors comuns -->
+    <string name="error_map_pois">Error en carregar punts d\'interès</string>
+    <string name="error_map_routes">No s\'han pogut carregar les rutes del circuit</string>
+    <string name="error_group_sync">Error en sincronitzar grup. Reintenta més tard.</string>
+    <string name="error_group_leave">Error en abandonar el grup. Reintenta més tard.</string>
+    <string name="error_camera">Error en iniciar la càmera. Reintenta-ho.</string>
+    <string name="error_gps">Error de GPS. Verifica que el GPS està activat.</string>
+    <string name="error_network">Sense connexió a internet</string>
+
+    <!-- Comandes -->
+    <string name="orders_checkout">Pagar</string>
+    <string name="orders_success">Comanda Realitzada!</string>
+    <string name="orders_menu_title">EL TEU MENÚ</string>
+    <string name="orders_pickup_msg">La teva comanda s\'ha enviat a cuina. Rebràs una notificació quan estigui llesta.</string>
+    <string name="orders_understood">ENTÈS</string>
+    <string name="product_sold_out">EXHAURIT</string>
+</resources>

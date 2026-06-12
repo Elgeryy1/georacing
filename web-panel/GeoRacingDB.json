@@ -1,0 +1,57 @@
+[
+{"type":"header","version":"5.2.1","comment":"Export to JSON plugin for PHPMyAdmin"},
+{"type":"database","name":"GeoRacingDB"},
+{"type":"table","name":"beacons","database":"GeoRacingDB","data":
+[
+{"id":"1","beacon_uid":"BEACON-TS-01","name":"Entrada Principal A","description":null,"zone_id":"1","latitude":null,"longitude":null,"has_screen":"1","mode":"NORMAL","arrow_direction":"RIGHT","message":"Bienvenido al Circuit","color":"GREEN","brightness":"80","battery_level":"100","is_online":"0","configured":"0","last_heartbeat":null,"last_status_change":null,"created_at":"2025-11-26 23:15:28","updated_at":"2025-11-26 23:15:28"},
+{"id":"2","beacon_uid":"BEACON-TS-02","name":"Paddock Norte","description":null,"zone_id":"2","latitude":null,"longitude":null,"has_screen":"1","mode":"NORMAL","arrow_direction":"UP","message":"Acceso Paddock","color":"BLUE","brightness":"75","battery_level":"90","is_online":"0","configured":"0","last_heartbeat":null,"last_status_change":null,"created_at":"2025-11-26 23:15:28","updated_at":"2025-11-26 23:15:28"}
+]
+}
+,{"type":"table","name":"beacon_logs","database":"GeoRacingDB","data":
+[
+
+]
+}
+,{"type":"table","name":"commands","database":"GeoRacingDB","data":
+[
+
+]
+}
+,{"type":"table","name":"emergencies","database":"GeoRacingDB","data":
+[
+
+]
+}
+,{"type":"table","name":"emergency_beacons","database":"GeoRacingDB","data":
+[
+
+]
+}
+,{"type":"table","name":"group_gps","database":"GeoRacingDB","data":
+[
+
+]
+}
+,{"type":"table","name":"group_locations","database":"GeoRacingDB","data":
+[
+
+]
+}
+,{"type":"table","name":"staff_groups","database":"GeoRacingDB","data":
+[
+
+]
+}
+,{"type":"table","name":"staff_positions","database":"GeoRacingDB","data":
+[
+
+]
+}
+,{"type":"table","name":"zones","database":"GeoRacingDB","data":
+[
+{"id":"1","name":"Main Grandstand","description":"Zona principal de tribuna","created_at":"2025-11-26 23:15:28"},
+{"id":"2","name":"Paddock","description":"Area de paddock y boxes","created_at":"2025-11-26 23:15:28"},
+{"id":"3","name":"Access A","description":"Acceso peatonal A","created_at":"2025-11-26 23:15:28"}
+]
+}
+]

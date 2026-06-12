@@ -1,0 +1,47 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "beacons",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "zone",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "mode",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "online",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "beacons",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "online",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "lastSeen",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "emergency_logs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "triggeredAt",
+          "order": "DESCENDING"
+        }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

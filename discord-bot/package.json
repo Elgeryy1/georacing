@@ -1,0 +1,20 @@
+{
+  "name": "georacing-discord-bot",
+  "version": "1.0.0",
+  "description": "GeoRacing Discord bot with realtime Supabase listener and RAG answers.",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "engines": {
+    "node": ">=18.17.0"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.43.5",
+    "discord.js": "^14.15.3",
+    "dotenv": "^16.4.5",
+    "groq-sdk": "^0.6.0",
+    "openai": "^4.28.4"
+  }
+}

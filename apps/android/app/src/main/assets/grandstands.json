@@ -1,0 +1,52 @@
+{
+    "grandstands": [
+        {
+            "id": "Main",
+            "name": "Principal",
+            "lat": 41.56950,
+            "lon": 2.25750
+        },
+        {
+            "id": "J",
+            "name": "Tribuna J",
+            "lat": 41.56780,
+            "lon": 2.26450
+        },
+        {
+            "id": "K",
+            "name": "Tribuna K",
+            "lat": 41.56820,
+            "lon": 2.26520
+        },
+        {
+            "id": "G",
+            "name": "Tribuna G",
+            "lat": 41.57250,
+            "lon": 2.26180
+        },
+        {
+            "id": "N",
+            "name": "Tribuna N",
+            "lat": 41.57080,
+            "lon": 2.25550
+        },
+        {
+            "id": "A",
+            "name": "Tribuna A",
+            "lat": 41.56650,
+            "lon": 2.25680
+        },
+        {
+            "id": "L",
+            "name": "Tribuna L",
+            "lat": 41.56450,
+            "lon": 2.25900
+        },
+        {
+            "id": "General",
+            "name": "Pelouse",
+            "lat": 41.57100,
+            "lon": 2.26000
+        }
+    ]
+}

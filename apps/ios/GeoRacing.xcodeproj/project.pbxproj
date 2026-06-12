@@ -1,0 +1,665 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		091EEA0BD9B447A5BBBC0E91 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = F510FF40DB0E4B8C8DA59755 /* FirebaseCore */; };
+		14902C8642964AEFB53BD3BE /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = B208DFAE1B5048748D1CEEC9 /* FirebaseAuth */; };
+		F3C10BE9AA3B45DFA30AFD4D /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 6992D381311B42A1B872AE24 /* GoogleSignIn */; };
+		F45B2911963F4BD5A59A0FEA /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = E2FF8C394361418F898B0BF9 /* FirebaseFirestore */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		5232A4362EEF831900D738CF /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 5232A41E2EEF831700D738CF /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 5232A4252EEF831700D738CF;
+			remoteInfo = GeoRacing;
+		};
+		5232A4402EEF831900D738CF /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 5232A41E2EEF831700D738CF /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 5232A4252EEF831700D738CF;
+			remoteInfo = GeoRacing;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		5232A4262EEF831700D738CF /* GeoRacing.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GeoRacing.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		5232A4352EEF831900D738CF /* GeoRacingTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GeoRacingTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		5232A43F2EEF831900D738CF /* GeoRacingUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GeoRacingUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		5212C0D02EF1B1C400576926 /* Exceptions for "GeoRacing" folder in "GeoRacing" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 5232A4252EEF831700D738CF /* GeoRacing */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		5232A4282EEF831700D738CF /* GeoRacing */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				5212C0D02EF1B1C400576926 /* Exceptions for "GeoRacing" folder in "GeoRacing" target */,
+			);
+			path = GeoRacing;
+			sourceTree = "<group>";
+		};
+		5232A4382EEF831900D738CF /* GeoRacingTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = GeoRacingTests;
+			sourceTree = "<group>";
+		};
+		5232A4422EEF831900D738CF /* GeoRacingUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = GeoRacingUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		5232A4232EEF831700D738CF /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				14902C8642964AEFB53BD3BE /* FirebaseAuth in Frameworks */,
+				091EEA0BD9B447A5BBBC0E91 /* FirebaseCore in Frameworks */,
+				F45B2911963F4BD5A59A0FEA /* FirebaseFirestore in Frameworks */,
+				F3C10BE9AA3B45DFA30AFD4D /* GoogleSignIn in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5232A4322EEF831900D738CF /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5232A43C2EEF831900D738CF /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		5232A41D2EEF831700D738CF = {
+			isa = PBXGroup;
+			children = (
+				5232A4282EEF831700D738CF /* GeoRacing */,
+				5232A4382EEF831900D738CF /* GeoRacingTests */,
+				5232A4422EEF831900D738CF /* GeoRacingUITests */,
+				5232A4272EEF831700D738CF /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		5232A4272EEF831700D738CF /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				5232A4262EEF831700D738CF /* GeoRacing.app */,
+				5232A4352EEF831900D738CF /* GeoRacingTests.xctest */,
+				5232A43F2EEF831900D738CF /* GeoRacingUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		5232A4252EEF831700D738CF /* GeoRacing */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5232A4492EEF831900D738CF /* Build configuration list for PBXNativeTarget "GeoRacing" */;
+			buildPhases = (
+				5232A4222EEF831700D738CF /* Sources */,
+				5232A4232EEF831700D738CF /* Frameworks */,
+				5232A4242EEF831700D738CF /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				5232A4282EEF831700D738CF /* GeoRacing */,
+			);
+			name = GeoRacing;
+			packageProductDependencies = (
+				B208DFAE1B5048748D1CEEC9 /* FirebaseAuth */,
+				F510FF40DB0E4B8C8DA59755 /* FirebaseCore */,
+				E2FF8C394361418F898B0BF9 /* FirebaseFirestore */,
+				6992D381311B42A1B872AE24 /* GoogleSignIn */,
+			);
+			productName = GeoRacing;
+			productReference = 5232A4262EEF831700D738CF /* GeoRacing.app */;
+			productType = "com.apple.product-type.application";
+		};
+		5232A4342EEF831900D738CF /* GeoRacingTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5232A44C2EEF831900D738CF /* Build configuration list for PBXNativeTarget "GeoRacingTests" */;
+			buildPhases = (
+				5232A4312EEF831900D738CF /* Sources */,
+				5232A4322EEF831900D738CF /* Frameworks */,
+				5232A4332EEF831900D738CF /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				5232A4372EEF831900D738CF /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				5232A4382EEF831900D738CF /* GeoRacingTests */,
+			);
+			name = GeoRacingTests;
+			packageProductDependencies = (
+			);
+			productName = GeoRacingTests;
+			productReference = 5232A4352EEF831900D738CF /* GeoRacingTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		5232A43E2EEF831900D738CF /* GeoRacingUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5232A44F2EEF831900D738CF /* Build configuration list for PBXNativeTarget "GeoRacingUITests" */;
+			buildPhases = (
+				5232A43B2EEF831900D738CF /* Sources */,
+				5232A43C2EEF831900D738CF /* Frameworks */,
+				5232A43D2EEF831900D738CF /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				5232A4412EEF831900D738CF /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				5232A4422EEF831900D738CF /* GeoRacingUITests */,
+			);
+			name = GeoRacingUITests;
+			packageProductDependencies = (
+			);
+			productName = GeoRacingUITests;
+			productReference = 5232A43F2EEF831900D738CF /* GeoRacingUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		5232A41E2EEF831700D738CF /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2620;
+				LastUpgradeCheck = 2620;
+				TargetAttributes = {
+					5232A4252EEF831700D738CF = {
+						CreatedOnToolsVersion = 26.2;
+					};
+					5232A4342EEF831900D738CF = {
+						CreatedOnToolsVersion = 26.2;
+						TestTargetID = 5232A4252EEF831700D738CF;
+					};
+					5232A43E2EEF831900D738CF = {
+						CreatedOnToolsVersion = 26.2;
+						TestTargetID = 5232A4252EEF831700D738CF;
+					};
+				};
+			};
+			buildConfigurationList = 5232A4212EEF831700D738CF /* Build configuration list for PBXProject "GeoRacing" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 5232A41D2EEF831700D738CF;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				5232A4922EEF89BC00D738CF /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				5232A4932EEF8BC400D738CF /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 5232A4272EEF831700D738CF /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				5232A4252EEF831700D738CF /* GeoRacing */,
+				5232A4342EEF831900D738CF /* GeoRacingTests */,
+				5232A43E2EEF831900D738CF /* GeoRacingUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		5232A4242EEF831700D738CF /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5232A4332EEF831900D738CF /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5232A43D2EEF831900D738CF /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		5232A4222EEF831700D738CF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5232A4312EEF831900D738CF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5232A43B2EEF831900D738CF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		5232A4372EEF831900D738CF /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 5232A4252EEF831700D738CF /* GeoRacing */;
+			targetProxy = 5232A4362EEF831900D738CF /* PBXContainerItemProxy */;
+		};
+		5232A4412EEF831900D738CF /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 5232A4252EEF831700D738CF /* GeoRacing */;
+			targetProxy = 5232A4402EEF831900D738CF /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		5232A4472EEF831900D738CF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = XJ7567BVQ8;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		5232A4482EEF831900D738CF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = XJ7567BVQ8;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		5232A44A2EEF831900D738CF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = GeoRacing/GeoRacing.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = XJ7567BVQ8;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = GeoRacing/Info.plist;
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Bluetooth is used to detect track beacons for safety alerts.";
+				INFOPLIST_KEY_NSBluetoothPeripheralUsageDescription = "Bluetooth is used to detect track beacons for safety alerts.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Location is used to show your position on the circuit map and share it with your group.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = NO;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = GeoRacing.GeoRacing;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		5232A44B2EEF831900D738CF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = GeoRacing/GeoRacing.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = XJ7567BVQ8;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = GeoRacing/Info.plist;
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Bluetooth is used to detect track beacons for safety alerts.";
+				INFOPLIST_KEY_NSBluetoothPeripheralUsageDescription = "Bluetooth is used to detect track beacons for safety alerts.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Location is used to show your position on the circuit map and share it with your group.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = NO;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = GeoRacing.GeoRacing;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		5232A44D2EEF831900D738CF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = XJ7567BVQ8;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = GeoRacing.GeoRacingTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/GeoRacing.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/GeoRacing";
+			};
+			name = Debug;
+		};
+		5232A44E2EEF831900D738CF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = XJ7567BVQ8;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = GeoRacing.GeoRacingTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/GeoRacing.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/GeoRacing";
+			};
+			name = Release;
+		};
+		5232A4502EEF831900D738CF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = XJ7567BVQ8;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = GeoRacing.GeoRacingUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = GeoRacing;
+			};
+			name = Debug;
+		};
+		5232A4512EEF831900D738CF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = XJ7567BVQ8;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = GeoRacing.GeoRacingUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = GeoRacing;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		5232A4212EEF831700D738CF /* Build configuration list for PBXProject "GeoRacing" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5232A4472EEF831900D738CF /* Debug */,
+				5232A4482EEF831900D738CF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		5232A4492EEF831900D738CF /* Build configuration list for PBXNativeTarget "GeoRacing" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5232A44A2EEF831900D738CF /* Debug */,
+				5232A44B2EEF831900D738CF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		5232A44C2EEF831900D738CF /* Build configuration list for PBXNativeTarget "GeoRacingTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5232A44D2EEF831900D738CF /* Debug */,
+				5232A44E2EEF831900D738CF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		5232A44F2EEF831900D738CF /* Build configuration list for PBXNativeTarget "GeoRacingUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5232A4502EEF831900D738CF /* Debug */,
+				5232A4512EEF831900D738CF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		5232A4922EEF89BC00D738CF /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.7.0;
+			};
+		};
+		5232A4932EEF8BC400D738CF /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/google/GoogleSignIn-iOS";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 9.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		6992D381311B42A1B872AE24 /* GoogleSignIn */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5232A4932EEF8BC400D738CF /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignIn;
+		};
+		B208DFAE1B5048748D1CEEC9 /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5232A4922EEF89BC00D738CF /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
+		E2FF8C394361418F898B0BF9 /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5232A4922EEF89BC00D738CF /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
+		F510FF40DB0E4B8C8DA59755 /* FirebaseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5232A4922EEF89BC00D738CF /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCore;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 5232A41E2EEF831700D738CF /* Project object */;
+}

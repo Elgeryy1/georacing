@@ -1,0 +1,528 @@
+<Window x:Class="BeaconApp.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:viewModels="clr-namespace:BeaconApp.ViewModels"
+        mc:Ignorable="d"
+        Title="GeoRacing Beacon"
+        WindowStyle="None"
+        WindowState="Maximized"
+        ResizeMode="NoResize"
+        Topmost="True"
+        Background="Black"
+        KeyDown="Window_KeyDown">
+
+    <Window.Resources>
+        <!-- ============================================================
+             RACING TECH RESOURCES
+             ============================================================ -->
+        
+        <!-- COLORS -->
+        <Color x:Key="CircuitRed">#E30613</Color>
+        <Color x:Key="RacingGreen">#00D26A</Color>
+        <Color x:Key="SafetyYellow">#FFED00</Color>
+        <Color x:Key="TechCyan">#00AEEF</Color>
+        <Color x:Key="CarbonBlack">#111111</Color>
+        
+        <SolidColorBrush x:Key="BrushRed" Color="{StaticResource CircuitRed}"/>
+        <SolidColorBrush x:Key="BrushGreen" Color="{StaticResource RacingGreen}"/>
+        <SolidColorBrush x:Key="BrushYellow" Color="{StaticResource SafetyYellow}"/>
+        <SolidColorBrush x:Key="BrushCyan" Color="{StaticResource TechCyan}"/>
+        <SolidColorBrush x:Key="BrushCarbon" Color="{StaticResource CarbonBlack}"/>
+
+        <!-- CARBON FIBER PATTERN -->
+        <DrawingBrush x:Key="CarbonFiberPattern" TileMode="Tile" Viewport="0,0,20,20" ViewportUnits="Absolute">
+            <DrawingBrush.Drawing>
+                <GeometryDrawing Brush="#1A1A1A">
+                    <GeometryDrawing.Geometry>
+                        <GeometryGroup>
+                            <RectangleGeometry Rect="0,0,20,20" />
+                            <RectangleGeometry Rect="0,0,10,10" />
+                            <RectangleGeometry Rect="10,10,10,10" />
+                        </GeometryGroup>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+            </DrawingBrush.Drawing>
+        </DrawingBrush>
+
+        <!-- SCANLINES -->
+        <DrawingBrush x:Key="ScanlinesPattern" TileMode="Tile" Viewport="0,0,10,4" ViewportUnits="Absolute">
+            <DrawingBrush.Drawing>
+                <GeometryDrawing Brush="#22FFFFFF">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="0,0,10,1"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+            </DrawingBrush.Drawing>
+        </DrawingBrush>
+
+        <!-- STYLES -->
+        <Style x:Key="RacingHeader" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="Impact"/>
+            <Setter Property="FontSize" Value="40"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect Color="Black" BlurRadius="5" ShadowDepth="3"/>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="HudText" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="Consolas"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="{StaticResource BrushCyan}"/>
+        </Style>
+
+        <!-- DYNAMIC ARROW PATH STYLE -->
+        <Style x:Key="ArrowPathStyle" TargetType="Path">
+            <Setter Property="Fill" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}"/>
+            <Setter Property="Stretch" Value="Uniform"/>
+            <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+            <Setter Property="Width" Value="300"/>
+            <Setter Property="Height" Value="300"/>
+            <!-- Default Geometry: UP ARROW -->
+            <Setter Property="Data" Value="M12,2 L12,22 M2,12 L12,2 L22,12"/> 
+            <!-- Better Thick Arrow Geometry (Pointing UP by default) -->
+            <Setter Property="Data" Value="M 25,0 L 50,40 L 35,40 L 35,100 L 15,100 L 15,40 L 0,40 Z"/>
+            
+            <Setter Property="RenderTransform">
+                <Setter.Value>
+                    <RotateTransform Angle="0"/>
+                </Setter.Value>
+            </Setter>
+            
+            <Style.Triggers>
+                <!-- DIRECTIONS -->
+                <!-- UP / FORWARD (0 degrees) -->
+                <DataTrigger Binding="{Binding CurrentArrow}" Value="FORWARD"><Setter Property="RenderTransform"><Setter.Value><RotateTransform Angle="0"/></Setter.Value></Setter></DataTrigger>
+                <DataTrigger Binding="{Binding CurrentArrow}" Value="UP"><Setter Property="RenderTransform"><Setter.Value><RotateTransform Angle="0"/></Setter.Value></Setter></DataTrigger>
+                
+                <!-- DOWN / BACKWARD (180 degrees) -->
+                <DataTrigger Binding="{Binding CurrentArrow}" Value="BACKWARD"><Setter Property="RenderTransform"><Setter.Value><RotateTransform Angle="180"/></Setter.Value></Setter></DataTrigger>
+                <DataTrigger Binding="{Binding CurrentArrow}" Value="DOWN"><Setter Property="RenderTransform"><Setter.Value><RotateTransform Angle="180"/></Setter.Value></Setter></DataTrigger>
+                
+                <!-- LEFT ( -90 degrees ) -->
+                <DataTrigger Binding="{Binding CurrentArrow}" Value="LEFT"><Setter Property="RenderTransform"><Setter.Value><RotateTransform Angle="-90"/></Setter.Value></Setter></DataTrigger>
+                
+                <!-- RIGHT ( 90 degrees ) -->
+                <DataTrigger Binding="{Binding CurrentArrow}" Value="RIGHT"><Setter Property="RenderTransform"><Setter.Value><RotateTransform Angle="90"/></Setter.Value></Setter></DataTrigger>
+                
+                <!-- DIAGONALS -->
+                <DataTrigger Binding="{Binding CurrentArrow}" Value="FORWARD_LEFT"><Setter Property="RenderTransform"><Setter.Value><RotateTransform Angle="-45"/></Setter.Value></Setter></DataTrigger>
+                <DataTrigger Binding="{Binding CurrentArrow}" Value="UP_LEFT"><Setter Property="RenderTransform"><Setter.Value><RotateTransform Angle="-45"/></Setter.Value></Setter></DataTrigger>
+                
+                <DataTrigger Binding="{Binding CurrentArrow}" Value="FORWARD_RIGHT"><Setter Property="RenderTransform"><Setter.Value><RotateTransform Angle="45"/></Setter.Value></Setter></DataTrigger>
+                <DataTrigger Binding="{Binding CurrentArrow}" Value="UP_RIGHT"><Setter Property="RenderTransform"><Setter.Value><RotateTransform Angle="45"/></Setter.Value></Setter></DataTrigger>
+                
+                <DataTrigger Binding="{Binding CurrentArrow}" Value="BACKWARD_LEFT"><Setter Property="RenderTransform"><Setter.Value><RotateTransform Angle="-135"/></Setter.Value></Setter></DataTrigger>
+                <DataTrigger Binding="{Binding CurrentArrow}" Value="DOWN_LEFT"><Setter Property="RenderTransform"><Setter.Value><RotateTransform Angle="-135"/></Setter.Value></Setter></DataTrigger>
+                
+                <DataTrigger Binding="{Binding CurrentArrow}" Value="BACKWARD_RIGHT"><Setter Property="RenderTransform"><Setter.Value><RotateTransform Angle="135"/></Setter.Value></Setter></DataTrigger>
+                <DataTrigger Binding="{Binding CurrentArrow}" Value="DOWN_RIGHT"><Setter Property="RenderTransform"><Setter.Value><RotateTransform Angle="135"/></Setter.Value></Setter></DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+    </Window.Resources>
+
+    <!-- MAIN CONTAINER -->
+    <Grid Background="{StaticResource CarbonFiberPattern}">
+        
+        <!-- GLOBAL OVERLAYS -->
+        <Rectangle Fill="{StaticResource ScanlinesPattern}" IsHitTestVisible="False" Opacity="0.3"/>
+        
+        <!-- TOP BAR (Circuit Status) -->
+        <Grid VerticalAlignment="Top" Height="80" Background="#CC000000">
+            <Border BorderBrush="#333" BorderThickness="0,0,0,2"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="40,0">
+                <TextBlock Text="CIRCUIT DE BARCELONA-CATALUNYA" Style="{StaticResource RacingHeader}" FontSize="24" VerticalAlignment="Center" Foreground="#AAA"/>
+                <Rectangle Width="2" Height="40" Fill="#555" Margin="20,0"/>
+                <TextBlock Text="{Binding CurrentZone}" Style="{StaticResource HudText}" FontSize="24" VerticalAlignment="Center" Foreground="White"/>
+            </StackPanel>
+            
+            <!-- Clock -->
+            <TextBlock x:Name="TimeTextNormal" Text="{Binding Source={x:Static sys:DateTime.Now}, StringFormat=HH:mm:ss}" 
+                       xmlns:sys="clr-namespace:System;assembly=mscorlib"
+                       Style="{StaticResource HudText}" FontSize="30" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="40,0"/>
+        </Grid>
+
+        <!-- ============================================================
+             VIEW 1: NORMAL (Green Flag)
+             ============================================================ -->
+        <Grid x:Name="ViewNormal">
+            <Grid.Style>
+                <Style TargetType="Grid">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding CurrentMode}" Value="NORMAL">
+                            <Setter Property="Visibility" Value="Visible"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Grid.Style>
+
+            <!-- Center HUD -->
+            <Border Width="600" Height="600" BorderBrush="{StaticResource BrushGreen}" BorderThickness="4" CornerRadius="300" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,250">
+                <Border.Effect>
+                    <DropShadowEffect Color="{StaticResource RacingGreen}" BlurRadius="50" ShadowDepth="0"/>
+                </Border.Effect>
+                <Grid>
+                    <Ellipse Stroke="{StaticResource BrushGreen}" StrokeThickness="2" Opacity="0.3" Margin="20"/>
+                    <Ellipse Stroke="{StaticResource BrushGreen}" StrokeThickness="10" StrokeDashArray="1 0.5" Margin="40"/>
+                    
+                    <!-- Arrow -->
+                    <Path Style="{StaticResource ArrowPathStyle}" Fill="{StaticResource BrushGreen}" Width="350" Height="350">
+                        <Path.Effect>
+                            <DropShadowEffect Color="{StaticResource RacingGreen}" BlurRadius="20" ShadowDepth="0"/>
+                        </Path.Effect>
+                    </Path>
+                </Grid>
+            </Border>
+
+            <!-- Status Text -->
+            <Border Background="#CC000000" VerticalAlignment="Bottom" Margin="0,0,0,50" HorizontalAlignment="Center" Padding="60,20" CornerRadius="10">
+                <Border.RenderTransform>
+                    <SkewTransform AngleX="-20"/>
+                </Border.RenderTransform>
+                <Border.BorderBrush>
+                    <SolidColorBrush Color="{StaticResource RacingGreen}"/>
+                </Border.BorderBrush>
+                <Border.BorderThickness>
+                    <Thickness Left="10" Right="10"/>
+                </Border.BorderThickness>
+                
+                <TextBlock Text="{Binding DisplayText}" Style="{StaticResource RacingHeader}" FontSize="60" Foreground="{StaticResource BrushGreen}">
+                    <TextBlock.RenderTransform>
+                        <SkewTransform AngleX="20"/>
+                    </TextBlock.RenderTransform>
+                </TextBlock>
+            </Border>
+            
+            <!-- Side Decoration -->
+            <Rectangle Width="20" HorizontalAlignment="Left" Fill="{StaticResource BrushGreen}" Opacity="0.5"/>
+            <Rectangle Width="20" HorizontalAlignment="Right" Fill="{StaticResource BrushGreen}" Opacity="0.5"/>
+        </Grid>
+
+        <!-- ============================================================
+             VIEW 2: CONGESTION (Yellow Flag)
+             ============================================================ -->
+        <!-- ============================================================
+             VIEW 2: CONGESTION (Yellow Flag)
+             ============================================================ -->
+        <Grid x:Name="ViewCongestion">
+            <Grid.Style>
+                <Style TargetType="Grid">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding CurrentMode}" Value="CONGESTION">
+                            <Setter Property="Visibility" Value="Visible"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Grid.Style>
+
+            <!-- Stripes Background (Subtle) -->
+            <Grid.Resources>
+                <DrawingBrush x:Key="Stripes" TileMode="Tile" Viewport="0,0,100,100" ViewportUnits="Absolute">
+                    <DrawingBrush.Drawing>
+                        <GeometryDrawing Brush="#33FFED00">
+                            <GeometryDrawing.Geometry>
+                                <GeometryGroup>
+                                    <PathGeometry Figures="M0,0 L50,0 L0,50 Z M50,50 L100,50 L100,0 Z"/>
+                                </GeometryGroup>
+                            </GeometryDrawing.Geometry>
+                        </GeometryDrawing>
+                    </DrawingBrush.Drawing>
+                </DrawingBrush>
+            </Grid.Resources>
+            <Rectangle Fill="{StaticResource Stripes}" Opacity="0.1"/>
+
+            <!-- Center HUD (Yellow) -->
+            <Border Width="600" Height="600" BorderBrush="{StaticResource BrushYellow}" BorderThickness="4" CornerRadius="300" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,250">
+                <Border.Effect>
+                    <DropShadowEffect Color="{StaticResource SafetyYellow}" BlurRadius="50" ShadowDepth="0"/>
+                </Border.Effect>
+                <Grid>
+                    <Ellipse Stroke="{StaticResource BrushYellow}" StrokeThickness="2" Opacity="0.3" Margin="20"/>
+                    <Ellipse Stroke="{StaticResource BrushYellow}" StrokeThickness="10" StrokeDashArray="1 0.5" Margin="40"/>
+                    
+                    <!-- Arrow -->
+                    <Path Style="{StaticResource ArrowPathStyle}" Fill="{StaticResource BrushYellow}" Width="350" Height="350">
+                        <Path.Effect>
+                            <DropShadowEffect Color="{StaticResource SafetyYellow}" BlurRadius="20" ShadowDepth="0"/>
+                        </Path.Effect>
+                    </Path>
+
+                     <!-- Warning Triangle (Overrides Arrow if Arrow is NONE or specific logic) -->
+                     <!-- Logic: If Arrow is visible (non-NONE), this triangle hides automatically via Trigger if we add it? 
+                          Actually ViewNormal arrow hides if NONE? No, style data triggers rotate it.
+                          We need a trigger to hide Arrow if NONE. 
+                          But let's assume Congestion mostly has arrows. 
+                          If no arrow, show Triangle. -->
+                </Grid>
+            </Border>
+
+            <!-- Status Text (Standardized Footer) -->
+            <Border Background="#CC000000" VerticalAlignment="Bottom" Margin="0,0,0,50" HorizontalAlignment="Center" Padding="60,20" CornerRadius="10">
+                <Border.RenderTransform>
+                    <SkewTransform AngleX="-20"/>
+                </Border.RenderTransform>
+                <Border.BorderBrush>
+                    <SolidColorBrush Color="{StaticResource SafetyYellow}"/>
+                </Border.BorderBrush>
+                <Border.BorderThickness>
+                    <Thickness Left="10" Right="10"/>
+                </Border.BorderThickness>
+                
+                <StackPanel>
+                    <TextBlock Text="CAUTION" Style="{StaticResource RacingHeader}" FontSize="40" Foreground="{StaticResource BrushYellow}" HorizontalAlignment="Center">
+                        <TextBlock.RenderTransform><SkewTransform AngleX="20"/></TextBlock.RenderTransform>
+                    </TextBlock>
+                    <TextBlock Text="{Binding DisplayText}" Style="{StaticResource RacingHeader}" FontSize="60" Foreground="{StaticResource BrushYellow}">
+                        <TextBlock.RenderTransform><SkewTransform AngleX="20"/></TextBlock.RenderTransform>
+                    </TextBlock>
+                </StackPanel>
+            </Border>
+            
+            <!-- Side Decoration -->
+            <Rectangle Width="20" HorizontalAlignment="Left" Fill="{StaticResource BrushYellow}" Opacity="0.5"/>
+            <Rectangle Width="20" HorizontalAlignment="Right" Fill="{StaticResource BrushYellow}" Opacity="0.5"/>
+        </Grid>
+
+        <!-- ============================================================
+             VIEW 3: EMERGENCY (Red Flag)
+             ============================================================ -->
+        <Grid x:Name="ViewEmergency">
+            <Grid.Style>
+                <Style TargetType="Grid">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding CurrentMode}" Value="EMERGENCY">
+                            <Setter Property="Visibility" Value="Visible"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Grid.Style>
+
+            <Rectangle Fill="#22FF0000"/>
+            
+            <!-- Center HUD (Red) -->
+            <Border Width="600" Height="600" BorderBrush="{StaticResource BrushRed}" BorderThickness="4" CornerRadius="300" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,250">
+                <Border.Effect>
+                    <DropShadowEffect Color="{StaticResource CircuitRed}" BlurRadius="50" ShadowDepth="0"/>
+                </Border.Effect>
+                <Grid>
+                    <Ellipse Stroke="{StaticResource BrushRed}" StrokeThickness="2" Opacity="0.3" Margin="20"/>
+                    <Ellipse Stroke="{StaticResource BrushRed}" StrokeThickness="10" StrokeDashArray="1 0.5" Margin="40"/>
+                    
+                    <!-- Arrow -->
+                    <Path Style="{StaticResource ArrowPathStyle}" Fill="{StaticResource BrushRed}" Width="350" Height="350">
+                        <Path.Effect>
+                            <DropShadowEffect Color="{StaticResource CircuitRed}" BlurRadius="20" ShadowDepth="0"/>
+                        </Path.Effect>
+                    </Path>
+                </Grid>
+            </Border>
+            
+            <!-- Pulsing Border (Optional, maybe too much if wanting similarity) -->
+            <!-- Removing big border to match Normal style more closely -->
+
+            <!-- Status Text (Standardized Footer) -->
+            <Border Background="#CC000000" VerticalAlignment="Bottom" Margin="0,0,0,50" HorizontalAlignment="Center" Padding="60,20" CornerRadius="10">
+                <Border.RenderTransform>
+                    <SkewTransform AngleX="-20"/>
+                </Border.RenderTransform>
+                <Border.BorderBrush>
+                    <SolidColorBrush Color="{StaticResource CircuitRed}"/>
+                </Border.BorderBrush>
+                <Border.BorderThickness>
+                    <Thickness Left="10" Right="10"/>
+                </Border.BorderThickness>
+                
+                <StackPanel>
+                    <TextBlock Text="RED FLAG" Style="{StaticResource RacingHeader}" FontSize="40" Foreground="{StaticResource BrushRed}" HorizontalAlignment="Center">
+                        <TextBlock.RenderTransform><SkewTransform AngleX="20"/></TextBlock.RenderTransform>
+                    </TextBlock>
+                    <TextBlock Text="{Binding DisplayText}" Style="{StaticResource RacingHeader}" FontSize="60" Foreground="{StaticResource BrushRed}">
+                        <TextBlock.RenderTransform><SkewTransform AngleX="20"/></TextBlock.RenderTransform>
+                    </TextBlock>
+                </StackPanel>
+            </Border>
+
+            <!-- Side Decoration -->
+            <Rectangle Width="20" HorizontalAlignment="Left" Fill="{StaticResource BrushRed}" Opacity="0.5"/>
+            <Rectangle Width="20" HorizontalAlignment="Right" Fill="{StaticResource BrushRed}" Opacity="0.5"/>
+        </Grid>
+
+        <!-- ============================================================
+             VIEW 4: EVACUATION (Red Strobe)
+             ============================================================ -->
+        <Grid x:Name="ViewEvacuation">
+            <Grid.Style>
+                <Style TargetType="Grid">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding CurrentMode}" Value="EVACUATION">
+                            <Setter Property="Visibility" Value="Visible"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Grid.Style>
+
+            <!-- Background Strobe/Grid -->
+             <UniformGrid Rows="3" Columns="3" Opacity="0.1">
+                <Path Data="M0,20 L10,0 L20,20" Stroke="Red" StrokeThickness="2" Stretch="Uniform" Margin="20"/>
+                <Path Data="M0,20 L10,0 L20,20" Stroke="Red" StrokeThickness="2" Stretch="Uniform" Margin="20"/>
+                <Path Data="M0,20 L10,0 L20,20" Stroke="Red" StrokeThickness="2" Stretch="Uniform" Margin="20"/>
+                <Path Data="M0,20 L10,0 L20,20" Stroke="Red" StrokeThickness="2" Stretch="Uniform" Margin="20"/>
+                <Path Data="M0,20 L10,0 L20,20" Stroke="Red" StrokeThickness="2" Stretch="Uniform" Margin="20"/>
+                <Path Data="M0,20 L10,0 L20,20" Stroke="Red" StrokeThickness="2" Stretch="Uniform" Margin="20"/>
+                <Path Data="M0,20 L10,0 L20,20" Stroke="Red" StrokeThickness="2" Stretch="Uniform" Margin="20"/>
+                <Path Data="M0,20 L10,0 L20,20" Stroke="Red" StrokeThickness="2" Stretch="Uniform" Margin="20"/>
+                <Path Data="M0,20 L10,0 L20,20" Stroke="Red" StrokeThickness="2" Stretch="Uniform" Margin="20"/>
+            </UniformGrid>
+
+            <!-- Center HUD (Red) -->
+            <Border Width="600" Height="600" BorderBrush="{StaticResource BrushRed}" BorderThickness="4" CornerRadius="300" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,250">
+                <Border.Effect>
+                    <DropShadowEffect Color="{StaticResource CircuitRed}" BlurRadius="50" ShadowDepth="0"/>
+                </Border.Effect>
+                <Grid>
+                     <Ellipse Stroke="{StaticResource BrushRed}" StrokeThickness="2" Opacity="0.3" Margin="20"/>
+                     <!-- Arrow -->
+                    <Path Style="{StaticResource ArrowPathStyle}" Fill="{StaticResource BrushRed}" Width="350" Height="350">
+                        <Path.Effect>
+                            <DropShadowEffect Color="{StaticResource CircuitRed}" BlurRadius="20" ShadowDepth="0"/>
+                        </Path.Effect>
+                    </Path>
+                </Grid>
+            </Border>
+
+            <!-- Status Text (Standardized Footer) -->
+            <Border Background="#CC000000" VerticalAlignment="Bottom" Margin="0,0,0,50" HorizontalAlignment="Center" Padding="60,20" CornerRadius="10">
+                <Border.RenderTransform>
+                    <SkewTransform AngleX="-20"/>
+                </Border.RenderTransform>
+                <Border.BorderBrush>
+                    <SolidColorBrush Color="{StaticResource CircuitRed}"/>
+                </Border.BorderBrush>
+                <Border.BorderThickness>
+                    <Thickness Left="10" Right="10"/>
+                </Border.BorderThickness>
+                
+                <StackPanel>
+                    <TextBlock Text="EVACUATE / EVACUACIÓN" Style="{StaticResource RacingHeader}" FontSize="40" Foreground="{StaticResource BrushRed}" HorizontalAlignment="Center">
+                        <TextBlock.RenderTransform><SkewTransform AngleX="20"/></TextBlock.RenderTransform>
+                    </TextBlock>
+                    <TextBlock Text="{Binding DisplayText}" Style="{StaticResource RacingHeader}" FontSize="60" Foreground="{StaticResource BrushRed}">
+                        <TextBlock.RenderTransform><SkewTransform AngleX="20"/></TextBlock.RenderTransform>
+                    </TextBlock>
+                </StackPanel>
+            </Border>
+
+            <!-- Side Decoration -->
+            <Rectangle Width="20" HorizontalAlignment="Left" Fill="{StaticResource BrushRed}" Opacity="0.5"/>
+            <Rectangle Width="20" HorizontalAlignment="Right" Fill="{StaticResource BrushRed}" Opacity="0.5"/>
+        </Grid>
+
+        <!-- ============================================================
+             VIEW 5: MAINTENANCE (Telemetry)
+             ============================================================ -->
+        <!-- ============================================================
+             VIEW 5: MAINTENANCE (Telemetry)
+             ============================================================ -->
+        <Grid x:Name="ViewMaintenance">
+            <Grid.Style>
+                <Style TargetType="Grid">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding CurrentMode}" Value="MAINTENANCE">
+                            <Setter Property="Visibility" Value="Visible"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Grid.Style>
+
+            <!-- Grid Background -->
+            <Grid.Resources>
+                <DrawingBrush x:Key="TechGrid" TileMode="Tile" Viewport="0,0,50,50" ViewportUnits="Absolute">
+                    <DrawingBrush.Drawing>
+                        <GeometryDrawing>
+                            <GeometryDrawing.Geometry>
+                                <GeometryGroup>
+                                    <LineGeometry StartPoint="0,0" EndPoint="50,0" />
+                                    <LineGeometry StartPoint="0,0" EndPoint="0,50" />
+                                </GeometryGroup>
+                            </GeometryDrawing.Geometry>
+                            <GeometryDrawing.Pen>
+                                <Pen Brush="#3300AEEF" Thickness="1" />
+                            </GeometryDrawing.Pen>
+                        </GeometryDrawing>
+                    </DrawingBrush.Drawing>
+                </DrawingBrush>
+            </Grid.Resources>
+            <Rectangle Fill="{StaticResource TechGrid}"/>
+
+            <!-- Center Content (Telemetry) -->
+            <!-- We don't use the Circle HUD here because text table fits better in rectangle, 
+                 but we style it with the Border/Glow effect -->
+            <Border BorderBrush="{StaticResource BrushCyan}" BorderThickness="4" Background="#CC000000" CornerRadius="20" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="40" Margin="0,0,0,250">
+                <Border.Effect>
+                    <DropShadowEffect Color="{StaticResource TechCyan}" BlurRadius="30" ShadowDepth="0"/>
+                </Border.Effect>
+                <StackPanel>
+                    <TextBlock Text="SYSTEM TELEMETRY" Style="{StaticResource RacingHeader}" FontSize="40" Foreground="{StaticResource BrushCyan}" HorizontalAlignment="Center" Margin="0,0,0,20"/>
+                    
+                     <UniformGrid Columns="2" Width="600">
+                        <TextBlock Text="NETWORK" Style="{StaticResource HudText}" FontSize="20" Margin="10"/>
+                        <TextBlock Text="ONLINE (1Gbps)" Style="{StaticResource HudText}" Foreground="White" FontSize="20" Margin="10" HorizontalAlignment="Right"/>
+                        
+                        <TextBlock Text="LATENCY" Style="{StaticResource HudText}" FontSize="20" Margin="10"/>
+                        <TextBlock Text="12ms" Style="{StaticResource HudText}" Foreground="White" FontSize="20" Margin="10" HorizontalAlignment="Right"/>
+                        
+                        <TextBlock Text="GPU TEMP" Style="{StaticResource HudText}" FontSize="20" Margin="10"/>
+                        <TextBlock Text="45°C" Style="{StaticResource HudText}" Foreground="White" FontSize="20" Margin="10" HorizontalAlignment="Right"/>
+                        
+                        <TextBlock Text="UPTIME" Style="{StaticResource HudText}" FontSize="20" Margin="10"/>
+                        <TextBlock Text="04:20:11" Style="{StaticResource HudText}" Foreground="White" FontSize="20" Margin="10" HorizontalAlignment="Right"/>
+                    </UniformGrid>
+                </StackPanel>
+            </Border>
+
+            <!-- Status Text (Standardized Footer) -->
+            <Border Background="#CC000000" VerticalAlignment="Bottom" Margin="0,0,0,50" HorizontalAlignment="Center" Padding="60,20" CornerRadius="10">
+                <Border.RenderTransform>
+                    <SkewTransform AngleX="-20"/>
+                </Border.RenderTransform>
+                <Border.BorderBrush>
+                    <SolidColorBrush Color="{StaticResource TechCyan}"/>
+                </Border.BorderBrush>
+                <Border.BorderThickness>
+                    <Thickness Left="10" Right="10"/>
+                </Border.BorderThickness>
+                
+                <StackPanel>
+                    <TextBlock Text="MAINTENANCE MODE" Style="{StaticResource RacingHeader}" FontSize="40" Foreground="{StaticResource BrushCyan}" HorizontalAlignment="Center">
+                        <TextBlock.RenderTransform><SkewTransform AngleX="20"/></TextBlock.RenderTransform>
+                    </TextBlock>
+                    <TextBlock Text="PIT ENTRY OPEN" Style="{StaticResource RacingHeader}" FontSize="30" Foreground="White" HorizontalAlignment="Center">
+                        <TextBlock.RenderTransform><SkewTransform AngleX="20"/></TextBlock.RenderTransform>
+                    </TextBlock>
+                </StackPanel>
+            </Border>
+            
+            <!-- Side Decoration -->
+            <Rectangle Width="20" HorizontalAlignment="Left" Fill="{StaticResource BrushCyan}" Opacity="0.5"/>
+            <Rectangle Width="20" HorizontalAlignment="Right" Fill="{StaticResource BrushCyan}" Opacity="0.5"/>
+        </Grid>
+
+        <!-- HIDDEN COMMAND INPUT -->
+        <StackPanel VerticalAlignment="Top" HorizontalAlignment="Left" Opacity="0" IsHitTestVisible="False" Width="1" Height="1">
+            <TextBox x:Name="CommandInput" />
+            <Button Content="Send" Click="SendCommandButton_Click" />
+            <Button Content="Restart" Click="RestartButton_Click" />
+        </StackPanel>
+
+    </Grid>
+</Window>

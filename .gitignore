@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+
+# Environment & credentials
+.env
+.env.local
+.env.*.local
+google-services.json
+GoogleService-Info.plist
+local.properties
+*.key
+*.crt
+*.pem
+
+# Build outputs
+build/
+build_unlocked/
+dist/
+out/
+bin/
+obj/
+.gradle/
+.dart_tool/
+DerivedData/
+Pods/
+*.apk
+*.aab
+*.ipa
+*.exe
+*.dll
+*.msi
+
+# Archives
+*.zip
+*.z01
+*.rar
+*.7z
+
+# IDE / OS
+.idea/
+.vscode/
+xcuserdata/
+*.iml
+.DS_Store
+Thumbs.db

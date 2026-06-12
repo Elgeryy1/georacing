@@ -1,0 +1,9 @@
+platform :ios, '16.0'
+use_frameworks!
+
+target 'GeoRacing' do
+  # Pods for GeoRacing
+  pod 'Firebase/Auth'
+  pod 'Firebase/Firestore'
+  pod 'GoogleSignIn'
+end

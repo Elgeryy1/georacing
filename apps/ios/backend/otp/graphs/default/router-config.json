@@ -1,0 +1,32 @@
+{
+  "updaters": [
+    {
+      "type": "stop-time-updater",
+      "frequencySec": 30,
+      "sourceType": "gtfs-http",
+      "url": "https://gtfsrt.renfe.com/trip_updates.pb",
+      "feedId": "renfe-cercanias"
+    },
+    {
+      "type": "vehicle-positions-updater",
+      "frequencySec": 30,
+      "sourceType": "gtfs-http",
+      "url": "https://gtfsrt.renfe.com/vehicle_positions.pb",
+      "feedId": "renfe-cercanias"
+    },
+    {
+      "type": "real-time-alerts-updater",
+      "frequencySec": 60,
+      "sourceType": "gtfs-http",
+      "url": "https://gtfsrt.renfe.com/alerts.pb",
+      "feedId": "renfe-cercanias"
+    },
+    {
+      "type": "stop-time-updater",
+      "frequencySec": 30,
+      "sourceType": "gtfs-http",
+      "url": "https://www.ambmobilitat.cat/transit/trips-updates/trips.bin",
+      "feedId": "amb-bus"
+    }
+  ]
+}
