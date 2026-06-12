@@ -1,468 +1,119 @@
-# 🎯 GeoRacing Control Panel - Sistema de Balizas
+# GeoRacing Control Panel
 
-Panel de control web para gestionar las balizas inteligentes del Circuit de Barcelona-Catalunya en tiempo real.
+Web-based race-control panel for the GeoRacing motorsport event platform. It is the operator-facing dashboard used during an event to manage:
 
-## ✨ Características
+- **Circuit state (flags)** — switch the global circuit mode between NORMAL, SAFETY CAR and RED FLAG, with live weather/track info (`pages/CircuitState.tsx`).
+- **Smart beacons** — real-time fleet view, per-beacon configuration (mode, arrow direction, message, color, brightness, language, zone), remote commands (restart, shutdown, close app) and automatic detection of newly connected beacons (`pages/Beacons.tsx`, `pages/BeaconDetail.tsx`).
+- **Emergencies and evacuation** — global or per-zone evacuation protocol with confirmation flow and audit logging (`pages/Emergencies.tsx`, `components/EvacuationModal.tsx`).
+- **Incidents** — live incident list with severity levels (`pages/Incidents.tsx`).
+- **Circuit map and zones** — zone occupancy/traffic view and circuit routes status (`pages/ZonesMap.tsx`, `pages/Routes.tsx`).
+- **Event services** — users, orders, products, food stands and news management (`pages/UsersPage.tsx`, `pages/OrdersPage.tsx`, `pages/ProductsPage.tsx`, `pages/FoodStandsPage.tsx`, `pages/NewsPage.tsx`).
+- **Logs and statistics** — command history and system metrics (`pages/Logs.tsx`, `pages/Statistics.tsx`).
 
-- 🔐 Autenticación con Firebase Auth
-- 📊 Dashboard en tiempo real de todas las balizas
-- 🎯 Control individual y masivo de balizas
-- 🚨 Sistema de emergencias y evacuación global
-- 🎨 Vista previa en tiempo real de las pantallas
-- 🌐 Soporte multiidioma (ES, CA, EN, FR, DE, IT, PT)
-- 💬 **Textos predefinidos inteligentes según modo y dirección de flecha**
-- 🔄 Sincronización en tiempo real con aplicaciones WPF
-- 📍 Gestión por zonas del circuito
-- 📈 Estadísticas y métricas del sistema
-- 🔔 Detección automática de nuevas balizas
-- ⚡ Sistema de comandos remotos y reinicio de balizas
-- 🖱️ Edición click-to-edit con modal interactivo
+## Tech stack
 
-## 🚀 Stack Tecnológico
+- **React 18** + **TypeScript** (strict mode)
+- **Vite 5** build tooling
+- **Tailwind CSS 3** for styling
+- **Firebase** (Authentication; Firestore rules/indexes included for the beacon legacy flow)
+- **react-router-dom 6** for routing
+- **lucide-react** icons
+- Data access through a small generic REST client (`src/services/apiClient.ts`) that polls the GeoRacing backend (`_get` / `_upsert` / `_delete` endpoints)
 
-- **Frontend**: React + TypeScript + Vite
-- **Estilos**: TailwindCSS
-- **Base de datos**: Firebase Firestore (tiempo real)
-- **Autenticación**: Firebase Auth
-- **Iconos**: Lucide React
-- **Integración**: Sistema WPF .NET 8
+## Setup
 
-## Instalación
-
-1. Instalar dependencias:
 ```bash
+cd web-panel
+
+# 1. Configure environment variables
+cp .env.example .env
+#    Fill in your Firebase project values (and optionally VITE_API_BASE_URL)
+
+# 2. Install dependencies
 npm install
-```
 
-2. Configurar Firebase:
-   - Copiar `.env.example` a `.env`
-   - Rellenar las credenciales de Firebase
-
-3. Ejecutar en desarrollo:
-```bash
+# 3. Start the dev server (http://localhost:3000)
 npm run dev
 ```
 
-4. Compilar para producción:
-```bash
-npm run build
-```
-
-## 📁 Estructura del Proyecto
-
-```
-src/
-├── components/         # Componentes reutilizables
-│   ├── BeaconConfigForm.tsx      # Formulario de configuración
-│   ├── BeaconMetricsCard.tsx     # Tarjeta de métricas
-│   ├── BeaconPreview.tsx         # Vista previa de baliza
-│   ├── Layout.tsx                # Layout principal
-│   ├── NewBeaconModal.tsx        # Modal nueva baliza
-│   └── ProtectedRoute.tsx        # Rutas protegidas
-├── context/           # Contextos de React
-│   └── AuthContext.tsx           # Autenticación
-├── firebase/          # Configuración de Firebase
-│   ├── config.ts                 # Credenciales
-│   └── firebaseApp.ts            # Inicialización
-├── hooks/             # Hooks personalizados
-│   ├── useBeacons.ts             # Hook de balizas
-│   ├── useNewBeaconDetection.ts  # Detección nuevas balizas
-│   └── useZones.ts               # Gestión de zonas
-├── pages/             # Páginas de la aplicación
-│   ├── BeaconDetail.tsx          # Detalle de baliza
-│   ├── Config.tsx                # Configuración
-│   ├── ConfigAdvanced.tsx        # Panel avanzado
-│   ├── Dashboard.tsx             # Dashboard principal
-│   ├── Emergencies.tsx           # Control emergencias
-│   ├── Login.tsx                 # Login
-│   ├── Routes.tsx                # Rutas del circuito
-│   ├── Statistics.tsx            # Estadísticas
-│   └── ZonesMap.tsx              # Mapa de zonas
-├── services/          # Servicios de backend
-│   ├── beaconDetectionService.ts # Detección balizas
-│   └── beaconService.ts          # CRUD de balizas
-├── types/             # Tipos de TypeScript
-│   └── index.ts                  # Definiciones
-├── utils/             # Utilidades
-│   ├── beaconMessages.ts         # Mensajes predefinidos multiidioma
-│   └── beaconUtils.ts            # 15+ funciones auxiliares
-```
-
-## 🔥 Configuración de Firebase
-
-### Firestore - Colección `beacons`
-
-Estructura de documento:
-```typescript
-{
-  // Identificación
-  beaconId: string,                    // ID único "BALIZA-XXX"
-  
-  // Estado de conexión
-  online: boolean,                     // ¿Conectada?
-  lastSeen: Timestamp,                 // Última conexión (heartbeat cada 5s)
-  
-  // Configuración
-  configured: boolean,                 // ¿Configurada?
-  mode: BeaconMode,                   // Ver modos abajo
-  arrow: ArrowDirection,              // Ver direcciones abajo
-  message: string,                    // Mensaje personalizado
-  color: string,                      // Color hex (#RRGGBB)
-  brightness: number,                 // Brillo 0-100
-  language: Language,                 // Ver idiomas abajo
-  
-  // Ubicación
-  zone: string,                       // Zona del circuito
-  evacuationExit?: string,            // Salida evacuación
-  
-  // Metadata
-  tags: string[],                     // Etiquetas
-  lastUpdatedAt: Timestamp,           // Última actualización
-  firstSeen?: Timestamp               // Primera conexión
-}
-```
-
-### Modos Disponibles (BeaconMode)
-
-```typescript
-type BeaconMode = 
-  | "UNCONFIGURED"  // Sin configurar (gris)
-  | "NORMAL"        // Operación normal (verde)
-  | "CONGESTION"    // Tráfico/congestión (amarillo)
-  | "EMERGENCY"     // Emergencia (rojo parpadeante)
-  | "EVACUATION"    // Evacuación (rojo + flecha)
-  | "MAINTENANCE"   // Mantenimiento (azul)
-```
-
-### Direcciones de Flecha (ArrowDirection)
-
-```typescript
-type ArrowDirection = 
-  | "NONE"         // Sin flecha
-  | "UP"           // ↑ Arriba
-  | "DOWN"         // ↓ Abajo
-  | "LEFT"         // ← Izquierda
-  | "RIGHT"        // → Derecha
-  | "UP_LEFT"      // ↖ Arriba-Izquierda
-  | "UP_RIGHT"     // ↗ Arriba-Derecha
-  | "DOWN_LEFT"    // ↙ Abajo-Izquierda
-  | "DOWN_RIGHT"   // ↘ Abajo-Derecha
-```
-
-### Idiomas Soportados (Language)
-
-```typescript
-type Language = 
-  | "ES"  // Español
-  | "CA"  // Catalán
-  | "EN"  // Inglés
-  | "FR"  // Francés
-  | "DE"  // Alemán
-  | "IT"  // Italiano
-  | "PT"  // Portugués
-```
-
-### Firestore - Colección `emergency_logs`
-
-Estructura de documento:
-```typescript
-{
-  type: "GLOBAL_EVACUATION_ON" | "GLOBAL_EVACUATION_OFF" | "ZONE_EVACUATION_ON" | "ZONE_EVACUATION_OFF",
-  zone?: string,
-  triggeredByUid: string,
-  triggeredAt: Timestamp,
-  payload: object
-}
-```
-
-## 🎯 Funcionalidades
-
-### 📊 Dashboard
-- Listado completo de balizas en tiempo real
-- Filtros por zona, modo y estado online/offline
-- Selección múltiple para acciones masivas
-- Detección automática de nuevas balizas
-- Estadísticas globales del sistema
-
-### 🔧 Configuración de Balizas
-- Vista previa en tiempo real de la baliza
-- Edición de todos los parámetros:
-  - Modo de operación (6 modos)
-  - Dirección de flecha (9 direcciones)
-  - Mensaje personalizado
-  - Color y brillo
-  - Idioma (7 idiomas)
-  - Zona y salida de evacuación
-- Guardado instantáneo en Firestore
-
-### 🚨 Sistema de Emergencias
-- Activación global de evacuación (todas las balizas)
-- Control por zonas específicas
-- Mensajes personalizados multiidioma
-- Registro de acciones críticas con logs
-- Desactivación controlada
-
-### 📈 Monitoreo y Métricas
-- Estado online/offline (heartbeat < 15s)
-- Tiempo desde última conexión
-- Estadísticas del sistema:
-  - Total de balizas
-  - Balizas online/offline
-  - Balizas configuradas/sin configurar
-  - Balizas en emergencia
-  - Porcentaje de uptime
-- Métricas por baliza:
-  - Batería y voltaje
-  - Señal WiFi/Red
-  - Temperatura
-  - Conexiones activas
-
-### 🗺️ Gestión por Zonas
-- Filtrado de balizas por zona
-- Activación de emergencias zonales
-- Vista de mapa interactivo
-- Estadísticas por zona
-
-### 💬 Sistema de Textos Predefinidos Inteligentes
-
-El sistema genera automáticamente mensajes apropiados cuando no se especifica un mensaje personalizado:
-
-#### Modo NORMAL - Direcciones Inteligentes
-En modo NORMAL, el texto varía según la dirección de la flecha:
-- **NONE**: "Circulación Normal"
-- **UP** ↑: "Continúe Recto"
-- **LEFT** ←: "Gire a la Izquierda"
-- **RIGHT** →: "Gire a la Derecha"
-- **UP_LEFT** ↖: "Diagonal Izquierda"
-- **UP_RIGHT** ↗: "Diagonal Derecha"
-- **DOWN_LEFT** ↙: "Retroceda Izquierda"
-- **DOWN_RIGHT** ↘: "Retroceda Derecha"
-- **DOWN** ↓: "Retroceda"
-
-#### Otros Modos
-Cada modo tiene su mensaje predefinido:
-- **UNCONFIGURED**: "Sistema en Configuración"
-- **CONGESTION**: "⚠️ Congestión - Reduzca Velocidad"
-- **EMERGENCY**: "⚠️ EMERGENCIA - PRECAUCIÓN"
-- **EVACUATION**: "🚨 EVACUACIÓN - Siga las Flechas"
-- **MAINTENANCE**: "🔧 Mantenimiento - Fuera de Servicio"
-
-#### Multiidioma
-Todos los mensajes disponibles en 7 idiomas:
-- 🇪🇸 Español (ES)
-- 🇪🇸 Catalán (CA)
-- 🇬🇧 Inglés (EN)
-- 🇫🇷 Francés (FR)
-- 🇩🇪 Alemán (DE)
-- 🇮🇹 Italiano (IT)
-- 🇵🇹 Portugués (PT)
-
-**Total**: 105 variaciones de texto (6 modos × 7 idiomas + 9 direcciones × 7 idiomas para NORMAL)
-
-```typescript
-import { getDefaultBeaconMessage } from "./utils/beaconMessages";
-
-// Ejemplos
-getDefaultBeaconMessage("NORMAL", "ES", "RIGHT");     // "Gire a la Derecha"
-getDefaultBeaconMessage("NORMAL", "EN", "UP");        // "Continue Straight"
-getDefaultBeaconMessage("EMERGENCY", "FR");           // "⚠️ URGENCE - PRUDENCE"
-getDefaultBeaconMessage("EVACUATION", "CA");          // "🚨 EVACUACIÓ - Segueixi les Fletxes"
-```
-
-## 📚 Documentación
-
-- **[QUICK_START.md](./QUICK_START.md)** - Guía de inicio rápido con ejemplos
-- **[SMART_MESSAGES_GUIDE.md](./SMART_MESSAGES_GUIDE.md)** - 💬 Sistema de mensajes inteligentes multiidioma
-- **[BEACON_INTEGRATION_GUIDE.md](./BEACON_INTEGRATION_GUIDE.md)** - Guía completa de integración
-- **[INTEGRATION_SUMMARY.md](./INTEGRATION_SUMMARY.md)** - Resumen de cambios implementados
-- **[COMMAND_SYSTEM_GUIDE.md](./COMMAND_SYSTEM_GUIDE.md)** - Sistema de comandos y reinicio remoto
-- **[CUSTOM_TEXT_INTEGRATION_GUIDE.md](./CUSTOM_TEXT_INTEGRATION_GUIDE.md)** - Integración de textos personalizados en WPF
-- **[WPF_INTEGRATION_CHECKLIST.md](./WPF_INTEGRATION_CHECKLIST.md)** - Checklist completo para verificar integración WPF
-- **[AUTH_GUIDE.md](./AUTH_GUIDE.md)** - Guía de autenticación
-- **[BEACON_METRICS_GUIDE.md](./BEACON_METRICS_GUIDE.md)** - Guía de métricas
-- **[FIRESTORE_SETUP.md](./FIRESTORE_SETUP.md)** - Configuración de Firestore
-
-## 🚀 Uso Rápido
-
-### Importar Funciones
-
-```typescript
-// Servicios
-import { beaconsService, emergencyService } from "./services/beaconService";
-
-// Hooks
-import { useBeacons } from "./hooks/useBeacons";
-
-// Utilidades
-import { 
-  isBeaconOnline, 
-  getBeaconStats, 
-  getBeaconStatus 
-} from "./utils/beaconUtils";
-```
-
-### Listar Balizas
-
-```typescript
-function MyComponent() {
-  const { beacons, loading } = useBeacons();
-  
-  return (
-    <div>
-      {beacons.map(beacon => (
-        <div key={beacon.beaconId}>
-          {beacon.beaconId} - {beacon.zone}
-        </div>
-      ))}
-    </div>
-  );
-}
-```
-
-### Configurar Baliza
-
-```typescript
-await beaconsService.configureBeacon("BALIZA-01", {
-  mode: "NORMAL",
-  arrow: "RIGHT",
-  message: "Entrada Principal",
-  color: "#00FF00",
-  brightness: 80,
-  language: "ES"
-});
-```
-
-### Activar Emergencia Global
-
-```typescript
-await emergencyService.activateGlobalEvacuation(
-  beacons,
-  user.uid,
-  "¡EMERGENCIA! Evacuar zona",
-  "SALIDA NORTE"
-);
-```
-
-## 🔄 Integración con Sistema WPF
-
-El panel web se sincroniza en tiempo real con las aplicaciones WPF de las balizas:
-
-### Comportamiento de las Balizas
-1. **Polling**: Las balizas consultan Firestore cada **300ms**
-2. **Heartbeat**: Envían señal de vida cada **5 segundos**
-3. **Auto-registro**: Se crean automáticamente en modo `UNCONFIGURED`
-4. **Actualización**: Cambios instantáneos desde el panel web
-
-### Detección de Estado
-- **Online**: Si `lastSeen` < 15 segundos
-- **Offline**: Si `lastSeen` > 15 segundos
-- **Sin configurar**: Si `configured = false`
-
-## 🧪 Testing
-
-### Crear Baliza de Prueba
-
-```typescript
-// En la consola del navegador
-await beaconsService.createTestBeacon("BALIZA-TEST-01");
-```
-
-### Activar Emergencia de Prueba
-
-```typescript
-await beaconsService.activateEmergencyAll(
-  "PRUEBA DE EMERGENCIA",
-  "RIGHT"
-);
-```
-
-### Verificar Estadísticas
-
-```typescript
-const stats = getBeaconStats(beacons);
-console.log(`Uptime: ${stats.uptime}%`);
-console.log(`Online: ${stats.online}/${stats.total}`);
-```
-
-## 🛠️ Desarrollo
-
-### Scripts Disponibles
+## Build
 
 ```bash
-# Desarrollo
-npm run dev
-
-# Compilar
-npm run build
-
-# Vista previa de producción
-npm run preview
-
-# Linter
-npm run lint
-
-# Type checking
-npm run type-check
+npm run build      # type-checks (tsc) and produces dist/
+npm run preview    # serve the production build locally
+npm run lint       # ESLint
 ```
 
-### Crear Usuario Administrador
+Deployment to Firebase Hosting is preconfigured (`firebase.json`):
 
 ```bash
-npm run create-admin
+npm run deploy             # build + firebase deploy
+npm run deploy:firestore   # deploy Firestore rules/indexes only
 ```
 
-### Crear Balizas de Ejemplo
+## Environment variables
 
-```bash
-node scripts/create-beacons.js
-```
+All variables are read via `import.meta.env` (see `.env.example`):
 
-## 🔐 Seguridad
+| Variable | Purpose |
+| --- | --- |
+| `VITE_FIREBASE_API_KEY` | Firebase web API key |
+| `VITE_FIREBASE_AUTH_DOMAIN` | Firebase auth domain |
+| `VITE_FIREBASE_PROJECT_ID` | Firebase project id |
+| `VITE_FIREBASE_STORAGE_BUCKET` | Firebase storage bucket |
+| `VITE_FIREBASE_MESSAGING_SENDER_ID` | Firebase sender id |
+| `VITE_FIREBASE_APP_ID` | Firebase app id |
+| `VITE_API_BASE_URL` | Backend REST API base URL (optional; falls back to the demo server) |
 
-Las reglas de Firestore permiten:
-- ✅ Lectura pública de balizas (para aplicaciones WPF)
-- ✅ Auto-registro de nuevas balizas
-- ✅ Heartbeat sin autenticación (`online`, `lastSeen`)
-- ✅ Escritura completa para usuarios autenticados
-- ❌ Eliminación solo para usuarios autenticados
+No real credentials are committed; `src/firebase/config.ts` only reads from the environment.
 
-## 📦 Dependencias Principales
+## Project structure (`src/`)
 
-```json
-{
-  "react": "^18.x",
-  "react-router-dom": "^6.x",
-  "firebase": "^10.x",
-  "lucide-react": "^0.x",
-  "tailwindcss": "^3.x",
-  "typescript": "^5.x",
-  "vite": "^5.x"
-}
-```
+| Folder | Contents |
+| --- | --- |
+| `components/` | Reusable UI: layout, beacon config form/preview/edit modal, command panel, evacuation modal, toasts, protected route |
+| `context/` | React contexts: `AuthContext` (Firebase Auth session) and `ToastContext` (notifications) |
+| `examples/` | `beaconConfigExamples.ts` — annotated, runnable code samples for the beacon configuration API (documentation, not imported by the app) |
+| `firebase/` | Firebase initialization; config is loaded from `VITE_FIREBASE_*` env vars |
+| `hooks/` | Polling hooks: `useBeacons`, `useCircuitState`, `useNewBeaconDetection`, `useZones` |
+| `pages/` | One component per route (see feature list above) plus `Login` |
+| `services/` | `apiClient` (generic REST client), `beaconService` (beacon CRUD + commands + emergency service), `beaconDetectionService` |
+| `types/` | Shared TypeScript domain types (Beacon, Command, Zone, Route, CircuitStateData, ...) |
+| `utils/` | Beacon helpers: status/formatting, multilanguage default messages, validation |
+| `beacon_renderer/` | Standalone rendering engine (layout + arrow component) mirroring how physical beacon screens draw their state; reference implementation, not imported by the panel |
 
-## 🌐 Deploy
+Other useful files in this folder:
 
-### Firebase Hosting
+- `BEACON_CLIENT_EXAMPLE.js` — example client code (JavaScript and Python variants) to run on a physical beacon: auto-registration, heartbeat and config subscription.
+- `GeoRacingDB.json` — sample database export (tables + seed rows) matching the backend schema used by the panel.
+- `firestore.rules`, `firestore.indexes.json` — Firestore security rules and indexes.
 
-```bash
-npm run build
-firebase deploy --only hosting
-```
+## Additional docs
 
-### Vercel / Netlify
+Detailed guides live in [`docs/`](./docs):
 
-El proyecto está configurado para deploy automático con Vite.
+| Document | Topic |
+| --- | --- |
+| [QUICK_START.md](./docs/QUICK_START.md) | Quick start with examples |
+| [AUTH_GUIDE.md](./docs/AUTH_GUIDE.md) | Authentication setup |
+| [FIRESTORE_SETUP.md](./docs/FIRESTORE_SETUP.md) | Firestore configuration |
+| [API_MIGRATION_GUIDE.md](./docs/API_MIGRATION_GUIDE.md) | Migration from Firestore to the REST API |
+| [BEACON_INTEGRATION_GUIDE.md](./docs/BEACON_INTEGRATION_GUIDE.md) | Beacon integration overview |
+| [BEACON_CONFIG_COMPLETE.md](./docs/BEACON_CONFIG_COMPLETE.md) | Full beacon configuration reference |
+| [BEACON_METRICS_GUIDE.md](./docs/BEACON_METRICS_GUIDE.md) | Beacon metrics |
+| [COMMAND_SYSTEM_GUIDE.md](./docs/COMMAND_SYSTEM_GUIDE.md) | Remote command system |
+| [COMMAND_IMPLEMENTATION_SUMMARY.md](./docs/COMMAND_IMPLEMENTATION_SUMMARY.md) | Command system implementation notes |
+| [SMART_MESSAGES_GUIDE.md](./docs/SMART_MESSAGES_GUIDE.md) | Multilanguage smart default messages |
+| [CUSTOM_TEXT_INTEGRATION_GUIDE.md](./docs/CUSTOM_TEXT_INTEGRATION_GUIDE.md) | Custom text integration (WPF clients) |
+| [WPF_INTEGRATION_CHECKLIST.md](./docs/WPF_INTEGRATION_CHECKLIST.md) | WPF beacon client integration checklist |
+| [INTEGRATION_SUMMARY.md](./docs/INTEGRATION_SUMMARY.md) | Integration change summary |
+| [IMPLEMENTATION_SUMMARY.md](./docs/IMPLEMENTATION_SUMMARY.md) | Implementation summary |
+| [COMPLETION_REPORT.md](./docs/COMPLETION_REPORT.md) | Project completion report |
+| [VERIFICATION_CHECKLIST.md](./docs/VERIFICATION_CHECKLIST.md) | Manual verification checklist |
+| [FUTURE_IMPROVEMENTS_ROADMAP.md](./docs/FUTURE_IMPROVEMENTS_ROADMAP.md) | Roadmap of future improvements |
 
-## 🤝 Contribución
+> Note: some guides predate the REST API migration and describe the original Firestore-based data flow; see `API_MIGRATION_GUIDE.md` for the current architecture.
 
-Este es un proyecto interno de GeoRacing para el Circuit de Barcelona-Catalunya.
+## License
 
-## 📄 Licencia
-
-Propiedad de GeoRacing - Circuit de Barcelona-Catalunya
-
----
-
-**Versión**: 2.0.0  
-**Fecha**: Noviembre 2025  
-**Estado**: ✅ Producción
+MIT — see the repository [LICENSE](../LICENSE).

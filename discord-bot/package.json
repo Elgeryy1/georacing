@@ -1,14 +1,15 @@
 {
   "name": "georacing-discord-bot",
   "version": "1.0.0",
-  "description": "GeoRacing Discord bot with realtime Supabase listener and RAG answers.",
+  "description": "GeoOps - GeoRacing Discord operations bot: RAG-style Q&A over a Supabase knowledge base (Groq inference), incident tickets with threads, team role assignment and a realtime status watchdog.",
   "type": "module",
   "main": "index.js",
+  "license": "MIT",
   "scripts": {
     "start": "node index.js"
   },
   "engines": {
-    "node": ">=18.17.0"
+    "node": ">=18"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.43.5",

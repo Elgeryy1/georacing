@@ -108,6 +108,66 @@ const COMMANDS = [
         .setDescription('Archivo de documentación (.txt, .md)')
         .setRequired(false)
     ),
+  new SlashCommandBuilder()
+    .setName('incidente')
+    .setDescription('Reportar un incidente operativo (crea ticket + hilo)')
+    .addStringOption(opt =>
+      opt.setName('titulo')
+        .setDescription('Título del incidente')
+        .setRequired(true)
+    )
+    .addStringOption(opt =>
+      opt.setName('severidad')
+        .setDescription('Severidad del incidente')
+        .setRequired(true)
+        .addChoices(
+          { name: 'Baja', value: 'BAJA' },
+          { name: 'Media', value: 'MEDIA' },
+          { name: 'Alta', value: 'ALTA' },
+          { name: 'Crítica', value: 'CRITICA' }
+        )
+    ),
+  new SlashCommandBuilder()
+    .setName('emitir')
+    .setDescription('Emitir un comunicado oficial (solo administradores)')
+    .addStringOption(opt =>
+      opt.setName('titulo')
+        .setDescription('Título del comunicado')
+        .setRequired(true)
+    )
+    .addStringOption(opt =>
+      opt.setName('mensaje')
+        .setDescription('Cuerpo del mensaje')
+        .setRequired(true)
+    )
+    .addAttachmentOption(opt =>
+      opt.setName('imagen')
+        .setDescription('Imagen adjunta (opcional)')
+        .setRequired(false)
+    )
+    .addStringOption(opt =>
+      opt.setName('mencion')
+        .setDescription('¿Mencionar a @everyone?')
+        .setRequired(false)
+        .addChoices(
+          { name: 'Sí', value: 'yes' },
+          { name: 'No', value: 'no' }
+        )
+    ),
+  new SlashCommandBuilder()
+    .setName('equipo')
+    .setDescription('Panel de selección de equipo operativo (roles)'),
+  new SlashCommandBuilder()
+    .setName('purgar')
+    .setDescription('Eliminar mensajes en bloque (requiere Gestionar Mensajes)')
+    .addIntegerOption(opt =>
+      opt.setName('cantidad')
+        .setDescription('Número de mensajes a eliminar (1-100)')
+        .setRequired(true)
+    ),
+  new SlashCommandBuilder()
+    .setName('perfil')
+    .setDescription('Ficha de operario con estadísticas de incidentes'),
 ];
 
 // ============================================================================
@@ -129,7 +189,7 @@ client.once('ready', async () => {
   await verifyChannelAccess();
   startRealtimeWatchdog();
 
-  console.log(`�️  GeoOps Watchdog Active on Public.Ideas\n`);
+  console.log(`🛰️  GeoOps Watchdog Active on Public.Ideas\n`);
 });
 
 client.on('interactionCreate', async (interaction) => {
@@ -157,8 +217,13 @@ client.on('interactionCreate', async (interaction) => {
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isButton()) return;
 
-  if (interaction.customId.startsWith('role_')) {
-    await handleRoleButton(interaction);
+  try {
+    if (interaction.customId.startsWith('role_')) {
+      await handleRoleButton(interaction);
+    }
+  } catch (error) {
+    console.error(`💥 BUTTON ERROR [${interaction.customId}]:`, error);
+    await sendErrorEmbed(interaction, 'Button Interaction Failure', error.message);
   }
 });
 
@@ -510,7 +575,7 @@ async function handleIncidente(interaction) {
 
   // 2. Create Public Thread
   try {
-    const channel = await interaction.channel;
+    const channel = interaction.channel;
     const thread = await channel.threads.create({
       name: `[${severity}] ${title}`,
       autoArchiveDuration: 1440,
@@ -594,6 +659,8 @@ async function handlePerfil(interaction) {
     .from('incidents')
     .select('*', { count: 'exact', head: true })
     .eq('user_id', user.id);
+
+  if (error) console.error('Profile Count Error:', error.message);
 
   const embed = createIndustrialEmbed(`Ficha de Operario: ${user.username}`, '')
     .setThumbnail(user.displayAvatarURL())

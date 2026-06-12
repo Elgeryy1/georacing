@@ -5,7 +5,17 @@ const https = require('https');
 const fs = require('fs');
 const mysql = require('mysql2/promise');
 const cors = require('cors');
-const crypto = require('crypto'); // Fix: Import crypto
+const crypto = require('crypto');
+
+// --- Environment Validation ---
+const REQUIRED_ENV = ['DB_HOST', 'DB_USER', 'DB_PASSWORD', 'DB_NAME'];
+const missingEnv = REQUIRED_ENV.filter((key) => !process.env[key]);
+
+if (missingEnv.length > 0) {
+    console.error(`❌ FATAL: Missing required environment variables: ${missingEnv.join(', ')}`);
+    console.error('   Copy .env.example to .env and fill in the values.');
+    process.exit(1);
+}
 
 const app = express();
 app.use(cors());
@@ -19,23 +29,21 @@ app.get('/health', (req, res) => {
 
 // Database Config
 const dbConfig = {
-    host: process.env.DB_HOST || 'localhost',
+    host: process.env.DB_HOST,
     port: process.env.DB_PORT || 3306,
-    user: process.env.DB_USER || 'root',
+    user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME || 'GeoRacingDB',
+    database: process.env.DB_NAME,
     charset: 'utf8mb4'
 };
 
-// Database Connection Pool (initialized after DB check)
+// TLS certificate paths (overridable via env; defaults preserve previous behavior)
+const SSL_KEY_PATH = process.env.SSL_KEY_PATH || 'SSLprivatekey.key';
+const SSL_CERT_PATH = process.env.SSL_CERT_PATH || 'SSLcertificate.crt';
+const SSL_CA_PATH = process.env.SSL_CA_PATH || 'SSLIntermediateCertificate.crt';
+
+// Database Connection Pool (initialized in startServer)
 let pool;
-
-// Initialize Database & Pool
-// DB Initialization moved to startServer()
-
-
-// --- Helper Functions ---
-
 
 
 // --- Endpoints ---
@@ -322,6 +330,7 @@ app.get('/api/_read', async (req, res) => {
         const [rows] = await pool.query(query, queryParams);
         res.json(rows);
     } catch (err) {
+        if (err.code === 'ER_NO_SUCH_TABLE') return res.json([]); // Fail safe (consistent with /api/_get)
         console.error(`Error reading from ${table}:`, err);
         res.status(500).json({ error: err.message });
     }
@@ -391,7 +400,6 @@ async function genericInsert(table, data) {
     return data.id;
 }
 
-// --- Server Startup (HTTPS Only) ---
 // --- Server Startup (HTTPS Only) ---
 const PORT = process.env.PORT || 4010;
 
@@ -513,9 +521,9 @@ async function startServer() {
         } catch (e) { }
 
         // 6. Start HTTPS Server
-        const privateKey = fs.readFileSync('SSLprivatekey.key', 'utf8');
-        const certificate = fs.readFileSync('SSLcertificate.crt', 'utf8');
-        const ca = fs.readFileSync('SSLIntermediateCertificate.crt', 'utf8');
+        const privateKey = fs.readFileSync(SSL_KEY_PATH, 'utf8');
+        const certificate = fs.readFileSync(SSL_CERT_PATH, 'utf8');
+        const ca = fs.readFileSync(SSL_CA_PATH, 'utf8');
         const credentials = { key: privateKey, cert: certificate, ca: ca };
 
         const httpsServer = https.createServer(credentials, app);

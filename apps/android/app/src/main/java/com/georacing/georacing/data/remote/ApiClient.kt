@@ -16,7 +16,7 @@ import javax.net.ssl.X509TrustManager
  */
 object ApiClient {
     // Shared Base URL for all services
-    const val BASE_URL = "https://alpo.myqnapcloud.com:4010/api/"
+    const val BASE_URL = "https://georacing.example.com:4010/api/"
 
     private val secureOkHttpClient: OkHttpClient by lazy {
         OkHttpClient.Builder()

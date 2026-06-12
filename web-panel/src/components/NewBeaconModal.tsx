@@ -80,7 +80,7 @@ export const NewBeaconModal: React.FC<NewBeaconModalProps> = ({ beacon, onClose,
               <span className="font-mono">{beacon.beaconId}</span>
             </div>
             <div className="text-sm text-gray-400">
-              Primera conexión: {beacon.firstSeen ? new Date(beacon.firstSeen as any).toLocaleString('es-ES') : 'Desconocida'}
+              Primera conexión: {beacon.firstSeen ? new Date(beacon.firstSeen).toLocaleString('es-ES') : 'Desconocida'}
             </div>
           </div>
 

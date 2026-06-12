@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.flow
 
 /**
  * Repositorio real que lee rutas y zonas de tráfico desde el backend.
- * Tablas: "routes" y "zone_traffic" en alpo.myqnapcloud.com:4010/api
+ * Tablas: "routes" y "zone_traffic" en georacing.example.com:4010/api
  * 
  * Sustituye a FakeCrowdRepository — datos reales gestionados desde Panel Metropolis.
  */

@@ -27,7 +27,7 @@
 		<true/>
 		<key>NSExceptionDomains</key>
 		<dict>
-			<key>alpo.myqnapcloud.com</key>
+			<key>georacing.example.com</key>
 			<dict>
 				<key>NSExceptionAllowsInsecureHTTPLoads</key>
 				<true/>

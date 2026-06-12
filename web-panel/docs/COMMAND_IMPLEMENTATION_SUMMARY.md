@@ -393,7 +393,7 @@ describe('beaconService', () => {
 
 ### Archivos de Referencia
 1. **[COMMAND_SYSTEM_GUIDE.md](./COMMAND_SYSTEM_GUIDE.md)** - Guía completa del sistema
-2. **[README.md](./README.md)** - Documentación general actualizada
+2. **[README.md](../README.md)** - Documentación general actualizada
 3. **Este archivo** - Resumen de implementación
 
 ### Secciones Clave

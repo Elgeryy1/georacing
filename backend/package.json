@@ -1,15 +1,16 @@
 {
-  "name": "api",
+  "name": "georacing-backend",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "description": "GeoRacing REST API - Express + MySQL/MariaDB backend with a dynamic (Firestore-like) auto-evolving schema for motorsport event telemetry: beacons, commands, circuit state, incidents and group GPS tracking.",
+  "main": "server.js",
+  "license": "MIT",
   "type": "commonjs",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",

@@ -1,0 +1,35 @@
+name: Node Services CI
+
+on:
+  push:
+    paths:
+      - "backend/**"
+      - "discord-bot/**"
+      - ".github/workflows/node-services.yml"
+  pull_request:
+    paths:
+      - "backend/**"
+      - "discord-bot/**"
+      - ".github/workflows/node-services.yml"
+
+jobs:
+  syntax-check:
+    name: Syntax check (node --check)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Check backend (CommonJS)
+        run: node --check backend/server.js
+
+      # discord-bot is an ES module ("type": "module"). Copying to a .mjs
+      # file forces the ESM parse goal regardless of how `node --check`
+      # resolves the package.json type field.
+      - name: Check discord-bot (ESM)
+        run: |
+          cp discord-bot/index.js "$RUNNER_TEMP/discord-bot-index.mjs"
+          node --check "$RUNNER_TEMP/discord-bot-index.mjs"

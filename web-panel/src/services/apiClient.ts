@@ -1,6 +1,7 @@
-import type { Beacon, ZoneDB, Command, BeaconLog } from "../types";
+import type { Beacon, ZoneDB, Command, BeaconLog, CircuitStateData } from "../types";
 
-const API_BASE_URL = "http://alpo.myqnapcloud.com:4010/api";
+// Backend REST API base URL. Override via VITE_API_BASE_URL in your .env file.
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://georacing.example.com:4010/api";
 
 interface RequestOptions extends RequestInit {
   timeout?: number;
@@ -14,7 +15,7 @@ async function request<T>(url: string, options: RequestOptions = {}): Promise<T>
   // Ensure HTTPS
   const secureUrl = fullUrl.replace(/^http:\/\//, "https://");
 
-  let lastError: any;
+  let lastError: unknown;
 
   for (let i = 0; i <= retries; i++) {
     try {
@@ -37,7 +38,7 @@ async function request<T>(url: string, options: RequestOptions = {}): Promise<T>
         throw new Error(errorText || `HTTP ${res.status}`);
       }
       return await res.json();
-    } catch (err: any) {
+    } catch (err) {
       lastError = err;
       console.warn(`Attempt ${i + 1}/${retries + 1} failed for ${secureUrl}:`, err);
       if (i < retries) {
@@ -121,8 +122,8 @@ export const api = {
   },
 
   // Circuit State
-  getCircuitState: async (): Promise<any> => {
-    const states = await api.get<any>("circuit_state", { id: 1 });
+  getCircuitState: async (): Promise<CircuitStateData | null> => {
+    const states = await api.get<CircuitStateData>("circuit_state", { id: 1 });
     return states[0] || null;
   },
 

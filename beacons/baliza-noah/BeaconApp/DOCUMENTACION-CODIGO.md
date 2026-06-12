@@ -44,7 +44,7 @@ BeaconApp/
                                 ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                         API REST (Backend)                       │
-│              https://alpo.myqnapcloud.com:4010/api/             │
+│              https://georacing.example.com:4010/api/             │
 │  Endpoints: /beacons, /commands, /health, /_upsert, /_get       │
 └─────────────────────────────────────────────────────────────────┘
                                 │
@@ -223,7 +223,7 @@ C:\ProgramData\GeoRacing\beacon.json
 
 #### Auto-Actualización de URL
 
-Si detecta la URL antigua `http://192.168.1.99:4000`, la actualiza automáticamente a `https://alpo.myqnapcloud.com:4010/api/`.
+Si detecta la URL antigua `http://192.168.1.99:4000`, la actualiza automáticamente a `https://georacing.example.com:4010/api/`.
 
 ---
 

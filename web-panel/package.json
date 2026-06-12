@@ -1,5 +1,7 @@
 {
   "name": "georacing-control-panel",
+  "description": "Race-control web panel for the GeoRacing motorsport event platform: circuit state (flags), smart beacons, incidents, zones and on-site services.",
+  "license": "MIT",
   "private": true,
   "version": "1.0.0",
   "type": "module",
@@ -8,8 +10,6 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "create-beacons": "node scripts/create-beacons.js",
-    "create-admin": "tsx scripts/create-admin-user.ts",
     "deploy": "npm run build && firebase deploy",
     "deploy:firestore": "firebase deploy --only firestore"
   },

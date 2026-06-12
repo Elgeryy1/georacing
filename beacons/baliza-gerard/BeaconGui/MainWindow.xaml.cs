@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -15,7 +15,7 @@ namespace BeaconGui
     public partial class MainWindow : Window
     {
         // Configurable Constants
-        private const string API_URL = "https://alpo.myqnapcloud.com:4010/api/state";
+        private const string API_URL = "https://georacing.example.com:4010/api/state";
         private const ushort MANUFACTURER_ID = 0x1234; 
         private const int POLL_INTERVAL_MS = 2000;
         private const ushort ZONE_ID = 1001;

@@ -342,7 +342,7 @@ TESTING: ✅ DISPONIBLE
 - [QUICK_START.md](./QUICK_START.md) - Inicio rápido
 - [BEACON_INTEGRATION_GUIDE.md](./BEACON_INTEGRATION_GUIDE.md) - Guía completa
 - [INTEGRATION_SUMMARY.md](./INTEGRATION_SUMMARY.md) - Resumen
-- [README.md](./README.md) - Documentación principal
+- [README.md](../README.md) - Documentación principal
 
 ### Archivos Clave
 - `src/utils/beaconUtils.ts` - Funciones auxiliares

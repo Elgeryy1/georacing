@@ -15,7 +15,7 @@ namespace BeaconActivePc
     class Program
     {
         // Configurable Constants
-        private const string API_URL = "https://alpo.myqnapcloud.com:4010/api/state";
+        private const string API_URL = "https://georacing.example.com:4010/api/state";
         private const ushort MANUFACTURER_ID = 0x1234; // Test ID (Replace if you have a real one)
         private const int POLL_INTERVAL_MS = 2000;
         private const ushort ZONE_ID = 1001; // Example Zone ID for this PC Beacon

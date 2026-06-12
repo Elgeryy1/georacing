@@ -44,6 +44,20 @@ export interface Beacon {
   language?: Language | null;
 }
 
+/** Row of the `circuit_state` table (global race-control state). */
+export interface CircuitStateData {
+  id?: number | string;
+  global_mode?: string;        // NORMAL | SAFETY_CAR | RED_FLAG | EVACUATION ...
+  mode?: string;               // Legacy alias of global_mode
+  message?: string;
+  last_updated?: string;
+  updated_at?: string;
+  temperature?: string | number;
+  humidity?: string | number;
+  wind?: string;
+  forecast?: string;
+}
+
 export interface ZoneDB {
   id: number;
   name: string;

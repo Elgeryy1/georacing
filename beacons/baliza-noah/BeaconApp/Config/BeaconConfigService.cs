@@ -50,7 +50,7 @@ namespace BeaconApp.Config
                         if (configJson.apiBaseUrl == "http://192.168.1.99:4000")
                         {
                             Log("⚠ Detectada configuración antigua. Actualizando a HTTPS...");
-                            configJson.apiBaseUrl = "https://alpo.myqnapcloud.com:4010/api/";
+                            configJson.apiBaseUrl = "https://georacing.example.com:4010/api/";
                             
                             // Guardar cambios
                             SaveConfig(configJson);
@@ -103,7 +103,7 @@ namespace BeaconApp.Config
 
             // Generar valores por defecto
             var beaconId = Environment.MachineName.Trim();
-            var apiBaseUrl = "https://alpo.myqnapcloud.com:4010/api/";
+            var apiBaseUrl = "https://georacing.example.com:4010/api/";
 
             var configJson = new ConfigJson
             {

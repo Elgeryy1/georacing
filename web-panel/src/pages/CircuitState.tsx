@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { Layout } from "../components/Layout";
 import { api } from "../services/apiClient";
+import { CircuitStateData } from "../types";
 import { Activity, ShieldAlert, Flag, Zap } from "lucide-react";
 import { useToast } from "../context/ToastContext";
 
 export const CircuitState: React.FC = () => {
-    const [state, setState] = useState<any>(null);
+    const [state, setState] = useState<CircuitStateData | null>(null);
     const [loading, setLoading] = useState(true);
     const { showToast } = useToast();
 

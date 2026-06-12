@@ -16,7 +16,7 @@ export const beaconDetectionService = {
         const beacons = await api.get<Beacon>("beacons", { mode: "UNCONFIGURED" });
         const newBeacons: NewBeaconDetected[] = beacons.filter(b => !lastIds.has(b.beaconId)).map(b => ({
           beaconId: b.beaconId,
-          firstSeen: b.lastSeen || ("createdAt" in b ? (b as any).createdAt : undefined),
+          firstSeen: b.lastSeen || b.createdAt,
           lastSeen: b.lastSeen || undefined,
           online: b.online ?? undefined
         }));

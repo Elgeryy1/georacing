@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { api } from '../services/apiClient';
+import { CircuitStateData } from '../types';
 
 export function useCircuitState(intervalMs = 3000) {
-    const [state, setState] = useState<any>(null);
+    const [state, setState] = useState<CircuitStateData | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Layout } from "../components/Layout";
 import { api } from "../services/apiClient";
-import { Beacon, Command } from "../types";
+import { Beacon, Command, CircuitStateData } from "../types";
 import { Activity, Radio, AlertTriangle, Terminal, CheckCircle, XCircle, Clock } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -9,7 +9,7 @@ export const Dashboard: React.FC = () => {
   const [beacons, setBeacons] = useState<Beacon[]>([]);
   const [incidents, setIncidents] = useState<any[]>([]);
   const [commands, setCommands] = useState<Command[]>([]);
-  const [circuitState, setCircuitState] = useState<any>(null);
+  const [circuitState, setCircuitState] = useState<CircuitStateData | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchData = async () => {

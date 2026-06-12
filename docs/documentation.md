@@ -42,7 +42,7 @@ El sistema se compone de **cinco grandes módulos**, cada uno documentado en su 
 │                                                             │
 │   ┌─────────────────┐       ┌──────────────────────┐       │
 │   │  API REST Node  │◄─────►│  Base de Datos MySQL  │       │
-│   │  (alpo.myqnap)  │       │   (GeoRacingDB)       │       │
+│   │  (georacing.example)  │       │   (GeoRacingDB)       │       │
 │   └────────┬────────┘       └──────────────────────┘       │
 │            │                                                │
 │   ┌────────▼────────┐                                       │
@@ -206,7 +206,7 @@ Panel web refleja el nuevo estado en el dashboard
 
 ## Base de Datos
 
-La base de datos es MySQL, alojada en un NAS QNAP con el servidor API en `alpo.myqnapcloud.com:4010`.
+La base de datos es MySQL, alojada en un NAS QNAP con el servidor API en `georacing.example.com:4010`.
 
 ### Tablas principales
 
@@ -272,7 +272,7 @@ Las apps móviles (Android/iOS) escanean continuamente las señales BLE para:
 
 ## API REST
 
-La API está alojada en `https://alpo.myqnapcloud.com:4010/api` y expone los siguientes endpoints genéricos:
+La API está alojada en `https://georacing.example.com:4010/api` y expone los siguientes endpoints genéricos:
 
 | Endpoint | Método | Descripción |
 |---|---|---|

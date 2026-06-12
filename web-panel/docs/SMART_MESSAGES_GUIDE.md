@@ -393,7 +393,7 @@ R: Sí, deben implementar la misma lógica. Ver guías WPF.
 
 ## 📚 Documentación Relacionada
 
-- **[README.md](./README.md)** - Descripción general del proyecto
+- **[README.md](../README.md)** - Descripción general del proyecto
 - **[CUSTOM_TEXT_INTEGRATION_GUIDE.md](./CUSTOM_TEXT_INTEGRATION_GUIDE.md)** - Integración en WPF
 - **[WPF_INTEGRATION_CHECKLIST.md](./WPF_INTEGRATION_CHECKLIST.md)** - Checklist completo
 - **[BEACON_INTEGRATION_GUIDE.md](./BEACON_INTEGRATION_GUIDE.md)** - Guía de integración general

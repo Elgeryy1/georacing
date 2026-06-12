@@ -17,7 +17,7 @@ import kotlinx.coroutines.launch
  * Repositorio de gamificación para Circuit de Catalunya.
  * Gestiona logros, XP y nivel del fan.
  * 
- * Persistencia: FirestoreLikeApi (backend real en alpo.myqnapcloud.com:4010)
+ * Persistencia: FirestoreLikeApi (backend real en georacing.example.com:4010)
  * Los logros predefinidos son datos de diseño de juego, pero
  * el estado de desbloqueo se persiste al backend.
  */
