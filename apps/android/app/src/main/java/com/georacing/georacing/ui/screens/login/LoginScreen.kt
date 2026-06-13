@@ -31,6 +31,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -282,6 +283,26 @@ fun LoginScreen(navController: NavController) {
         }
     }
 
+    // Debug/tester only: enter the app without Google Sign-In. Gated by
+    // BuildConfig.DEBUG so it never ships in a release build.
+    fun handleGuestLogin() {
+        isLoading = true
+        errorMessage = null
+        scope.launch {
+            try {
+                val prefs = UserPreferencesDataStore(context)
+                prefs.setGuestMode(true)
+                val onboardingCompleted = prefs.onboardingCompleted.first()
+                val nextRoute = if (onboardingCompleted) Screen.Home.route else Screen.Onboarding.route
+                navController.navigate(nextRoute) { popUpTo(0) { inclusive = true } }
+            } catch (e: Exception) {
+                Log.e(TAG, "Guest login error", e)
+                errorMessage = "No se pudo entrar como invitado."
+                isLoading = false
+            }
+        }
+    }
+
     LaunchedEffect(Unit) {
         Log.d(TAG, "LoginScreen loaded")
     }
@@ -458,6 +479,20 @@ fun LoginScreen(navController: NavController) {
                         style = MaterialTheme.typography.bodyMedium,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+
+            if (com.georacing.georacing.BuildConfig.DEBUG) {
+                Spacer(modifier = Modifier.height(8.dp))
+                TextButton(
+                    onClick = { handleGuestLogin() },
+                    enabled = !isLoading
+                ) {
+                    Text(
+                        text = "ENTRAR COMO INVITADO (debug)",
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                        color = visuals.navSelected
                     )
                 }
             }

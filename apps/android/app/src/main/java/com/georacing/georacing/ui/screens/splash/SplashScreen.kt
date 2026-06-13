@@ -86,8 +86,11 @@ fun SplashScreen(navController: NavHostController) {
 
         statusMessage = "Cargando configuración..."
         progress = 0.75f
-        val onboardingCompleted = UserPreferencesDataStore(context).onboardingCompleted.first()
-        
+        val prefs = UserPreferencesDataStore(context)
+        val onboardingCompleted = prefs.onboardingCompleted.first()
+        // Debug-only: a tester who picked "guest" keeps their session across launches.
+        val guestMode = com.georacing.georacing.BuildConfig.DEBUG && prefs.guestMode.first()
+
         progress = 0.9f
         statusMessage = "Preparando experiencia..."
         delay(500)
@@ -99,6 +102,7 @@ fun SplashScreen(navController: NavHostController) {
         val nextRoute = when {
             !onboardingCompleted -> Screen.Onboarding.route
             currentUser != null && !currentUser.isAnonymous -> Screen.Home.route
+            guestMode -> Screen.Home.route
             else -> Screen.Login.route
         }
 

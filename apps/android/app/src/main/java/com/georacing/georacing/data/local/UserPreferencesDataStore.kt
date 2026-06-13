@@ -28,6 +28,8 @@ class UserPreferencesDataStore(private val context: Context) {
         } else null
     }
     val onboardingCompleted: Flow<Boolean> = context.dataStore.data.map { it[ONBOARDING_COMPLETED] ?: false }
+    /** Debug-only guest session: lets a tester enter without Google Sign-In. Honored only in debug builds. */
+    val guestMode: Flow<Boolean> = context.dataStore.data.map { it[GUEST_MODE] ?: false }
     val preferredLanguage: Flow<String> = context.dataStore.data.map { it[PREFERRED_LANGUAGE] ?: "es" }
     val highContrast: Flow<Boolean> = context.dataStore.data.map { it[HIGH_CONTRAST] ?: false }
     val largeFont: Flow<Boolean> = context.dataStore.data.map { it[LARGE_FONT] ?: false }
@@ -59,6 +61,10 @@ class UserPreferencesDataStore(private val context: Context) {
 
     suspend fun setOnboardingCompleted(completed: Boolean) {
         context.dataStore.edit { it[ONBOARDING_COMPLETED] = completed }
+    }
+
+    suspend fun setGuestMode(enabled: Boolean) {
+        context.dataStore.edit { it[GUEST_MODE] = enabled }
     }
 
     suspend fun setPreferredLanguage(lang: String) {
@@ -127,6 +133,7 @@ class UserPreferencesDataStore(private val context: Context) {
 
     companion object {
         val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
+        val GUEST_MODE = booleanPreferencesKey("guest_mode")
         val PREFERRED_LANGUAGE = stringPreferencesKey("preferred_language")
         val SEAT_INFO = stringPreferencesKey("seat_info")
         val HIGH_CONTRAST = booleanPreferencesKey("high_contrast")
