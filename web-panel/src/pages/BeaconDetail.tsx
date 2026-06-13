@@ -12,8 +12,8 @@ import { ArrowLeft, Save, Wrench, RotateCcw } from "lucide-react";
 export const BeaconDetail: React.FC = () => {
   const { beaconId } = useParams<{ beaconId: string }>();
   const navigate = useNavigate();
-  const { beacons } = useBeacons();
-  
+  const { beacons, loading } = useBeacons();
+
   const beacon = beacons.find(b => b.beaconId === beaconId);
 
   const [mode, setMode] = useState<BeaconMode>("NORMAL");
@@ -28,24 +28,30 @@ export const BeaconDetail: React.FC = () => {
   const [tagInput, setTagInput] = useState("");
   const [saving, setSaving] = useState(false);
 
+  // Initialise the form ONLY when the beacon being edited changes (by id).
+  // The beacons list is polled every few seconds, which replaces the object
+  // reference; keying the effect on the id prevents the form from being
+  // reset (wiping in-progress edits) on every poll.
   useEffect(() => {
-    if (beacon) {
-      setMode(beacon.mode || "NORMAL");
-      setArrow(beacon.arrow || "NONE");
-      setMessage(beacon.message || "");
-      setColor(beacon.color || "#00FFAA");
-      setBrightness(beacon.brightness ?? 90);
-      setLanguage(beacon.language || "ES");
-      setEvacuationExit(beacon.evacuationExit || "");
-      setZone(beacon.zone || "");
-      setTags(beacon.tags || []);
-    }
-  }, [beacon]);
+    if (!beacon) return;
+    setMode(beacon.mode || "NORMAL");
+    setArrow(beacon.arrow || "NONE");
+    setMessage(beacon.message || "");
+    setColor(beacon.color || "#00FFAA");
+    setBrightness(beacon.brightness ?? 90);
+    setLanguage(beacon.language || "ES");
+    setEvacuationExit(beacon.evacuationExit || "");
+    setZone(beacon.zone || "");
+    setTags(beacon.tags || []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [beacon?.beaconId]);
 
   if (!beacon) {
     return (
       <Layout>
-        <div className="text-white">Baliza no encontrada</div>
+        <div className="text-white">
+          {loading ? "Cargando baliza..." : "Baliza no encontrada"}
+        </div>
       </Layout>
     );
   }
@@ -128,6 +134,7 @@ export const BeaconDetail: React.FC = () => {
           <button
             onClick={() => navigate("/dashboard")}
             className="p-2 hover:bg-dark-700 rounded-lg transition-colors"
+            aria-label="Volver al dashboard"
             title="Volver al dashboard"
           >
             <ArrowLeft className="w-6 h-6 text-white" />

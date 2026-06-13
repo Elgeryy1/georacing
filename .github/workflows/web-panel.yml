@@ -14,7 +14,7 @@ on:
 
 jobs:
   build:
-    name: Typecheck + build (tsc && vite)
+    name: Lint, test and build
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -30,6 +30,12 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests (Vitest)
+        run: npm test
 
       # "build" runs `tsc && vite build`. The codebase typechecks clean under
       # strict mode, so type errors are build-blocking on purpose. VITE_* env

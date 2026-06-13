@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Layout } from "../components/Layout";
 import { Zone, ZoneStatus } from "../types";
 import { api } from "../services/apiClient";
@@ -16,13 +16,19 @@ const SEED_ZONES: Zone[] = [
 
 export function ZonesMap() {
   const [zones, setZones] = useState<Zone[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true);     // first load only
+  const [refreshing, setRefreshing] = useState(false); // background polls / manual refresh
+  // Seeding must happen at most once, on first mount with an empty backend.
+  const seededRef = useRef(false);
 
-  const loadZones = useCallback(async () => {
+  const loadZones = useCallback(async (isInitial = false) => {
+    if (isInitial) setLoading(true);
+    else setRefreshing(true);
     try {
-      setLoading(true);
       let data = await api.get<any>("zone_traffic");
-      if (!data || data.length === 0) {
+      // Only seed demo zones the very first time we find an empty table.
+      if ((!data || data.length === 0) && !seededRef.current) {
+        seededRef.current = true;
         for (const z of SEED_ZONES) {
           await api.upsert("zone_traffic", {
             ...z,
@@ -35,7 +41,7 @@ export function ZonesMap() {
         }
         data = await api.get<any>("zone_traffic");
       }
-      const mapped: Zone[] = data.map((z: any) => ({
+      const mapped: Zone[] = (data || []).map((z: any) => ({
         id: z.id || z.zone_id,
         name: z.name || "",
         type: z.type || "GRADA",
@@ -54,12 +60,13 @@ export function ZonesMap() {
       console.error("Error loading zones:", err);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, []);
 
   useEffect(() => {
-    loadZones();
-    const interval = setInterval(loadZones, 15000);
+    loadZones(true);
+    const interval = setInterval(() => loadZones(false), 15000);
     return () => clearInterval(interval);
   }, [loadZones]);
 
@@ -104,14 +111,19 @@ export function ZonesMap() {
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold text-white">Zonas del Circuito</h2>
           <button
-            onClick={loadZones}
-            disabled={loading}
+            onClick={() => loadZones(false)}
+            disabled={loading || refreshing}
+            aria-label="Actualizar zonas"
             className="flex items-center space-x-2 px-3 py-2 bg-dark-700 text-white rounded hover:bg-dark-600 transition-colors disabled:opacity-50"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+            <RefreshCw className={`w-4 h-4 ${loading || refreshing ? "animate-spin" : ""}`} />
             <span className="text-sm">Actualizar</span>
           </button>
         </div>
+
+        {loading && (
+          <div className="text-center text-gray-400 py-12">Cargando zonas del circuito...</div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {zones.map((zone) => {

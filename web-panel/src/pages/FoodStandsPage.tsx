@@ -27,7 +27,13 @@ const FoodStandsPage = () => {
     const [editMode, setEditMode] = useState<string | null>(null);
     const [editedStand, setEditedStand] = useState<Partial<FoodStand>>({});
     const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [saveError, setSaveError] = useState<string | null>(null);
 
+    // Fetch the stand list once on mount (and seed demo data if the table is
+    // empty). The effect intentionally runs only once; fetchStands is stable
+    // for the component's lifetime.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => { fetchStands(); }, []);
 
     const fetchStands = async () => {
@@ -54,12 +60,21 @@ const FoodStandsPage = () => {
     };
 
     const handleSave = async () => {
-        if (!editedStand.name) return;
+        if (saving) return; // double-submit guard
+        const name = editedStand.name?.trim();
+        if (!name) {
+            setSaveError('El nombre es obligatorio');
+            return;
+        }
+
+        setSaveError(null);
+        setSaving(true);
         try {
             const id = editMode === 'new' ? crypto.randomUUID() : editMode;
             await api.upsert('food_stands', {
                 id,
                 ...editedStand,
+                name,
                 latitude: Number(editedStand.latitude || 0),
                 longitude: Number(editedStand.longitude || 0),
                 waitMinutes: Number(editedStand.waitMinutes || 10),
@@ -71,7 +86,9 @@ const FoodStandsPage = () => {
             fetchStands();
         } catch (e) {
             console.error(e);
-            alert('Error al guardar');
+            setSaveError('Error al guardar. Inténtalo de nuevo.');
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -99,7 +116,7 @@ const FoodStandsPage = () => {
                         <p className="text-gray-400 text-sm mt-1">Gestiona los puestos de comida del circuito</p>
                     </div>
                     <button
-                        onClick={() => { setEditMode('new'); setEditedStand({ isOpen: true, waitMinutes: 10, rating: 4.0 }); }}
+                        onClick={() => { setEditMode('new'); setEditedStand({ isOpen: true, waitMinutes: 10, rating: 4.0 }); setSaveError(null); }}
                         className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
                     >
                         <Plus size={16} /> Nuevo Stand
@@ -123,9 +140,14 @@ const FoodStandsPage = () => {
                                 Abierto
                             </label>
                         </div>
+                        {saveError && (
+                            <p className="text-sm text-red-400 bg-red-900/20 border border-red-900/40 rounded px-3 py-2 mt-3" role="alert">
+                                {saveError}
+                            </p>
+                        )}
                         <div className="flex gap-2 mt-3">
-                            <button onClick={handleSave} className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white rounded hover:bg-green-700"><Save size={14} /> Guardar</button>
-                            <button onClick={() => { setEditMode(null); setEditedStand({}); }} className="flex items-center gap-1 px-3 py-1.5 bg-gray-600 text-white rounded hover:bg-gray-500"><X size={14} /> Cancelar</button>
+                            <button onClick={handleSave} disabled={saving} className="flex items-center gap-1 px-3 py-1.5 bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded hover:bg-green-700"><Save size={14} /> {saving ? 'Guardando...' : 'Guardar'}</button>
+                            <button onClick={() => { setEditMode(null); setEditedStand({}); setSaveError(null); }} disabled={saving} className="flex items-center gap-1 px-3 py-1.5 bg-gray-600 disabled:opacity-50 text-white rounded hover:bg-gray-500"><X size={14} /> Cancelar</button>
                         </div>
                     </div>
                 )}
@@ -156,8 +178,8 @@ const FoodStandsPage = () => {
                                         </button>
                                     </td>
                                     <td className="px-4 py-3 text-right">
-                                        <button onClick={() => { setEditMode(s.id); setEditedStand(s); }} className="text-blue-400 hover:text-blue-300 mr-2"><Edit2 size={14} /></button>
-                                        <button onClick={() => handleDelete(s.id)} className="text-red-400 hover:text-red-300"><Trash2 size={14} /></button>
+                                        <button onClick={() => { setEditMode(s.id); setEditedStand(s); setSaveError(null); }} aria-label={`Editar ${s.name}`} className="text-blue-400 hover:text-blue-300 mr-2"><Edit2 size={14} /></button>
+                                        <button onClick={() => handleDelete(s.id)} aria-label={`Eliminar ${s.name}`} className="text-red-400 hover:text-red-300"><Trash2 size={14} /></button>
                                     </td>
                                 </tr>
                             ))}

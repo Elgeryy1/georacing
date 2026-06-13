@@ -41,14 +41,39 @@ namespace BeaconGui
             InitializeBeaconSystem();
         }
 
+        // Variable de entorno que habilita explícitamente saltarse la validación TLS.
+        // Pensada SOLO para desarrollo contra un endpoint con certificado autofirmado.
+        private const string AllowInsecureTlsEnvVar = "GEORACING_ALLOW_INSECURE_TLS";
+
         private void SetupHttpClient()
         {
             var handler = new HttpClientHandler();
             handler.ClientCertificateOptions = ClientCertificateOption.Manual;
-            handler.ServerCertificateCustomValidationCallback = 
-                (httpRequestMessage, cert, cetChain, policyErrors) => true;
+
+            // Por defecto se valida el certificado del servidor (comportamiento seguro).
+            // El bypass solo se activa si se compila en DEBUG y, además, se pone la
+            // variable de entorno GEORACING_ALLOW_INSECURE_TLS=1. Así una build de
+            // release publicada nunca acepta certificados arbitrarios (evita MITM).
+            if (IsInsecureTlsAllowed())
+            {
+                handler.ServerCertificateCustomValidationCallback =
+                    (httpRequestMessage, cert, cetChain, policyErrors) => true;
+                Log("WARNING: validación de certificado TLS DESACTIVADA (modo dev).");
+            }
+
             client = new HttpClient(handler);
             client.Timeout = TimeSpan.FromSeconds(5);
+        }
+
+        private static bool IsInsecureTlsAllowed()
+        {
+#if DEBUG
+            var flag = Environment.GetEnvironmentVariable(AllowInsecureTlsEnvVar);
+            return flag == "1" ||
+                   string.Equals(flag, "true", StringComparison.OrdinalIgnoreCase);
+#else
+            return false;
+#endif
         }
 
         private async void InitializeBeaconSystem()
@@ -273,8 +298,10 @@ namespace BeaconGui
                 byte tempByte = 0;
                 if (!string.IsNullOrEmpty(lastKnownTemp))
                 {
-                     var digits = new string(lastKnownTemp.Where(char.IsDigit).ToArray());
-                     if (byte.TryParse(digits, out byte t)) tempByte = t;
+                     // Parseo robusto: soporta decimales ("25.5") y sufijo "°C", culture-invariant.
+                     // Igual que BeaconActivePc/Program.cs para mantener un único formato de payload.
+                     if (double.TryParse(lastKnownTemp.Replace("°C", "").Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out var d))
+                         tempByte = (byte)Math.Clamp(Math.Round(d), 0, 255);
                 }
 
                 writer.WriteByte(0x01); // Version
@@ -340,10 +367,22 @@ namespace BeaconGui
             }
         }
 
+        // Máximo de líneas a retener en el panel de log para que la memoria no crezca sin límite
+        // en sesiones largas (se descartan las más antiguas).
+        private const int MAX_LOG_LINES = 500;
+
         private void Log(string msg)
         {
             Dispatcher.Invoke(() => {
                 LogText.Text += $"[{DateTime.Now:HH:mm:ss}] {msg}\n";
+
+                // Recortar líneas antiguas para evitar crecimiento ilimitado del TextBlock.
+                var lines = LogText.Text.Split('\n');
+                if (lines.Length > MAX_LOG_LINES)
+                {
+                    LogText.Text = string.Join("\n", lines.Skip(lines.Length - MAX_LOG_LINES));
+                }
+
                 LogScroll.ScrollToEnd();
             });
         }

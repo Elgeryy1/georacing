@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Layout } from "../components/Layout";
 import { Route, RouteStatus } from "../types";
 import { api } from "../services/apiClient";
@@ -16,13 +16,19 @@ const SEED_ROUTES: Route[] = [
 
 export function Routes() {
   const [routes, setRoutes] = useState<Route[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true);     // first load only
+  const [refreshing, setRefreshing] = useState(false); // background polls / manual refresh
+  // Seeding must happen at most once, on first mount with an empty backend.
+  const seededRef = useRef(false);
 
-  const loadRoutes = useCallback(async () => {
+  const loadRoutes = useCallback(async (isInitial = false) => {
+    if (isInitial) setLoading(true);
+    else setRefreshing(true);
     try {
-      setLoading(true);
       let data = await api.get<any>("routes");
-      if (!data || data.length === 0) {
+      // Only seed demo routes the very first time we find an empty table.
+      if ((!data || data.length === 0) && !seededRef.current) {
+        seededRef.current = true;
         for (const r of SEED_ROUTES) {
           await api.upsert("routes", {
             ...r,
@@ -36,7 +42,7 @@ export function Routes() {
         }
         data = await api.get<any>("routes");
       }
-      const mapped: Route[] = data.map((r: any) => ({
+      const mapped: Route[] = (data || []).map((r: any) => ({
         id: r.id || r.route_id,
         name: r.name || `${r.origin} → ${r.destination}`,
         origin: r.origin || "",
@@ -55,13 +61,18 @@ export function Routes() {
     } catch (err) {
       console.error("Error loading routes:", err);
     } finally {
+      // Always clear both flags: setLoading covers the first paint, while
+      // setRefreshing must be reset after every background poll / manual
+      // refresh — otherwise the spinner spins forever and the button stays
+      // disabled for the rest of the session.
       setLoading(false);
+      setRefreshing(false);
     }
   }, []);
 
   useEffect(() => {
-    loadRoutes();
-    const interval = setInterval(loadRoutes, 15000);
+    loadRoutes(true);
+    const interval = setInterval(() => loadRoutes(false), 15000);
     return () => clearInterval(interval);
   }, [loadRoutes]);
 
@@ -111,14 +122,19 @@ export function Routes() {
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold text-white">Rutas del Circuito</h2>
           <button
-            onClick={loadRoutes}
-            disabled={loading}
+            onClick={() => loadRoutes(false)}
+            disabled={loading || refreshing}
+            aria-label="Actualizar rutas"
             className="flex items-center space-x-2 px-3 py-2 bg-dark-700 text-white rounded hover:bg-dark-600 transition-colors disabled:opacity-50"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+            <RefreshCw className={`w-4 h-4 ${loading || refreshing ? "animate-spin" : ""}`} />
             <span className="text-sm">Actualizar</span>
           </button>
         </div>
+
+        {loading && (
+          <div className="text-center text-gray-400 py-12">Cargando rutas del circuito...</div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {routes.map((route) => (

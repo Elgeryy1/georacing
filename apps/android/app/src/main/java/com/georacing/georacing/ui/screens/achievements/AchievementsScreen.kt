@@ -246,7 +246,7 @@ fun AchievementsScreen(
                                         }
                                         Spacer(Modifier.height(4.dp))
                                         Text(
-                                            "${(profile.totalXP % profile.xpForNextLevel)} / ${profile.xpForNextLevel} XP",
+                                            "${profile.xpIntoCurrentLevel} / ${profile.xpForNextLevel - com.georacing.georacing.domain.model.FanProfile.levelStartXp(profile.level)} XP",
                                             fontSize = 10.sp,
                                             color = TextTertiary,
                                             modifier = Modifier.fillMaxWidth(),

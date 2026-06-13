@@ -18,6 +18,15 @@ import {
 import { createClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
 import Groq from 'groq-sdk';
+import {
+  buildSearchTerms,
+  extractKeywords,
+  summarizeStatuses,
+  isAllowedDocExtension,
+  isValidPurgeAmount,
+  classifyContext,
+  escapeLikePattern,
+} from './lib/helpers.js';
 
 // ============================================================================
 // 1. ENVIRONMENT & VALIDATION
@@ -306,10 +315,7 @@ async function handleDuda(interaction) {
   const answer = await askGroq(question, context);
 
   // 3. Response
-  let status = '⚠️ Unknown';
-  if (context.includes('ERROR')) status = '❌ Error';
-  else if (context) status = '✅ Found';
-  else status = '⚠️ No Matches';
+  const { label: status } = classifyContext(context);
 
   const embed = createIndustrialEmbed('GeoOps Terminal', answer)
     .addFields({ name: 'Knowledge Base', value: status, inline: true });
@@ -327,29 +333,15 @@ async function handleEstado(interaction) {
 
   if (error) throw new Error(`Database Query Failed: ${error.message}`);
 
-  const stats = {
-    'Acabado': 0,
-    'en proceso': 0,
-    'por empezar': 0
-  };
-
-  data.forEach(row => {
-    if (stats[row.status] !== undefined) stats[row.status]++;
-    else {
-      // Handle unexpected statuses
-      stats['Other'] = (stats['Other'] || 0) + 1;
-    }
-  });
-
-  const total = data.length;
+  const stats = summarizeStatuses(data);
 
   const embed = createIndustrialEmbed('System Status Report', 'Current project metrics.')
     .addFields(
-      { name: '🟢 Sync Complete', value: `${stats['Acabado'] || 0}`, inline: true },
-      { name: '🟡 Processing', value: `${stats['en proceso'] || 0}`, inline: true },
-      { name: '⚪ Pending', value: `${stats['por empezar'] || 0}`, inline: true }
+      { name: '🟢 Sync Complete', value: `${stats.done}`, inline: true },
+      { name: '🟡 Processing', value: `${stats.inProgress}`, inline: true },
+      { name: '⚪ Pending', value: `${stats.pending}`, inline: true }
     )
-    .setFooter({ text: `GeoRacing Systems | Total Units: ${total}` });
+    .setFooter({ text: `GeoRacing Systems | Total Units: ${stats.total}` });
 
   await interaction.editReply({ embeds: [embed] });
 }
@@ -391,10 +383,7 @@ async function handleAprender(interaction) {
 
   // 2. Process File (if exists)
   if (fileAttachment) {
-    const validExtensions = ['txt', 'md', 'markdown'];
-    const fileExt = fileAttachment.name.split('.').pop().toLowerCase();
-
-    if (!validExtensions.includes(fileExt)) {
+    if (!isAllowedDocExtension(fileAttachment.name)) {
       return await interaction.editReply({ content: '❌ Formato no soportado. Usa `.txt` o `.md`.' });
     }
 
@@ -449,9 +438,9 @@ async function handleAprender(interaction) {
 async function fetchContext(query) {
   console.log(`🔎 Searching Knowledge Base for: "${query}"...`);
 
-  // Strategy 1: 'plain' Text Search (Split by spaces)
+  // Strategy 1: 'plain' Text Search (OR over significant terms)
   // This is better than 'websearch' for simple queries in Supabase
-  const searchTerms = query.replace(/[^\w\s]/gi, '').split(' ').filter(w => w.length > 3).join(' | ');
+  const searchTerms = buildSearchTerms(query);
 
   if (searchTerms) {
     const { data: textData } = await supabase
@@ -467,18 +456,20 @@ async function fetchContext(query) {
   }
 
   // Strategy 2: "Smart" Keyword Extraction + ILIKE
-  // Extract capitalized words (e.g., "EcoMeter", "GeoRacing") or long words
-  const keywords = query.match(/\b[A-Za-zñÑáéíóú]{4,}\b/g) || [];
+  // Extract words of 4+ letters (e.g., "EcoMeter", "GeoRacing") as fallback
+  const keywords = extractKeywords(query);
 
   if (keywords.length > 0) {
     console.log(`⚠️ TextSearch failed. Trying keyword fallback: [${keywords.join(', ')}]`);
 
-    // Try matching ANY of the keywords
+    // Try matching ANY of the keywords. Escape LIKE wildcards in the keyword
+    // (defense-in-depth: extractKeywords yields only letter tokens today, but
+    // this keeps the fallback safe if that invariant is ever loosened).
     for (const word of keywords) {
       const { data: simpleData } = await supabase
         .from('documents')
         .select('content')
-        .ilike('content', `%${word}%`)
+        .ilike('content', `%${escapeLikePattern(word)}%`)
         .limit(3);
 
       if (simpleData && simpleData.length > 0) {
@@ -633,7 +624,7 @@ async function handlePurgar(interaction) {
   }
 
   const amount = interaction.options.getInteger('cantidad');
-  if (amount > 100 || amount < 1) {
+  if (!isValidPurgeAmount(amount)) {
     return await interaction.reply({ content: '❌ Cantidad debe ser entre 1 y 100.', ephemeral: true });
   }
 

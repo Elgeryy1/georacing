@@ -29,16 +29,24 @@ namespace BeaconActivePc
         private static string lastKnownTemp = "";
         private static bool advertisingStarted = false;
         
+        // Variable de entorno que habilita explícitamente saltarse la validación TLS.
+        // Pensada SOLO para desarrollo contra un endpoint con certificado autofirmado.
+        private const string AllowInsecureTlsEnvVar = "GEORACING_ALLOW_INSECURE_TLS";
+
         static async Task Main(string[] args)
         {
-            // Initialize insecure HTTP client
+            // Cliente HTTP. Por defecto valida el certificado del servidor (seguro).
+            // El bypass de validación TLS solo se activa en builds DEBUG y, además,
+            // cuando GEORACING_ALLOW_INSECURE_TLS=1, de modo que una release publicada
+            // nunca acepte certificados arbitrarios (evita ataques MITM).
             var handler = new HttpClientHandler();
             handler.ClientCertificateOptions = ClientCertificateOption.Manual;
-            handler.ServerCertificateCustomValidationCallback = 
-                (httpRequestMessage, cert, cetChain, policyErrors) =>
+            if (IsInsecureTlsAllowed())
             {
-                return true;
-            };
+                handler.ServerCertificateCustomValidationCallback =
+                    (httpRequestMessage, cert, cetChain, policyErrors) => true;
+                Console.WriteLine("WARNING: validación de certificado TLS DESACTIVADA (modo dev).");
+            }
             client = new HttpClient(handler);
             client.Timeout = TimeSpan.FromSeconds(5);
 
@@ -190,7 +198,7 @@ namespace BeaconActivePc
         private static byte MapModeToByte(string modeString)
         {
             if (string.IsNullOrEmpty(modeString)) return 0; // Normal default
-            
+
             return modeString.ToUpper() switch
             {
                 "NORMAL" => 0,
@@ -199,6 +207,17 @@ namespace BeaconActivePc
                 "EVACUATION" => 3,
                 _ => 0
             };
+        }
+
+        private static bool IsInsecureTlsAllowed()
+        {
+#if DEBUG
+            var flag = Environment.GetEnvironmentVariable(AllowInsecureTlsEnvVar);
+            return flag == "1" ||
+                   string.Equals(flag, "true", StringComparison.OrdinalIgnoreCase);
+#else
+            return false;
+#endif
         }
     }
 

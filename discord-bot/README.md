@@ -53,6 +53,23 @@ npm start
 
 Requires Node.js >= 18. Slash commands are registered automatically on startup (global commands can take up to an hour to propagate the first time).
 
+## Testing
+
+The bot's trickiest pure logic — search-term extraction, status aggregation and input validation — lives in [`lib/helpers.js`](lib/helpers.js) and is unit-tested with Node's built-in test runner. No Discord token, Supabase project or network access is required to run the suite.
+
+```bash
+npm test   # runs node --test against test/helpers.test.js
+```
+
+## Docker
+
+A production image is provided ([`Dockerfile`](Dockerfile)): `node:20-alpine`, dependencies installed reproducibly with `npm ci`, running as the unprivileged `node` user with `dumb-init` for clean signal handling.
+
+```bash
+docker build -t georacing/discord-bot .
+docker run --rm --env-file .env georacing/discord-bot
+```
+
 ### Database
 
 Run `schema_v2.sql` in the Supabase SQL editor to create the `incidents` table. The bot also expects:

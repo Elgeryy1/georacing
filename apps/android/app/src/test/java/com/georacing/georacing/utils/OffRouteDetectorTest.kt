@@ -4,15 +4,22 @@ import android.location.Location
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 /**
  * Tests unitarios para OffRouteDetector con threshold dinámico por velocidad.
- * 
+ *
  * FASE 1.2: Validar que los thresholds se ajustan según velocidad:
  * - < 40 km/h → 30m (parking/ciudad)
  * - 40-80 km/h → 50m (carretera normal)
  * - > 80 km/h → 80m (autopista)
+ *
+ * Robolectric supplies a real android.location.Location implementation.
  */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34], manifest = Config.NONE)
 class OffRouteDetectorTest {
     
     @Before

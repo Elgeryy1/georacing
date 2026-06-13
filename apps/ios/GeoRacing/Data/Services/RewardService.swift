@@ -76,41 +76,22 @@ final class RewardService: ObservableObject {
         
         for card in cardDefinitions {
             guard var prog = progress[card.id], !prog.isUnlocked else { continue }
-            
-            let shouldIncrement: Bool
-            switch (event, card.unlockCondition.type) {
-            case (.quizCorrect, .quizTotal):
-                shouldIncrement = true
-            case (.quizStreak(let streak), .quizStreak):
-                shouldIncrement = streak >= card.unlockCondition.threshold
-            case (.quizPerfect, .perfectQuiz):
-                shouldIncrement = true
-            case (.firstQuiz, .firstQuiz):
-                shouldIncrement = true
-            case (.fanZoneVisit, .fanZoneVisits):
-                shouldIncrement = true
-            case (.newsRead, .newsRead):
-                shouldIncrement = true
-            case (.teamLoyaltyDay, .teamLoyalty):
-                shouldIncrement = true
-            case (.collectionMilestone(let count), .collectionMilestone):
-                shouldIncrement = count >= card.unlockCondition.threshold
-            default:
-                shouldIncrement = false
+
+            guard let value = Self.resolveNextValue(event: event,
+                                                    conditionType: card.unlockCondition.type,
+                                                    currentValue: prog.currentValue),
+                  value != prog.currentValue else { continue }
+
+            prog.currentValue = value
+
+            if prog.currentValue >= card.unlockCondition.threshold {
+                prog.isUnlocked = true
+                prog.unlockedAt = Date()
+                newlyUnlocked = card
+                Logger.info("[RewardService] Card unlocked: \(card.title)")
             }
-            
-            if shouldIncrement {
-                prog.currentValue += 1
-                
-                if prog.currentValue >= card.unlockCondition.threshold {
-                    prog.isUnlocked = true
-                    prog.unlockedAt = Date()
-                    newlyUnlocked = card
-                    Logger.info("[RewardService] Card unlocked: \(card.title)")
-                }
-                
-                progress[card.id] = prog
-            }
+
+            progress[card.id] = prog
         }
         
         saveProgress()
@@ -120,6 +101,47 @@ final class RewardService: ObservableObject {
             // Check collection milestones
             let totalUnlocked = unlockedCards.count
             recordEvent(.collectionMilestone(totalUnlocked))
+        }
+    }
+
+    /// Pure progress-resolution rule for a single (event, card) pair.
+    ///
+    /// An event either bumps a running counter by one (e.g. each correct quiz answer) or
+    /// reports an *absolute* level the user has just reached (e.g. "current streak is 7",
+    /// "collection size is 5"). For the absolute cases we take `max(current, reported)`
+    /// rather than blindly incrementing — otherwise a streak/collection card would tick up
+    /// by a single unit per event and could never reach its threshold from one qualifying
+    /// event (the original bug: a streak of 20 only set `currentValue` to 1).
+    ///
+    /// - Returns: the new progress value, or `nil` when the event does not apply to a card
+    ///   of the given condition type (the caller then leaves that card untouched).
+    ///
+    /// Extracted as a pure `static` function so the unlock arithmetic can be unit-tested
+    /// without touching the singleton's persisted `UserDefaults` state.
+    static func resolveNextValue(event: RewardEvent,
+                                 conditionType: UnlockConditionType,
+                                 currentValue: Int) -> Int? {
+        switch (event, conditionType) {
+        case (.quizCorrect, .quizTotal):
+            return currentValue + 1
+        case (.quizStreak(let streak), .quizStreak):
+            // Absolute: record the highest streak seen so far.
+            return max(currentValue, streak)
+        case (.quizPerfect, .perfectQuiz):
+            return currentValue + 1
+        case (.firstQuiz, .firstQuiz):
+            return currentValue + 1
+        case (.fanZoneVisit, .fanZoneVisits):
+            return currentValue + 1
+        case (.newsRead, .newsRead):
+            return currentValue + 1
+        case (.teamLoyaltyDay, .teamLoyalty):
+            return currentValue + 1
+        case (.collectionMilestone(let count), .collectionMilestone):
+            // Absolute: record the largest collection size reached.
+            return max(currentValue, count)
+        default:
+            return nil
         }
     }
     

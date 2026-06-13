@@ -29,6 +29,10 @@ export const BeaconEditModal: React.FC<BeaconEditModalProps> = ({ beacon, onClos
   // ✨ NUEVO: Trackear si el usuario ha escrito un mensaje personalizado
   const [hasCustomMessage, setHasCustomMessage] = useState(false);
 
+  // Initialise the form ONLY when the beacon being edited changes (by id).
+  // The parent polls the beacon list every few seconds; if we also depended on
+  // the individual fields, a backend refresh mid-edit would overwrite the
+  // operator's unsaved changes. Keying on the id initialises once per beacon.
   useEffect(() => {
     setMode((beacon.mode as BeaconMode) || "UNCONFIGURED");
     setArrow(beacon.arrow || "NONE");
@@ -39,7 +43,8 @@ export const BeaconEditModal: React.FC<BeaconEditModalProps> = ({ beacon, onClos
     setEvacuationExit(beacon.evacuationExit || "");
     setZone(beacon.zone || "");
     setHasCustomMessage(false); // Resetear al abrir el modal
-  }, [beacon.beaconId, beacon.mode, beacon.arrow, beacon.message, beacon.color, beacon.brightness, beacon.language, beacon.evacuationExit, beacon.zone]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [beacon.beaconId]);
 
   // ✨ Actualizar automáticamente el mensaje cuando cambias modo/idioma/flecha
   // SOLO si el usuario NO ha escrito un mensaje personalizado
@@ -152,6 +157,7 @@ export const BeaconEditModal: React.FC<BeaconEditModalProps> = ({ beacon, onClos
           <button
             onClick={onClose}
             className="p-2 hover:bg-dark-700 rounded-lg transition-colors"
+            aria-label="Cerrar"
             title="Cerrar"
           >
             <X className="w-5 h-5 text-gray-400" />

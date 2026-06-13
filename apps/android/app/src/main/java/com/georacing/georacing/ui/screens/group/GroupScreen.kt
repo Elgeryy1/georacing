@@ -240,7 +240,7 @@ fun GroupScreen(
                             }
                         }
                     } else {
-                        items(groupLocations) { member ->
+                        items(groupLocations, key = { it.userId }) { member ->
                             GroupMemberItem(
                                 member = member,
                                 modifier = Modifier.padding(horizontal = 16.dp)

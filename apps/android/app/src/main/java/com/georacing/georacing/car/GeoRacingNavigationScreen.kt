@@ -1383,72 +1383,24 @@ private fun speak(text: String) {
         fusedLocationClient.removeLocationUpdates(locationCallback)
     }
 
-    private fun getInstructionText(step: OsrmStep): String {
-        val modifier = step.maneuver.modifier
-        val type = step.maneuver.type
-        val exit = step.maneuver.exit
-        val streetName = if (step.name.isNotEmpty() && step.name != "unknown") " hacia ${step.name}" else ""
-        
-        return when (type) {
-            "turn" -> {
-                when (modifier) {
-                    "left" -> "Gire a la izquierda$streetName"
-                    "right" -> "Gire a la derecha$streetName"
-                    "slight left" -> "Continúe ligeramente a la izquierda$streetName"
-                    "slight right" -> "Continúe ligeramente a la derecha$streetName"
-                    "sharp left" -> "Gire completamente a la izquierda$streetName"
-                    "sharp right" -> "Gire completamente a la derecha$streetName"
-                    else -> "Continúe$streetName"
-                }
-            }
-            "depart" -> "Inicie el recorrido$streetName"
-            "arrive" -> "Ha llegado a su destino"
-            "roundabout", "rotary" -> {
-                // FASE 2.2: Rotondas con ordinales en español natural
-                if (exit != null && exit > 0) {
-                    val ordinal = exitNumberToSpanishOrdinal(exit)
-                    if (streetName.isNotEmpty()) {
-                        "En la rotonda, toma la $ordinal salida$streetName"
-                    } else {
-                        "En la rotonda, toma la $ordinal salida"
-                    }
-                } else {
-                    // Sin exit específico, mensaje genérico
-                    if (streetName.isNotEmpty()) {
-                        "En la rotonda, toma la salida$streetName"
-                    } else {
-                        "En la rotonda, continúa recto"
-                    }
-                }
-            }
-            "continue" -> "Continúe recto$streetName"
-            else -> {
-                if (step.name.isNotEmpty() && step.name != "unknown") {
-                    "Continúe por ${step.name}"
-                } else {
-                    "Continúe por la ruta"
-                }
-            }
-        }
-    }
-    
+    /**
+     * Genera la instrucción de navegación legible para una maniobra OSRM.
+     *
+     * La lógica vive en [NavigationTextFormatter] (código puro, sin Android) para que
+     * pueda ejercitarse en tests unitarios JVM; aquí solo delegamos.
+     */
+    private fun getInstructionText(step: OsrmStep): String =
+        NavigationTextFormatter.getInstructionText(step)
+
     /**
      * FASE 2.2: Convierte número de salida de rotonda a ordinal en español.
-     * Usado para instrucciones naturales tipo Google Maps.
-     * 
+     * Delegado en [NavigationTextFormatter] para mantener una única fuente de verdad.
+     *
      * @param exit Número de salida (1-based)
      * @return Ordinal en español ("primera", "segunda", "tercera", etc.)
      */
-    private fun exitNumberToSpanishOrdinal(exit: Int): String {
-        return when (exit) {
-            1 -> "primera"
-            2 -> "segunda"
-            3 -> "tercera"
-            4 -> "cuarta"
-            5 -> "quinta"
-            else -> "${exit}ª"  // A partir de 6: "6ª", "7ª", etc.
-        }
-    }
+    private fun exitNumberToSpanishOrdinal(exit: Int): String =
+        NavigationTextFormatter.exitNumberToSpanishOrdinal(exit)
     
     private fun translate(s: String?) = when(s) { "left"->"izquierda"; "right"->"derecha"; else->s?:"" }
     

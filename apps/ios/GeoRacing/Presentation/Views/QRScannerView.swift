@@ -280,9 +280,16 @@ final class QRScannerViewModel: NSObject, ObservableObject {
         case .notDetermined:
             AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
                 Task { @MainActor in
-                    self?.hasCameraPermission = granted
+                    guard let self else { return }
+                    self.hasCameraPermission = granted
                     if granted {
-                        self?.setupCamera()
+                        self.setupCamera()
+                        // The view's .onAppear already fired (and was a no-op) while the
+                        // permission prompt was on screen, so the session did not exist yet.
+                        // Now that access is granted and the camera is configured, kick off
+                        // scanning here so the preview goes live immediately instead of
+                        // staying black until the user leaves and re-enters the screen.
+                        self.startScanning()
                     }
                 }
             }

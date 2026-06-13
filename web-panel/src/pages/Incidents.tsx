@@ -8,7 +8,12 @@ export const Incidents: React.FC = () => {
     const [incidents, setIncidents] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
     const { showToast } = useToast();
+
+    // Filters
+    const [filterText, setFilterText] = useState("");
+    const [filterLevel, setFilterLevel] = useState("ALL");
 
     // Form state
     const [title, setTitle] = useState("");
@@ -31,8 +36,17 @@ export const Incidents: React.FC = () => {
         fetchIncidents();
     }, []);
 
+    const filteredIncidents = incidents.filter((inc) => {
+        const matchesLevel = filterLevel === "ALL" || (inc.level || "INFO") === filterLevel;
+        const haystack = `${inc.category ?? ""} ${inc.description ?? ""}`.toLowerCase();
+        const matchesText = filterText.trim() === "" || haystack.includes(filterText.trim().toLowerCase());
+        return matchesLevel && matchesText;
+    });
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (submitting) return;
+        setSubmitting(true);
         try {
             await api.upsert("incidents", {
                 category: title,
@@ -52,6 +66,8 @@ export const Incidents: React.FC = () => {
         } catch (error) {
             console.error("Error creating incident:", error);
             showToast("Error al crear incidencia", "error");
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -72,17 +88,25 @@ export const Incidents: React.FC = () => {
                     </button>
                 </div>
 
-                {/* Filters (Visual only for now) */}
+                {/* Filters */}
                 <div className="bg-dark-800 p-4 rounded-lg border border-dark-700 flex gap-4">
                     <div className="relative flex-1">
                         <Filter className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
                         <input
                             type="text"
-                            placeholder="Filtrar por título..."
+                            value={filterText}
+                            onChange={(e) => setFilterText(e.target.value)}
+                            placeholder="Filtrar por título o descripción..."
+                            aria-label="Filtrar incidencias por texto"
                             className="w-full pl-10 pr-4 py-2 bg-dark-700 border border-dark-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                     </div>
-                    <select className="px-4 py-2 bg-dark-700 border border-dark-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <select
+                        value={filterLevel}
+                        onChange={(e) => setFilterLevel(e.target.value)}
+                        aria-label="Filtrar incidencias por nivel"
+                        className="px-4 py-2 bg-dark-700 border border-dark-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
                         <option value="ALL">Todos los niveles</option>
                         <option value="CRITICAL">Crítica</option>
                         <option value="WARNING">Advertencia</option>
@@ -111,9 +135,13 @@ export const Incidents: React.FC = () => {
                                 <tr>
                                     <td colSpan={5} className="px-6 py-4 text-center text-gray-400">No hay incidencias registradas</td>
                                 </tr>
+                            ) : filteredIncidents.length === 0 ? (
+                                <tr>
+                                    <td colSpan={5} className="px-6 py-4 text-center text-gray-400">Ninguna incidencia coincide con los filtros</td>
+                                </tr>
                             ) : (
-                                incidents.map((inc, idx) => (
-                                    <tr key={idx} className="hover:bg-dark-700/50 transition-colors">
+                                filteredIncidents.map((inc, idx) => (
+                                    <tr key={inc.id ?? idx} className="hover:bg-dark-700/50 transition-colors">
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <span className={`px-2 py-1 text-xs rounded-full ${inc.level === 'CRITICAL' ? 'bg-red-500/20 text-red-400' :
                                                 inc.level === 'WARNING' ? 'bg-yellow-500/20 text-yellow-400' :
@@ -199,15 +227,17 @@ export const Incidents: React.FC = () => {
                                 <button
                                     type="button"
                                     onClick={() => setShowModal(false)}
-                                    className="px-4 py-2 text-gray-300 hover:text-white transition-colors"
+                                    disabled={submitting}
+                                    className="px-4 py-2 text-gray-300 hover:text-white transition-colors disabled:opacity-50"
                                 >
                                     Cancelar
                                 </button>
                                 <button
                                     type="submit"
-                                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                                    disabled={submitting}
+                                    className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
                                 >
-                                    Crear Incidencia
+                                    {submitting ? "Creando..." : "Crear Incidencia"}
                                 </button>
                             </div>
                         </form>

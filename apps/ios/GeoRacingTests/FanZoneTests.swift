@@ -20,25 +20,43 @@ final class FanZoneTests: XCTestCase {
     }
     
     // MARK: - Color Hex Extension Tests
-    
+    //
+    // `Color.fromHex` is the *validating* parser: it returns nil for malformed input,
+    // unlike the forgiving non-failable `Color(hex:)` used by UI code.
+
     func testColorHexValid6Digit() {
-        let color = Color(hex: "#FF0000")
-        XCTAssertNotNil(color)
+        XCTAssertNotNil(Color.fromHex("#FF0000"))
     }
-    
+
     func testColorHexValidWithoutHash() {
-        let color = Color(hex: "00FF00")
-        XCTAssertNotNil(color)
+        XCTAssertNotNil(Color.fromHex("00FF00"))
     }
-    
+
+    func testColorHexValid3Digit() {
+        XCTAssertNotNil(Color.fromHex("#0F0"))
+    }
+
+    func testColorHexValid8DigitARGB() {
+        XCTAssertNotNil(Color.fromHex("80FF0000"))
+    }
+
     func testColorHexInvalid() {
-        let color = Color(hex: "XYZ")
-        XCTAssertNil(color)
+        XCTAssertNil(Color.fromHex("XYZ"))
     }
-    
+
     func testColorHexEmpty() {
-        let color = Color(hex: "")
-        XCTAssertNil(color)
+        XCTAssertNil(Color.fromHex(""))
+    }
+
+    func testColorHexWrongLength() {
+        // 4 and 5 hex digits are not valid colour lengths.
+        XCTAssertNil(Color.fromHex("#FFFF"))
+        XCTAssertNil(Color.fromHex("FFFFF"))
+    }
+
+    func testColorHexNonHexCharacters() {
+        // Right length (6) but contains non-hex letters.
+        XCTAssertNil(Color.fromHex("#GGGGGG"))
     }
     
     // MARK: - String Similarity Tests (Jaccard)
@@ -240,8 +258,8 @@ final class FanZoneTests: XCTestCase {
         )
         
         // Should produce non-nil colors from valid hex strings
-        let primary = Color(hex: team.primaryColor)
-        let secondary = Color(hex: team.secondaryColor)
+        let primary = Color.fromHex(team.primaryColor)
+        let secondary = Color.fromHex(team.secondaryColor)
         XCTAssertNotNil(primary)
         XCTAssertNotNil(secondary)
     }
@@ -289,9 +307,9 @@ final class FanZoneTests: XCTestCase {
     func testTeamCatalogAllTeamsHaveValidColors() {
         let catalog = TeamCatalogService.shared
         for team in catalog.teams {
-            XCTAssertNotNil(Color(hex: team.primaryColor),
+            XCTAssertNotNil(Color.fromHex(team.primaryColor),
                 "Team \(team.name) has invalid primaryColor: \(team.primaryColor)")
-            XCTAssertNotNil(Color(hex: team.secondaryColor),
+            XCTAssertNotNil(Color.fromHex(team.secondaryColor),
                 "Team \(team.name) has invalid secondaryColor: \(team.secondaryColor)")
         }
     }
@@ -405,6 +423,51 @@ final class FanZoneTests: XCTestCase {
         let ids = service.cardDefinitions.map(\.id)
         let uniqueIds = Set(ids)
         XCTAssertEqual(ids.count, uniqueIds.count, "All card IDs should be unique")
+    }
+
+    // MARK: - RewardService.resolveNextValue (pure unlock arithmetic)
+
+    /// Counter-style events bump progress by exactly one each time.
+    @MainActor
+    func testResolveNextValue_CounterEventsIncrementByOne() {
+        XCTAssertEqual(RewardService.resolveNextValue(event: .quizCorrect, conditionType: .quizTotal, currentValue: 0), 1)
+        XCTAssertEqual(RewardService.resolveNextValue(event: .quizCorrect, conditionType: .quizTotal, currentValue: 4), 5)
+        XCTAssertEqual(RewardService.resolveNextValue(event: .newsRead, conditionType: .newsRead, currentValue: 9), 10)
+        XCTAssertEqual(RewardService.resolveNextValue(event: .fanZoneVisit, conditionType: .fanZoneVisits, currentValue: 0), 1)
+        XCTAssertEqual(RewardService.resolveNextValue(event: .teamLoyaltyDay, conditionType: .teamLoyalty, currentValue: 6), 7)
+        XCTAssertEqual(RewardService.resolveNextValue(event: .firstQuiz, conditionType: .firstQuiz, currentValue: 0), 1)
+        XCTAssertEqual(RewardService.resolveNextValue(event: .quizPerfect, conditionType: .perfectQuiz, currentValue: 0), 1)
+    }
+
+    /// Regression for the streak bug: a streak event reports an ABSOLUTE level, so the
+    /// resolved value must be the streak itself (via max), not currentValue + 1. A single
+    /// streak-of-20 event must be enough to satisfy a threshold-20 card.
+    @MainActor
+    func testResolveNextValue_StreakIsAbsoluteNotIncrement() {
+        // From zero progress, a streak of 5 jumps straight to 5 (old code produced 1).
+        XCTAssertEqual(RewardService.resolveNextValue(event: .quizStreak(5), conditionType: .quizStreak, currentValue: 0), 5)
+        // A streak of 20 reaches the legendary threshold in one event.
+        XCTAssertEqual(RewardService.resolveNextValue(event: .quizStreak(20), conditionType: .quizStreak, currentValue: 0), 20)
+        // Never regresses: a lower later streak keeps the previous best.
+        XCTAssertEqual(RewardService.resolveNextValue(event: .quizStreak(3), conditionType: .quizStreak, currentValue: 10), 10)
+        // A new high streak advances the value.
+        XCTAssertEqual(RewardService.resolveNextValue(event: .quizStreak(12), conditionType: .quizStreak, currentValue: 10), 12)
+    }
+
+    /// Collection milestones are also absolute (number of cards owned), so they use max too.
+    @MainActor
+    func testResolveNextValue_CollectionMilestoneIsAbsolute() {
+        XCTAssertEqual(RewardService.resolveNextValue(event: .collectionMilestone(5), conditionType: .collectionMilestone, currentValue: 0), 5)
+        XCTAssertEqual(RewardService.resolveNextValue(event: .collectionMilestone(2), conditionType: .collectionMilestone, currentValue: 8), 8)
+    }
+
+    /// Events that don't match a card's condition type return nil (card untouched).
+    @MainActor
+    func testResolveNextValue_NonMatchingEventReturnsNil() {
+        XCTAssertNil(RewardService.resolveNextValue(event: .quizCorrect, conditionType: .quizStreak, currentValue: 3))
+        XCTAssertNil(RewardService.resolveNextValue(event: .newsRead, conditionType: .quizTotal, currentValue: 3))
+        // eventAttendance has no triggering event in RewardEvent → always nil.
+        XCTAssertNil(RewardService.resolveNextValue(event: .quizCorrect, conditionType: .eventAttendance, currentValue: 0))
     }
     
     // MARK: - CardProgress Tests

@@ -4,17 +4,25 @@ import android.speech.tts.TextToSpeech
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
+import org.junit.runner.RunWith
 import org.mockito.Mockito.*
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 /**
  * Tests unitarios para TTSManager con flags anti-saltos.
- * 
+ *
  * FASE 1.3 + FASE 2.4: Validar que:
  * 1. No se pierden mensajes si el usuario salta de 600m a 150m
  * 2. No se repiten mensajes en el mismo umbral
  * 3. Se resetean flags al cambiar instrucción
  * 4. Solo se dispara el umbral MÁS CERCANO aplicable
+ *
+ * Robolectric provides a real android.util.Log so TTSManager's logging does not
+ * throw "not mocked" during these verifications.
  */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34], manifest = Config.NONE)
 class TTSManagerTest {
     
     private lateinit var mockTTS: TextToSpeech

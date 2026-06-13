@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Layout } from "../components/Layout";
 import { api } from "../services/apiClient";
 import { CircuitStateData } from "../types";
@@ -9,22 +9,28 @@ export const CircuitState: React.FC = () => {
     const [state, setState] = useState<CircuitStateData | null>(null);
     const [loading, setLoading] = useState(true);
     const { showToast } = useToast();
+    // Guard against setState after unmount when a poll resolves late.
+    const mountedRef = useRef(true);
 
     const fetchState = async () => {
         try {
             const data = await api.getCircuitState();
-            setState(data);
+            if (mountedRef.current) setState(data);
         } catch (error) {
             console.error("Error fetching circuit state:", error);
         } finally {
-            setLoading(false);
+            if (mountedRef.current) setLoading(false);
         }
     };
 
     useEffect(() => {
+        mountedRef.current = true;
         fetchState();
         const interval = setInterval(fetchState, 5000);
-        return () => clearInterval(interval);
+        return () => {
+            mountedRef.current = false;
+            clearInterval(interval);
+        };
     }, []);
 
     const handleModeChange = async (newMode: string) => {

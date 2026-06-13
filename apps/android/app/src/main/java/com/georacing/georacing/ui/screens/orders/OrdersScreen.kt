@@ -58,14 +58,18 @@ fun OrdersScreen(navController: NavController) {
     var products by remember { mutableStateOf<List<Product>>(emptyList()) }
     // ... [existing fetching logic] ...
     
-    // Fetch Products from Backend
+    // Fetch Products from Backend.
+    // The work runs inside LaunchedEffect's coroutine, which is bound to this
+    // composable's lifecycle, so it is cancelled automatically when the screen
+    // leaves composition. (Previously this used GlobalScope, which leaks the
+    // request past the screen and updates state after disposal.)
     LaunchedEffect(Unit) {
-        kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-            try {
+        try {
+            val fetched = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
                 val api = com.georacing.georacing.data.firestorelike.FirestoreLikeClient.api
                 val rawProducts = api.get(com.georacing.georacing.data.firestorelike.FirestoreLikeApi.GetRequest(table = "products", where = null))
-                
-                val fetched = rawProducts.mapNotNull { it ->
+
+                rawProducts.mapNotNull { it ->
                     try {
                         Product(
                             id = it["id"] as? String ?: return@mapNotNull null,
@@ -76,19 +80,16 @@ fun OrdersScreen(navController: NavController) {
                             isAvailable = when(val stock = it["in_stock"]) {
                                 is Boolean -> stock
                                 is Number -> stock.toInt() == 1
-                                else -> true 
+                                else -> true
                             }
                         )
                     } catch(e: Exception) { null }
                 }
-                
-                // Update UI on Main Thread
-                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                    products = fetched
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
             }
+            // Back on the main dispatcher (LaunchedEffect default); safe to touch state.
+            products = fetched
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
     
@@ -111,6 +112,10 @@ fun OrdersScreen(navController: NavController) {
 
     // Function to process payment
     fun processCheckout() {
+        // Double-submit guard: ignore taps while a payment is already in flight or
+        // when the cart is empty. The processing overlay also blocks input, but this
+        // closes the race window before the overlay is composed.
+        if (isProcessingPayment || cart.isEmpty()) return
         scope.launch {
             isProcessingPayment = true
             FakePaymentProcessor.processPayment(total).collect { result ->

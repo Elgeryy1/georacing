@@ -4,12 +4,22 @@ import android.location.Location
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 /**
  * Tests unitarios para TrafficProvider y FakeTrafficProvider.
- * 
- * FASE 3: Valida el comportamiento del placeholder y la interfaz.
+ *
+ * FASE 3: Valida el contrato de la interfaz y las invariantes deterministas del
+ * proveedor simulado. (El factor concreto del proveedor simulado varía con la hora
+ * y la zona, por lo que las aserciones se hacen sobre rangos e invariantes, no sobre
+ * valores fijos.)
+ *
+ * Robolectric supplies a real android.location.Location implementation.
  */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34], manifest = Config.NONE)
 class TrafficProviderTest {
     
     private lateinit var fakeProvider: FakeTrafficProvider
@@ -30,42 +40,64 @@ class TrafficProviderTest {
     // ============================================================
     
     @Test
-    fun `FakeTrafficProvider returns 1_0 for normal traffic`() {
+    fun `FakeTrafficProvider factor stays within its simulated bounds`() {
+        // The simulated factor varies with time-of-day and zone, but is always
+        // clamped to the [0.7, 1.5] band defined by the provider.
         val factor = fakeProvider.getTrafficFactor(testLocation)
-        
-        assertEquals(1.0, factor, 0.001)
+
+        assertTrue("factor=$factor below lower bound", factor >= 0.7)
+        assertTrue("factor=$factor above upper bound", factor <= 1.5)
     }
-    
+
+    @Test
+    fun `FakeTrafficProvider is deterministic for a fixed location and instant`() {
+        // Two immediately-consecutive reads happen within the same wall-clock hour
+        // and use the same coordinates, so they must agree.
+        val a = fakeProvider.getTrafficFactor(testLocation)
+        val b = fakeProvider.getTrafficFactor(testLocation)
+
+        assertEquals(a, b, 0.0001)
+    }
+
     @Test
     fun `FakeTrafficProvider is always available`() {
         val isAvailable = fakeProvider.isAvailable()
-        
+
         assertTrue(isAvailable)
     }
-    
+
     @Test
-    fun `FakeTrafficProvider returns simulated description`() {
+    fun `FakeTrafficProvider description matches its factor band`() {
+        val factor = fakeProvider.getTrafficFactor(testLocation)
         val description = fakeProvider.getTrafficDescription(testLocation)
-        
-        assertEquals("Tráfico normal (simulado)", description)
+
+        val expected = when {
+            factor >= 1.3 -> "Tráfico denso — Recomendamos ruta alternativa"
+            factor >= 1.1 -> "Tráfico moderado"
+            else -> "Tráfico fluido"
+        }
+        assertEquals(expected, description)
     }
-    
+
     @Test
-    fun `FakeTrafficProvider does not support segment traffic`() {
+    fun `FakeTrafficProvider supports segment traffic within bounds`() {
+        // Segment traffic is derived from the midpoint factor, so it must also fall
+        // inside the provider's [0.7, 1.5] band.
         val segmentFactor = fakeProvider.getTrafficFactorForSegment(
             startLat = 41.5685,
             startLon = 2.2555,
             endLat = 41.5690,
             endLon = 2.2560
         )
-        
-        assertNull(segmentFactor)
+
+        assertNotNull(segmentFactor)
+        assertTrue(segmentFactor!! in 0.7..1.5)
     }
-    
+
     @Test
     fun `FakeTrafficProvider factor is compatible with ETACalculator range`() {
         val factor = fakeProvider.getTrafficFactor(testLocation)
-        
+
         // El factor debe estar en rango aceptable para ETACalculator (0.5 - 3.0)
         assertTrue(factor >= 0.5)
         assertTrue(factor <= 3.0)

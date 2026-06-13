@@ -1,0 +1,48 @@
+name: Android CI
+
+on:
+  push:
+    paths:
+      - "apps/android/**"
+      - ".github/workflows/android.yml"
+  pull_request:
+    paths:
+      - "apps/android/**"
+      - ".github/workflows/android.yml"
+
+jobs:
+  build:
+    name: Unit tests + assembleDebug
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/android
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      # The google-services plugin needs a google-services.json. The example is a
+      # valid stub (placeholder OAuth client) that lets the build generate
+      # default_web_client_id without any real credentials.
+      - name: Provide google-services.json from example
+        run: cp app/google-services.json.example app/google-services.json
+
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
+      - name: Unit tests + assemble debug APK
+        run: ./gradlew testDebugUnitTest assembleDebug --no-daemon --console=plain
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: georacing-debug-apk
+          path: apps/android/**/outputs/apk/debug/*.apk
+          if-no-files-found: ignore

@@ -25,13 +25,16 @@ class PublicTransportViewModel: ObservableObject {
         }
         
         let toLocation = destination ?? defaultCircuitLocation
-        
-        Task { @MainActor in
-            isLoading = true
-            error = nil
-            showFallback = false
-        }
-        
+
+        // Set the loading state synchronously. This whole type is @MainActor and
+        // loadRoutes() is already called on the main actor, so there is no need to hop
+        // through a detached Task — doing so deferred the spinner by a run-loop turn and
+        // could let a later state update (e.g. an instant cache hit) be overwritten by a
+        // stale `isLoading = true`. Mutating directly keeps the UI in lock-step with the call.
+        isLoading = true
+        error = nil
+        showFallback = false
+
         Task {
             do {
                 // First check health (optional, but good for UX to fail fast)

@@ -7,6 +7,12 @@ const mysql = require('mysql2/promise');
 const cors = require('cors');
 const crypto = require('crypto');
 
+// Pure, unit-tested helpers (see lib/ and test/).
+const { getSqlType, columnsToAdd, buildUpsert } = require('./lib/schema');
+const { findDuplicateBeaconIds } = require('./lib/beacons');
+const { getCardinalDirection, describeWeatherCode } = require('./lib/weather');
+const { isValidIdentifier, quoteIdentifier } = require('./lib/identifiers');
+
 // --- Environment Validation ---
 const REQUIRED_ENV = ['DB_HOST', 'DB_USER', 'DB_PASSWORD', 'DB_NAME'];
 const missingEnv = REQUIRED_ENV.filter((key) => !process.env[key]);
@@ -44,6 +50,39 @@ const SSL_CA_PATH = process.env.SSL_CA_PATH || 'SSLIntermediateCertificate.crt';
 
 // Database Connection Pool (initialized in startServer)
 let pool;
+
+
+// --- Identifier validation (dynamic schema) ---
+//
+// The generic endpoints accept table/column names from the request and embed
+// them as SQL identifiers (which cannot be passed as `?` placeholders). Validate
+// them against the strict allow-list in lib/identifiers before they touch SQL.
+// Row VALUES remain parameterized everywhere.
+
+/**
+ * Validate a candidate table/column name, responding with HTTP 400 when it is
+ * not a safe identifier.
+ *
+ * @returns {boolean} True if valid (caller continues); false if a 400 was sent.
+ */
+function rejectInvalidIdentifier(res, name, kind) {
+    if (!isValidIdentifier(name)) {
+        res.status(400).json({ error: `Invalid ${kind}: ${JSON.stringify(name)}` });
+        return false;
+    }
+    return true;
+}
+
+/**
+ * Validate every key of a `where`/filter object as a column identifier. Sends a
+ * 400 and returns false on the first invalid key; returns true otherwise.
+ */
+function rejectInvalidFilterKeys(res, filters) {
+    for (const key of Object.keys(filters || {})) {
+        if (!rejectInvalidIdentifier(res, key, 'column name')) return false;
+    }
+    return true;
+}
 
 
 // --- Endpoints ---
@@ -193,15 +232,17 @@ app.post('/api/commands/:id/execute', async (req, res) => {
 app.post('/api/_get', async (req, res) => {
     const { table, where } = req.body;
     if (!table) return res.status(400).json({ error: 'Table required' });
+    if (!rejectInvalidIdentifier(res, table, 'table name')) return;
+    if (!rejectInvalidFilterKeys(res, where)) return;
 
     try {
-        let query = `SELECT * FROM \`${table}\``;
+        let query = `SELECT * FROM ${quoteIdentifier(table)}`;
         const queryParams = [];
         const whereClauses = [];
 
         if (where) {
             for (const [key, value] of Object.entries(where)) {
-                whereClauses.push(`\`${key}\` = ?`);
+                whereClauses.push(`${quoteIdentifier(key)} = ?`);
                 queryParams.push(value);
             }
         }
@@ -223,14 +264,20 @@ app.post('/api/_get', async (req, res) => {
 app.post('/api/_delete', async (req, res) => {
     const { table, where } = req.body;
     if (!table || !where) return res.status(400).json({ error: 'Table and where required' });
+    if (!rejectInvalidIdentifier(res, table, 'table name')) return;
+    if (!rejectInvalidFilterKeys(res, where)) return;
+    // Guard against an empty `where` (would DELETE every row).
+    if (Object.keys(where).length === 0) {
+        return res.status(400).json({ error: 'where must contain at least one filter' });
+    }
 
     try {
-        let query = `DELETE FROM \`${table}\``;
+        let query = `DELETE FROM ${quoteIdentifier(table)}`;
         const queryParams = [];
         const whereClauses = [];
 
         for (const [key, value] of Object.entries(where)) {
-            whereClauses.push(`\`${key}\` = ?`);
+            whereClauses.push(`${quoteIdentifier(key)} = ?`);
             queryParams.push(value);
         }
 
@@ -246,10 +293,11 @@ app.post('/api/_delete', async (req, res) => {
 app.post('/api/_ensure_table', async (req, res) => {
     const { table } = req.body;
     if (!table) return res.status(400).json({ error: 'Table name required' });
+    if (!rejectInvalidIdentifier(res, table, 'table name')) return;
 
     try {
         // Assumption: 'id' is standard primary key for this dynamic schema
-        const query = `CREATE TABLE IF NOT EXISTS \`${table}\` (id VARCHAR(255) PRIMARY KEY)`;
+        const query = `CREATE TABLE IF NOT EXISTS ${quoteIdentifier(table)} (id VARCHAR(255) PRIMARY KEY)`;
         await pool.query(query);
         res.json({ success: true, message: `Table ${table} ensured` });
     } catch (err) {
@@ -259,23 +307,34 @@ app.post('/api/_ensure_table', async (req, res) => {
 });
 
 // 4. POST /api/_ensure_column
+// Allow-list of SQL column types accepted from the request body. A caller may
+// only request one of these exact strings; anything else (including attempts to
+// smuggle SQL via the `type` field) is rejected. Type inference from `value`
+// always yields one of these by construction.
+const ALLOWED_COLUMN_TYPES = new Set(['INT', 'DOUBLE', 'TINYINT(1)', 'TEXT', 'VARCHAR(50)', 'VARCHAR(100)', 'VARCHAR(191)', 'VARCHAR(255)']);
+
 app.post('/api/_ensure_column', async (req, res) => {
     const { table, column, type, value } = req.body; // 'value' used to infer type if 'type' not provided
     if (!table || !column) return res.status(400).json({ error: 'Table and Column required' });
+    if (!rejectInvalidIdentifier(res, table, 'table name')) return;
+    if (!rejectInvalidIdentifier(res, column, 'column name')) return;
+    if (type !== undefined && !ALLOWED_COLUMN_TYPES.has(type)) {
+        return res.status(400).json({ error: `Invalid column type: ${JSON.stringify(type)}` });
+    }
 
     try {
         // Check if column exists
-        const [columns] = await pool.query(`SHOW COLUMNS FROM \`${table}\` LIKE ?`, [column]);
+        const [columns] = await pool.query(`SHOW COLUMNS FROM ${quoteIdentifier(table)} LIKE ?`, [column]);
 
         if (columns.length === 0) {
             let sqlType = 'TEXT'; // Default
             if (type) {
-                sqlType = type; // Direct mapping if provided
+                sqlType = type; // Direct mapping if provided (validated against the allow-list above)
             } else if (value !== undefined) {
                 sqlType = getSqlType(value);
             }
 
-            const query = `ALTER TABLE \`${table}\` ADD COLUMN \`${column}\` ${sqlType}`;
+            const query = `ALTER TABLE ${quoteIdentifier(table)} ADD COLUMN ${quoteIdentifier(column)} ${sqlType}`;
             await pool.query(query);
             res.json({ success: true, message: `Column ${column} added to ${table}` });
         } else {
@@ -291,12 +350,16 @@ app.post('/api/_ensure_column', async (req, res) => {
 app.post('/api/_upsert', async (req, res) => {
     const { table, data } = req.body;
     if (!table || !data) return res.status(400).json({ error: 'Table and data required' });
+    if (!rejectInvalidIdentifier(res, table, 'table name')) return;
+    if (!rejectInvalidFilterKeys(res, data)) return;
 
     try {
         // Use genericInsert to benefit from Smart Schema (auto-create table/columns)
         const id = await genericInsert(table, data);
         res.json({ success: true, id });
     } catch (err) {
+        // Defense in depth: lib/schema also validates identifiers and maps to a 400.
+        if (err.code === 'INVALID_IDENTIFIER') return res.status(400).json({ error: err.message });
         console.error(`Error awaiting upsert in ${table}:`, err);
         res.status(500).json({ error: err.message });
     }
@@ -306,15 +369,17 @@ app.post('/api/_upsert', async (req, res) => {
 app.get('/api/_read', async (req, res) => {
     const { table, limit, ...filters } = req.query;
     if (!table) return res.status(400).json({ error: 'Table name required' });
+    if (!rejectInvalidIdentifier(res, table, 'table name')) return;
+    if (!rejectInvalidFilterKeys(res, filters)) return;
 
     try {
-        let query = `SELECT * FROM \`${table}\``;
+        let query = `SELECT * FROM ${quoteIdentifier(table)}`;
         const queryParams = [];
         const whereClauses = [];
 
         // Simple equality filters
         for (const [key, value] of Object.entries(filters)) {
-            whereClauses.push(`\`${key}\` = ?`);
+            whereClauses.push(`${quoteIdentifier(key)} = ?`);
             queryParams.push(value);
         }
 
@@ -322,9 +387,13 @@ app.get('/api/_read', async (req, res) => {
             query += ` WHERE ${whereClauses.join(' AND ')}`;
         }
 
-        if (limit) {
+        if (limit !== undefined) {
+            const parsedLimit = parseInt(limit, 10);
+            if (!Number.isInteger(parsedLimit) || parsedLimit < 0) {
+                return res.status(400).json({ error: `Invalid limit: ${JSON.stringify(limit)}` });
+            }
             query += ` LIMIT ?`;
-            queryParams.push(parseInt(limit));
+            queryParams.push(parsedLimit);
         }
 
         const [rows] = await pool.query(query, queryParams);
@@ -336,20 +405,14 @@ app.get('/api/_read', async (req, res) => {
     }
 });
 
-// Helper to get JS type mapped to SQL type (Moved up)
-const getSqlType = (value) => {
-    if (typeof value === 'number') {
-        return Number.isInteger(value) ? 'INT' : 'DOUBLE';
-    }
-    if (typeof value === 'boolean') return 'TINYINT(1)';
-    return 'TEXT';
-};
-
 // Internal Helper: Maintain schema dynamically
 async function ensureSchema(table, data) {
+    // Validate the table identifier once; reused (already quoted) below.
+    const quotedTable = quoteIdentifier(table, 'table name');
+
     // 1. Ensure Table
     try {
-        await pool.query(`CREATE TABLE IF NOT EXISTS \`${table}\` (id VARCHAR(191) PRIMARY KEY) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
+        await pool.query(`CREATE TABLE IF NOT EXISTS ${quotedTable} (id VARCHAR(191) PRIMARY KEY) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
     } catch (err) {
         console.error(`Auto-creation of table ${table} failed:`, err);
         throw err;
@@ -362,22 +425,21 @@ async function ensureSchema(table, data) {
     // Get existing columns
     let existingColumns = [];
     try {
-        const [cols] = await pool.query(`SHOW COLUMNS FROM \`${table}\``);
+        const [cols] = await pool.query(`SHOW COLUMNS FROM ${quotedTable}`);
         existingColumns = cols.map(c => c.Field);
     } catch (err) {
         // Ignored
     }
 
-    for (const key of keys) {
-        if (!existingColumns.includes(key)) {
-            try {
-                const type = getSqlType(data[key]);
-                await pool.query(`ALTER TABLE \`${table}\` ADD COLUMN \`${key}\` ${type}`);
-                console.log(`✨ Dynamically added column '${key}' to '${table}'`);
-            } catch (err) {
-                // Ignore duplicate column errors (race conditions)
-                if (err.code !== 'ER_DUP_FIELDNAME') throw err;
-            }
+    // columnsToAdd validates each column name; getSqlType yields a fixed set of
+    // safe type strings, so the ALTER TABLE below contains no untrusted SQL.
+    for (const { column, type } of columnsToAdd(existingColumns, data)) {
+        try {
+            await pool.query(`ALTER TABLE ${quotedTable} ADD COLUMN ${quoteIdentifier(column)} ${type}`);
+            console.log(`✨ Dynamically added column '${column}' to '${table}'`);
+        } catch (err) {
+            // Ignore duplicate column errors (race conditions)
+            if (err.code !== 'ER_DUP_FIELDNAME') throw err;
         }
     }
 }
@@ -388,15 +450,9 @@ async function genericInsert(table, data) {
 
     await ensureSchema(table, data); // <--- The magic "Firestore-like" part
 
-    const keys = Object.keys(data);
-    const values = Object.values(data);
-
-    // Optimize: Use ON DUPLICATE KEY UPDATE to allow idempotency
-    const placeholders = keys.map(() => '?').join(', ');
-    const updates = keys.map(k => `\`${k}\` = VALUES(\`${k}\`)`).join(', ');
-
-    const query = `INSERT INTO \`${table}\` (\`${keys.join('`, `')}\`) VALUES (${placeholders}) ON DUPLICATE KEY UPDATE ${updates}`;
-    await pool.query(query, values);
+    // Build the idempotent INSERT ... ON DUPLICATE KEY UPDATE (parameterized).
+    const { sql, values } = buildUpsert(table, data);
+    await pool.query(sql, values);
     return data.id;
 }
 
@@ -438,29 +494,7 @@ async function startServer() {
         console.log('🧹 Checking for duplicate beacons...');
         try {
             const [rows] = await pool.query('SELECT id, beacon_uid, last_seen FROM beacons');
-            const map = new Map();
-            const deleteIds = [];
-
-            for (const row of rows) {
-                if (!row.beacon_uid) continue;
-                if (map.has(row.beacon_uid)) {
-                    // Duplicate found. Compare last_seen to keep the newest.
-                    const existing = map.get(row.beacon_uid);
-                    const currentRes = new Date(row.last_seen || 0).getTime();
-                    const existingRes = new Date(existing.last_seen || 0).getTime();
-
-                    if (currentRes > existingRes) {
-                        // Current is newer, keep current, delete existing
-                        deleteIds.push(existing.id);
-                        map.set(row.beacon_uid, row);
-                    } else {
-                        // Existing is newer (or same), delete current
-                        deleteIds.push(row.id);
-                    }
-                } else {
-                    map.set(row.beacon_uid, row);
-                }
-            }
+            const deleteIds = findDuplicateBeaconIds(rows);
 
             if (deleteIds.length > 0) {
                 console.log(`🧹 Removing ${deleteIds.length} duplicate beacons...`);
@@ -549,19 +583,7 @@ async function startServer() {
 }
 
 // --- Weather Service (Open-Meteo) ---
-const weatherCodes = {
-    0: 'Cielo despejado', 1: 'Mayormente despejado', 2: 'Parcialmente nublado', 3: 'Nublado',
-    45: 'Niebla', 48: 'Niebla escarchada',
-    51: 'Llovizna ligera', 53: 'Llovizna moderada', 55: 'Llovizna densa',
-    61: 'Lluvia leve', 63: 'Lluvia moderada', 65: 'Lluvia fuerte',
-    71: 'Nieve leve', 73: 'Nieve moderada', 75: 'Nieve fuerte',
-    95: 'Tormenta', 96: 'Tormenta con granizo', 99: 'Tormenta fuerte'
-};
-
-function getCardinalDirection(angle) {
-    const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
-    return directions[Math.round(angle / 45) % 8];
-}
+// Weather code descriptions and wind-bearing formatting live in ./lib/weather.
 
 async function fetchCircuitWeather() {
     try {
@@ -582,7 +604,7 @@ async function fetchCircuitWeather() {
                         const humidity = (w.relative_humidity_2m || '--') + (u.relative_humidity_2m || '%');
                         const windDir = getCardinalDirection(w.wind_direction_10m || 0);
                         const wind = `${w.wind_speed_10m} ${u.wind_speed_10m} ${windDir}`;
-                        const forecast = weatherCodes[w.weather_code] || 'Desconocido';
+                        const forecast = describeWeatherCode(w.weather_code);
 
                         console.log(`🌤 Weather: ${temp}, ${humidity}, ${wind}, ${forecast}`);
 

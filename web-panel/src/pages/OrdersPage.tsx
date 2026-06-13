@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api } from '../services/apiClient';
 import { Layout } from '../components/Layout';
 import { CheckCircle, Clock, ShoppingBag, Trash2, ChefHat, Flame } from 'lucide-react';
@@ -28,6 +28,8 @@ const OrdersPage = () => {
     const [productsMap, setProductsMap] = useState<Record<string, any>>({});
     const [showHistory, setShowHistory] = useState(false);
     const [loading, setLoading] = useState(true);
+    // Guard against setState after unmount when the 5s poll resolves late.
+    const mountedRef = useRef(true);
 
     const fetchOrders = async () => {
         try {
@@ -35,11 +37,11 @@ const OrdersPage = () => {
             const sorted = data.sort((a, b) =>
                 new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
             );
-            setOrders(sorted);
+            if (mountedRef.current) setOrders(sorted);
         } catch (error) {
             console.error("Error fetching orders:", error);
         } finally {
-            setLoading(false);
+            if (mountedRef.current) setLoading(false);
         }
     };
 
@@ -50,15 +52,19 @@ const OrdersPage = () => {
             if (Array.isArray(list)) {
                 list.forEach((p: any) => map[p.id] = p);
             }
-            setProductsMap(map);
+            if (mountedRef.current) setProductsMap(map);
         } catch (e) { console.error(e); }
     };
 
     useEffect(() => {
+        mountedRef.current = true;
         fetchOrders();
         fetchProducts();
         const interval = setInterval(fetchOrders, 5000);
-        return () => clearInterval(interval);
+        return () => {
+            mountedRef.current = false;
+            clearInterval(interval);
+        };
     }, []);
 
     const deleteOrder = async (id: string) => {
@@ -148,6 +154,7 @@ const OrdersPage = () => {
                                         <button
                                             onClick={() => deleteOrder(order.id)}
                                             className="text-gray-600 hover:text-red-500 transition-colors p-1"
+                                            aria-label={`Eliminar pedido #${order.order_id.slice(-8).toUpperCase()}`}
                                             title="Eliminar Pedido"
                                         >
                                             <Trash2 size={18} />

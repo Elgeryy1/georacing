@@ -10,7 +10,7 @@ export interface NewBeaconDetected {
 
 export const beaconDetectionService = {
   subscribeToNewBeacons(callback: (newBeacons: NewBeaconDetected[]) => void) {
-    let lastIds = new Set<string>();
+    const lastIds = new Set<string>();
     const interval = setInterval(async () => {
       try {
         const beacons = await api.get<Beacon>("beacons", { mode: "UNCONFIGURED" });
@@ -33,12 +33,15 @@ export const beaconDetectionService = {
           newBeacons.forEach(b => lastIds.add(b.beaconId));
           callback(newBeacons);
         }
-      } catch { }
+      } catch {
+        // Polling is best-effort: a transient API/network error on one tick
+        // should not tear down the interval. The next tick retries.
+      }
     }, 4000);
     return () => clearInterval(interval);
   },
   subscribeAndDetectNew(existingBeaconIds: Set<string>, onNewBeacon: (beaconId: string, beacon: Partial<Beacon>) => void) {
-    let notified = new Set(existingBeaconIds);
+    const notified = new Set(existingBeaconIds);
     const interval = setInterval(async () => {
       try {
         const beacons = await api.get<Beacon>("beacons", { mode: "UNCONFIGURED" });
@@ -49,7 +52,10 @@ export const beaconDetectionService = {
             onNewBeacon(uid, b);
           }
         });
-      } catch { }
+      } catch {
+        // Best-effort polling: swallow transient errors so the interval keeps
+        // running and detection resumes on the next tick.
+      }
     }, 4000);
     return () => clearInterval(interval);
   }

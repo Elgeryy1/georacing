@@ -80,7 +80,10 @@ export const beaconsService = {
     try {
       const beacons = await api.get<any>("beacons", { beacon_uid: beaconId });
       if (beacons.length > 0) numericId = beacons[0].id;
-    } catch (e) { }
+    } catch {
+      // Numeric-id lookup is a best-effort optimization; if it fails we still
+      // send the command keyed by beacon_uid, leaving beacon_id undefined.
+    }
 
     // Enviar comando UPDATE_CONFIG a la baliza (comunicación en tiempo real)
     await api.upsert("commands", {
@@ -161,7 +164,10 @@ export const beaconsService = {
     try {
       const beacons = await api.get<any>("beacons", { beacon_uid: beaconId });
       if (beacons.length > 0) numericId = beacons[0].id;
-    } catch (e) { }
+    } catch {
+      // Numeric-id lookup is a best-effort optimization; if it fails we still
+      // send the command keyed by beacon_uid, leaving beacon_id undefined.
+    }
 
     // Crear el comando
     await api.upsert("commands", {

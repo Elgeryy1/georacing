@@ -60,7 +60,17 @@ SDK requirements: .NET 8 SDK for `BeaconActivePc` and `BeaconApp`, .NET 9 SDK fo
 These are **prototypes from an educational project**, not production firmware:
 
 - API endpoints and IDs (manufacturer ID, zone ID) are hard-coded constants in places.
-- TLS certificate validation is deliberately disabled to talk to a self-signed dev server — do not reuse this pattern in production.
+- TLS certificate validation is **on by default**. To talk to a self-signed dev server you must explicitly opt in: build in `Debug` **and** set `GEORACING_ALLOW_INSECURE_TLS=1`. Release builds never accept untrusted certificates, so a published binary can't be downgraded into a man-in-the-middle.
 - Error handling is best-effort and logging is console/file based.
+
+### Talking to a self-signed dev server
+
+```powershell
+# Only works in a Debug build; ignored entirely in Release.
+$env:GEORACING_ALLOW_INSECURE_TLS = "1"
+dotnet run --project beacons/baliza-gerard/BeaconActivePc.csproj
+```
+
+When the bypass is active each app logs a one-line `WARNING: validación de certificado TLS DESACTIVADA (modo dev).` so it's obvious you're not validating certificates.
 
 They exist to prove the concept: a cheap Windows box can act as a networked track signal and a BLE broadcast point for the GeoRacing mobile apps.

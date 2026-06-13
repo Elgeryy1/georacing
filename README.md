@@ -14,6 +14,12 @@
   <img src="https://img.shields.io/badge/C%23-512BD4?logo=dotnet&logoColor=white" alt="C#"/>
   <img src="https://img.shields.io/badge/Node.js-339933?logo=nodedotjs&logoColor=white" alt="Node.js"/>
   <img src="https://img.shields.io/badge/License-MIT-yellow" alt="License: MIT"/>
+  <img src="https://img.shields.io/badge/tests-194%20passing-brightgreen" alt="194 tests passing"/>
+  <img src="https://img.shields.io/badge/CI-GitHub%20Actions-2088FF?logo=githubactions&logoColor=white" alt="CI: GitHub Actions"/>
+</p>
+
+<p align="center">
+  <img src="docs/assets/preview.svg" width="820" alt="GeoRacing race control dashboard"/>
 </p>
 
 ---
@@ -87,6 +93,39 @@ Beacons never receive pushes — they poll the API for pending commands and repo
 | Discord bot | [`discord-bot`](discord-bot/README.md) | Node.js, discord.js, Supabase, Groq | Community bot with realtime Supabase listener and AI (RAG) answers about the project |
 | Documentation | [`docs`](docs/ARCHITECTURE.md) | Markdown | Global architecture, data flows, BLE protocol and REST API reference |
 
+## Feature matrix
+
+| Capability | Android | iOS | Web panel | Beacons |
+|---|:---:|:---:|:---:|:---:|
+| Live circuit state (flags / safety car / red flag) | ✅ | ✅ | ✅ | ✅ |
+| Evacuation mode with directional arrows | ✅ | ✅ | ✅ | ✅ |
+| BLE zone detection / advertising | ✅ | ◐ | — | ✅ |
+| Interactive circuit map | ✅ | ✅ | ✅ (zones) | — |
+| Pedestrian navigation + voice guidance | ✅ | ◐ | — | — |
+| Group location sharing | ✅ | ✅ | — | — |
+| Food ordering / orders management | ✅ | ✅ | ✅ | — |
+| Incidents reporting / triage | ✅ | ✅ | ✅ | — |
+| Android Auto / CarPlay | ✅ | ◐ | — | — |
+| Remote command + heartbeat | — | — | ✅ | ✅ |
+
+✅ implemented · ◐ partial / in progress · — not applicable
+
+## Testing
+
+The project ships **194 automated tests** that run in CI on every push:
+
+| Component | Framework | Tests | Run locally |
+|---|---|:---:|---|
+| Web panel | Vitest | 37 | `cd web-panel && npm test` |
+| Android | JUnit (JVM unit tests) | 116 | `cd apps/android && ./gradlew testDebugUnitTest` |
+| Backend | `node --test` | 24 | `cd backend && npm test` |
+| Discord bot | `node --test` | 17 | `cd discord-bot && npm test` |
+
+The web panel additionally enforces `npm run lint` (ESLint, zero warnings) and a
+strict `tsc` typecheck as part of `npm run build`. See [.github/workflows](.github/workflows)
+for the CI definitions and [docs/BUG_AUDIT.md](docs/BUG_AUDIT.md) for the audit
+that produced these suites.
+
 ## Repository layout
 
 ```
@@ -121,6 +160,13 @@ Each component is self-contained and has its own README with detailed setup inst
 - **Discord bot** — `cd discord-bot && npm install`, fill in your `.env`, then `node index.js`. See [discord-bot/README.md](discord-bot/README.md).
 
 All credentials are injected via environment variables or local config files that are not part of this repository — `.example` templates are provided where relevant.
+
+## Contributing
+
+Contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) for
+per-component dev setup and conventions, and our [Code of Conduct](CODE_OF_CONDUCT.md).
+Security issues: see [SECURITY.md](SECURITY.md). Release notes live in
+[CHANGELOG.md](CHANGELOG.md).
 
 ## Team
 

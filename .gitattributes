@@ -1,0 +1,61 @@
+# Normalize line endings on commit and check out with LF everywhere.
+# This ends the CRLF/LF churn that otherwise appears in diffs when the
+# repository is shared between Windows, macOS and Linux contributors.
+* text=auto eol=lf
+
+# Scripts that MUST keep their platform-native endings.
+*.bat        text eol=crlf
+*.cmd        text eol=crlf
+*.ps1        text eol=crlf
+*.sh         text eol=lf
+gradlew      text eol=lf
+
+# Explicit text types (kept LF) so Git never guesses wrong.
+*.kt         text eol=lf
+*.kts        text eol=lf
+*.java       text eol=lf
+*.swift      text eol=lf
+*.cs         text eol=lf
+*.ts         text eol=lf
+*.tsx        text eol=lf
+*.js         text eol=lf
+*.jsx        text eol=lf
+*.json       text eol=lf
+*.css        text eol=lf
+*.html       text eol=lf
+*.xml        text eol=lf
+*.yml        text eol=lf
+*.yaml       text eol=lf
+*.md         text eol=lf
+*.sql        text eol=lf
+*.gradle     text eol=lf
+*.properties text eol=lf
+*.svg        text eol=lf
+
+# Binary assets: never normalized, never shown as diffs, never merged.
+*.png        binary
+*.jpg        binary
+*.jpeg       binary
+*.gif        binary
+*.webp       binary
+*.ico        binary
+*.pdf        binary
+*.jar        binary
+*.aar        binary
+*.keystore   binary
+*.jks        binary
+*.zip        binary
+*.7z         binary
+*.ttf        binary
+*.otf        binary
+*.woff       binary
+*.woff2      binary
+*.mp4        binary
+*.mp3        binary
+
+# Lockfiles: keep diffs but mark as generated so GitHub collapses them.
+package-lock.json   linguist-generated=true -diff
+yarn.lock           linguist-generated=true -diff
+
+# Keep generated/vendored docs from skewing the language stats.
+docs/documentation.md linguist-documentation=true

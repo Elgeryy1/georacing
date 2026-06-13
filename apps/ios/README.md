@@ -24,7 +24,25 @@ Native SwiftUI port of the GeoRacing Android app: an event companion for **spect
 **Basic / placeholder**
 - Offline map tile persistence, alerts center, staff panel and group following are "basic". AR guidance, anti-queue routes, dynamic routes, QR positioning, Fan Immersive/360 and the visionary features (FlowSense etc.) are placeholders — see `FEATURES.md`.
 
-Tests live in `GeoRacingTests/` (including `ParityTests.swift`) and `GeoRacingUITests/`.
+## Tests
+
+Unit tests live in `GeoRacingTests/`, UI tests in `GeoRacingUITests/`. Run with `⌘U` in
+Xcode (or `xcodebuild test -scheme GeoRacing`). Coverage focuses on the parity-critical,
+deterministic logic rather than UI:
+
+- **`ParityTests.swift`** — circuit-state JSON decoding (`global_mode` → `flag`) and the
+  `APIService.mapStatus` flag mapping, including the priority ordering that keeps
+  `YELLOW`/`CAUTION` (a local hazard) distinct from `SAFETY_CAR`, plus case/whitespace
+  normalization and the unknown-state fallback. Also covers relaxed `Product` decoding.
+- **`FanZoneTests.swift`** — championship/rarity models, hex-colour parsing, news
+  deduplication (URL + Jaccard title similarity), the embedded team catalog and question
+  bank invariants, and `RewardService.resolveNextValue` — the pure unlock arithmetic that
+  distinguishes counter events (increment) from absolute streak/collection events (max),
+  guarding the regression where a single high-streak event failed to unlock its card.
+
+The reward-unlock and flag-mapping rules were deliberately extracted into pure
+functions (`RewardService.resolveNextValue`, `APIService.mapStatus` exposed as `internal`)
+so they can be asserted without spinning up `UserDefaults` or the network.
 
 ## Architecture
 
@@ -93,4 +111,10 @@ If you don't run this stack, the app degrades gracefully: `TransportLocalFallbac
 - Earlier-stage port: most non-core features are placeholders (see `FEATURES.md` / `PARITY_CHECKLIST.md`); offline tile caching, full OSRM pedestrian routing, order history and staff tooling are pending.
 - `backend/transport-api` ships without its `server.js`; the OTP folder ships config only (no graph/GTFS data).
 - API base URL is a hardcoded development server in `AppConstants.swift`; replace it with your own.
+- **Dev-only TLS trust override.** `APIService` accepts the self-signed development
+  certificate via a `URLSessionDelegate` server-trust override. This is clearly marked
+  `⚠️ WARNING … MUST NOT SHIP TO PRODUCTION` in the source and must be replaced with the
+  platform default, a CA-signed certificate, or certificate/public-key pinning before any
+  release build. It only affects server-trust challenges; client-cert and HTTP auth fall
+  through to default handling.
 - The parity/feature docs are written in Spanish.

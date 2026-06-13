@@ -6,16 +6,24 @@ import com.georacing.georacing.utils.RouteSnapper
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
+import org.junit.runner.RunWith
 import org.maplibre.android.geometry.LatLng
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 /**
  * FASE 2.3: Tests de navegación completa usando FakeLocationProvider.
- * 
+ *
  * Valida comportamiento end-to-end sin GPS real:
  * - Off-route no se dispara siguiendo el track
  * - Snap funciona correctamente en curvas
  * - GPS malo se ignora correctamente
+ *
+ * Runs under Robolectric so android.location.Location (and Location.distanceBetween)
+ * use the real framework implementation instead of "not mocked" stubs.
  */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34], manifest = Config.NONE)
 class NavigationIntegrationTest {
     
     @Before

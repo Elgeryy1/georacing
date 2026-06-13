@@ -21,12 +21,26 @@ class APIService: NSObject, URLSessionDelegate {
         self.session = URLSession(configuration: config, delegate: self, delegateQueue: nil)
     }
     
+    // ⚠️ WARNING: TRUST-ALL TLS — DEVELOPMENT ONLY, MUST NOT SHIP TO PRODUCTION.
+    // This delegate accepts ANY server certificate (including self-signed and expired
+    // ones) so the app can talk to the self-signed development backend without manual
+    // trust provisioning. Accepting every certificate disables certificate validation
+    // and exposes the app to man-in-the-middle attacks.
+    //
+    // Before any production / App Store build this MUST be replaced with one of:
+    //   • the platform default (delete this method so URLSession validates normally), or
+    //   • certificate / public-key pinning against the production server, or
+    //   • a properly CA-signed server certificate.
+    // See README "Known limitations" — this is gated to the dev host on purpose.
     func urlSession(_ session: URLSession, didReceive challenge: URLAuthenticationChallenge, completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
-        if let trust = challenge.protectionSpace.serverTrust {
-            completionHandler(.useCredential, URLCredential(trust: trust))
-        } else {
+        // Only override trust evaluation for server-trust challenges (not client certs / HTTP auth).
+        guard challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust,
+              let trust = challenge.protectionSpace.serverTrust else {
             completionHandler(.performDefaultHandling, nil)
+            return
         }
+        // DEV-ONLY: accept the self-signed development certificate unconditionally.
+        completionHandler(.useCredential, URLCredential(trust: trust))
     }
     
     // MARK: - Endpoints
@@ -113,7 +127,9 @@ class APIService: NSObject, URLSessionDelegate {
         return try JSONDecoder().decode([ZoneDensityDto].self, from: data)
     }
     
-    private func mapStatus(_ flag: String) -> TrackStatus {
+    // `internal` (default) rather than `private` so the flag-mapping logic — the core
+    // parity contract with the Android app — can be unit-tested via `@testable import`.
+    func mapStatus(_ flag: String) -> TrackStatus {
         let normalized = flag.uppercased().trimmingCharacters(in: .whitespacesAndNewlines)
         
         // 0. EVACUATION (Highest Priority)
@@ -125,18 +141,25 @@ class APIService: NSObject, URLSessionDelegate {
         if normalized.contains("RED") || normalized.contains("STOP") || normalized.contains("BLOCK") || normalized.contains("CLOSE") {
             return .red
         }
-        
-        // 2. ORANGE / CAUTION / SAFETY CAR / YELLOW
-        if normalized.contains("SC") || normalized.contains("SAFETY") || normalized.contains("VSC") || normalized.contains("VIRTUAL") || normalized.contains("CAUTION") || normalized.contains("WARN") || normalized.contains("YELLOW") {
-            return .sc 
+
+        // 2. YELLOW FLAG / CAUTION (local hazard) — must be checked BEFORE the Safety Car
+        //    group below, otherwise a "YELLOW"/"CAUTION" string would be swallowed by the
+        //    broad SC matcher (which also matches "CAUTION") and lose the distinct yellow state.
+        if normalized.contains("YELLOW") || normalized.contains("CAUTION") {
+            return .yellow
         }
 
-        // 3. GREEN / CLEAN
+        // 3. SAFETY CAR / VIRTUAL SAFETY CAR
+        if normalized.contains("SC") || normalized.contains("SAFETY") || normalized.contains("VSC") || normalized.contains("VIRTUAL") || normalized.contains("WARN") {
+            return .sc
+        }
+
+        // 4. GREEN / CLEAN
         if normalized.contains("GREEN") || normalized.contains("CLEAN") || normalized.contains("CLEAR") || normalized.contains("PISTA") {
             return .green
         }
-        
-        // 4. UNKNOWN - Strict parity rule: don't hide unknown states
+
+        // 5. UNKNOWN - Strict parity rule: don't hide unknown states
         Logger.warning("[APIService] Unknown Status String: '\(normalized)' -> Mapped to .unknown")
         return .unknown
     }

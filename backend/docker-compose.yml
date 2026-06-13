@@ -1,0 +1,53 @@
+# ----------------------------------------------------------------------------
+# GeoRacing backend — local/dev stack.
+#
+#   docker compose up --build
+#
+# Brings up MySQL 8 and the API. The API waits (depends_on: condition:
+# service_healthy) until MySQL passes its healthcheck, then boots on HTTPS 4010
+# with a self-signed dev certificate (see docker-entrypoint.sh). Override the
+# database credentials and port via a local .env file (see .env.example).
+# ----------------------------------------------------------------------------
+services:
+  db:
+    image: mysql:8
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_NAME:-GeoRacingDB}
+      MYSQL_USER: ${DB_USER:-georacing}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-change_me}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_change_me}
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      # Use the application user so the API only starts once it can authenticate.
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "${DB_USER:-georacing}", "-p${DB_PASSWORD:-change_me}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  api:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Point the app at the compose `db` service rather than localhost.
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USER: ${DB_USER:-georacing}
+      DB_PASSWORD: ${DB_PASSWORD:-change_me}
+      DB_NAME: ${DB_NAME:-GeoRacingDB}
+      PORT: ${PORT:-4010}
+      # Keep the dev self-signed certificate in a directory the `node` user owns.
+      SSL_KEY_PATH: /app/certs/SSLprivatekey.key
+      SSL_CERT_PATH: /app/certs/SSLcertificate.crt
+      SSL_CA_PATH: /app/certs/SSLIntermediateCertificate.crt
+    ports:
+      - "${PORT:-4010}:${PORT:-4010}"
+
+volumes:
+  db_data:

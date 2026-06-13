@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Layout } from "../components/Layout";
 import { api } from "../services/apiClient";
 import { Beacon, Command, CircuitStateData } from "../types";
@@ -11,6 +11,9 @@ export const Dashboard: React.FC = () => {
   const [commands, setCommands] = useState<Command[]>([]);
   const [circuitState, setCircuitState] = useState<CircuitStateData | null>(null);
   const [loading, setLoading] = useState(true);
+  // Avoid setState after unmount: a slow poll can resolve after the user
+  // has navigated away, which would otherwise trigger a React warning.
+  const mountedRef = useRef(true);
 
   const fetchData = async () => {
     try {
@@ -21,6 +24,7 @@ export const Dashboard: React.FC = () => {
         api.getCircuitState().catch(() => null) // Handle if state endpoint fails initially
       ]);
 
+      if (!mountedRef.current) return;
       setBeacons(beaconsData);
       setIncidents(incidentsData);
       setCommands(commandsData.slice(0, 5)); // Show only last 5
@@ -28,14 +32,18 @@ export const Dashboard: React.FC = () => {
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   };
 
   useEffect(() => {
+    mountedRef.current = true;
     fetchData();
     const interval = setInterval(fetchData, 5000);
-    return () => clearInterval(interval);
+    return () => {
+      mountedRef.current = false;
+      clearInterval(interval);
+    };
   }, []);
 
   const onlineCount = beacons.filter(b => b.online).length;

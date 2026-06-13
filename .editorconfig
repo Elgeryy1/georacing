@@ -1,0 +1,69 @@
+# EditorConfig — https://editorconfig.org
+# Top-most EditorConfig file for the GeoRacing monorepo.
+root = true
+
+# Defaults for every file.
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+# Web panel & Node services (React/TS, Node, JSON, config).
+[*.{ts,tsx,js,jsx,mjs,cjs,json,css,scss,html,yml,yaml}]
+indent_style = space
+indent_size = 2
+
+# Markdown — trailing whitespace is significant (two spaces = hard line break).
+[*.md]
+trim_trailing_whitespace = false
+indent_size = 2
+
+# Kotlin / Java (Android) — official Kotlin style uses 4 spaces.
+[*.{kt,kts,java}]
+indent_style = space
+indent_size = 4
+max_line_length = 120
+
+# Swift (iOS).
+[*.swift]
+indent_style = space
+indent_size = 4
+
+# C# / .NET (beacons).
+[*.cs]
+indent_style = space
+indent_size = 4
+max_line_length = 120
+
+[*.{csproj,xaml,xml,config}]
+indent_style = space
+indent_size = 2
+
+# SQL schemas.
+[*.sql]
+indent_style = space
+indent_size = 2
+
+# Gradle / properties.
+[*.gradle]
+indent_style = space
+indent_size = 4
+
+[*.properties]
+indent_style = space
+indent_size = 2
+
+# Windows scripts must keep CRLF endings.
+[*.{bat,cmd,ps1}]
+end_of_line = crlf
+
+# Gradle wrapper script must stay LF to run on CI (Linux).
+[gradlew]
+end_of_line = lf
+
+# Makefiles require tabs.
+[Makefile]
+indent_style = tab

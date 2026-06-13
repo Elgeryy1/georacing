@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -335,9 +336,12 @@ class MainActivity : ComponentActivity() {
                                 val isSimCar by ScenarioSimulator.forcedCarConnection.collectAsState()
                                 
                                 val circuitStateFlow = remember { appContainer.circuitStateRepository.getCircuitState() }
-                                val circuitState by circuitStateFlow.collectAsState(
-                                    initial = com.georacing.georacing.domain.model.CircuitState(
-                                        com.georacing.georacing.domain.model.CircuitMode.UNKNOWN, 
+                                // Lifecycle-aware collection: the circuit-state poll is paused
+                                // when the app is in the background and resumed on return,
+                                // instead of collecting for the whole composition lifetime.
+                                val circuitState by circuitStateFlow.collectAsStateWithLifecycle(
+                                    initialValue = com.georacing.georacing.domain.model.CircuitState(
+                                        com.georacing.georacing.domain.model.CircuitMode.UNKNOWN,
                                         null, null, ""
                                     )
                                 )

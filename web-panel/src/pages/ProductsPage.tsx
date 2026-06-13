@@ -27,9 +27,15 @@ const ProductsPage = () => {
     const [products, setProducts] = useState<Product[]>([]);
     const [editMode, setEditMode] = useState<string | null>(null);
     const [editedProduct, setEditedProduct] = useState<Partial<Product>>({});
+    const [saving, setSaving] = useState(false);
+    const [saveError, setSaveError] = useState<string | null>(null);
 
+    // Fetch the product list once on mount (and seed demo data if the table is
+    // empty). The effect intentionally runs only once; fetchProducts is stable
+    // for the component's lifetime.
     useEffect(() => {
         fetchProducts();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const fetchProducts = async () => {
@@ -55,14 +61,27 @@ const ProductsPage = () => {
     };
 
     const handleSave = async () => {
-        if (!editedProduct.name || !editedProduct.price) return;
+        if (saving) return; // double-submit guard
+        const name = editedProduct.name?.trim();
+        const price = Number(editedProduct.price);
+        if (!name) {
+            setSaveError('El nombre es obligatorio');
+            return;
+        }
+        if (!Number.isFinite(price) || price <= 0) {
+            setSaveError('Introduce un precio válido (mayor que 0)');
+            return;
+        }
 
+        setSaveError(null);
+        setSaving(true);
         try {
             const id = editMode === 'new' ? crypto.randomUUID() : editMode;
             await api.upsert('products', {
                 id,
                 ...editedProduct,
-                price: Number(editedProduct.price),
+                name,
+                price,
                 in_stock: editedProduct.in_stock ? 1 : 0
             });
 
@@ -71,8 +90,16 @@ const ProductsPage = () => {
             fetchProducts();
         } catch (e) {
             console.error(e);
-            alert('Error al guardar');
+            setSaveError('Error al guardar. Inténtalo de nuevo.');
+        } finally {
+            setSaving(false);
         }
+    };
+
+    const cancelEdit = () => {
+        setEditMode(null);
+        setEditedProduct({});
+        setSaveError(null);
     };
 
     const handleDelete = async (id: string) => {
@@ -97,6 +124,7 @@ const ProductsPage = () => {
                         onClick={() => {
                             setEditMode('new');
                             setEditedProduct({ in_stock: true, category: 'Comida', emoji: '🍔' });
+                            setSaveError(null);
                         }}
                         className="bg-red-600 hover:bg-red-500 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2"
                     >
@@ -112,7 +140,9 @@ const ProductsPage = () => {
                             product={editedProduct}
                             onChange={setEditedProduct}
                             onSave={handleSave}
-                            onCancel={() => setEditMode(null)}
+                            onCancel={cancelEdit}
+                            saving={saving}
+                            error={saveError}
                         />
                     )}
 
@@ -123,7 +153,9 @@ const ProductsPage = () => {
                                 product={editedProduct}
                                 onChange={setEditedProduct}
                                 onSave={handleSave}
-                                onCancel={() => setEditMode(null)}
+                                onCancel={cancelEdit}
+                                saving={saving}
+                                error={saveError}
                             />
                         ) : (
                             <div key={product.id} className={`p-6 rounded-2xl border ${product.in_stock ? 'bg-gray-900/50 border-gray-800' : 'bg-red-900/20 border-red-900/50'} backdrop-blur-sm relative group`}>
@@ -132,13 +164,16 @@ const ProductsPage = () => {
                                         onClick={() => {
                                             setEditMode(product.id);
                                             setEditedProduct({ ...product, in_stock: Boolean(product.in_stock) });
+                                            setSaveError(null);
                                         }}
+                                        aria-label={`Editar ${product.name}`}
                                         className="p-2 bg-gray-800 rounded-lg hover:bg-gray-700"
                                     >
                                         <Edit2 size={16} />
                                     </button>
                                     <button
                                         onClick={() => handleDelete(product.id)}
+                                        aria-label={`Eliminar ${product.name}`}
                                         className="p-2 bg-gray-800 rounded-lg hover:bg-red-900/50 text-red-500"
                                     >
                                         <Trash2 size={16} />
@@ -166,11 +201,11 @@ const ProductsPage = () => {
     );
 };
 
-const ProductEditor = ({ product, onChange, onSave, onCancel }: any) => (
+const ProductEditor = ({ product, onChange, onSave, onCancel, saving, error }: any) => (
     <div className="p-6 rounded-2xl bg-gray-800 border border-gray-700">
         <div className="flex justify-between mb-4">
             <h3 className="font-bold text-white">Editar Producto</h3>
-            <button onClick={onCancel}><X size={20} className="text-gray-400" /></button>
+            <button onClick={onCancel} aria-label="Cerrar editor"><X size={20} className="text-gray-400" /></button>
         </div>
         <div className="space-y-4">
             <div>
@@ -209,12 +244,18 @@ const ProductEditor = ({ product, onChange, onSave, onCancel }: any) => (
                 />
                 <span className="text-white">Disponible en Stock</span>
             </div>
+            {error && (
+                <p className="text-sm text-red-400 bg-red-900/20 border border-red-900/40 rounded-lg px-3 py-2" role="alert">
+                    {error}
+                </p>
+            )}
             <button
                 onClick={onSave}
-                className="w-full bg-green-600 hover:bg-green-500 text-white py-3 rounded-xl font-bold flex justify-center items-center gap-2 mt-2"
+                disabled={saving}
+                className="w-full bg-green-600 hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed text-white py-3 rounded-xl font-bold flex justify-center items-center gap-2 mt-2"
             >
                 <Save size={18} />
-                GUARDAR
+                {saving ? 'GUARDANDO...' : 'GUARDAR'}
             </button>
         </div>
     </div>

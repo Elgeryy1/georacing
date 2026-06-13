@@ -49,6 +49,29 @@ Notes:
 
 - Reads against missing tables fail safe and return `[]` (or `{}` for `/api/state`).
 - Errors return `500` with `{ "error": "<message>" }`; missing required parameters return `400`.
+- **Identifier validation.** Because the generic endpoints take table/column
+  names from the request and embed them as SQL identifiers (which cannot be bound
+  as `?` placeholders), every table and column name is validated against a strict
+  allow-list (`^[A-Za-z_][A-Za-z0-9_]*$`, see `lib/identifiers.js`) before it
+  touches SQL. Anything else — e.g. a name containing a backtick — is rejected
+  with `400`. Row **values** are always parameterized. The `type` accepted by
+  `/api/_ensure_column` is likewise limited to a fixed allow-list of SQL types.
+
+## Security model / trust boundary
+
+The Smart-Schema (`/api/_*`) endpoints let a caller create tables and columns and
+read/write arbitrary rows. They are designed for **trusted, internal clients**
+(the Android app, the BeaconApp and the operator web panel on a private network),
+not for direct exposure to the public internet. Defenses in place:
+
+- **No SQL injection via identifiers or values** — identifiers go through the
+  allow-list above; values are always parameterized (`?`). The pure builders in
+  `lib/schema.js` re-validate identifiers as defense in depth, and the behavior is
+  covered by unit tests (`test/identifiers.test.js`, `test/schema.test.js`).
+- **`/api/_delete` requires a non-empty `where`** so it can never truncate a table.
+
+Before exposing this API beyond a trusted network, add authentication/authorization
+and rate limiting in front of it (e.g. a reverse proxy or an auth middleware).
 
 ## Environment Variables
 
@@ -66,7 +89,37 @@ Copy `.env.example` to `.env` and fill in the values. The server exits at startu
 | `SSL_CERT_PATH` | No | `SSLcertificate.crt` | Path to the TLS certificate. |
 | `SSL_CA_PATH` | No | `SSLIntermediateCertificate.crt` | Path to the intermediate CA certificate. |
 
-## Setup
+## Quick start with Docker
+
+The fastest way to try the API is the bundled Compose stack, which provisions
+MySQL 8 and the backend together:
+
+```bash
+cd backend
+cp .env.example .env        # optional: tweak credentials/port
+docker compose up --build
+```
+
+What happens:
+
+- The `db` service (MySQL 8, utf8mb4) starts and exposes a healthcheck.
+- The `api` service waits until the database is healthy (`depends_on: condition:
+  service_healthy`), then boots on HTTPS port `4010`.
+- Because the server is HTTPS-only, the container mints a throwaway self-signed
+  certificate on first start (see `docker-entrypoint.sh`) so there is nothing to
+  configure. The image also defines a `HEALTHCHECK` that probes `/health`.
+
+Verify it is up (the dev certificate is self-signed, so skip verification):
+
+```bash
+curl -k https://localhost:4010/health
+# {"status":"ok","version":"2.0-smart-schema","timestamp":"..."}
+```
+
+For production, mount real TLS material over the paths in `SSL_KEY_PATH` /
+`SSL_CERT_PATH` / `SSL_CA_PATH` and the self-signed step is skipped.
+
+## Local setup (without Docker)
 
 ```bash
 cd backend
@@ -77,6 +130,33 @@ npm start
 ```
 
 Requires Node.js >= 18 and a reachable MySQL/MariaDB server.
+
+## Testing
+
+Pure logic (Smart-Schema type inference and upsert generation, SQL identifier
+validation, beacon deduplication, and weather formatting) is extracted into
+`lib/` so it can be unit-tested without a database or network. Tests use Node's
+built-in test runner — no extra dependencies:
+
+```bash
+npm test        # node --test
+```
+
+## Project structure
+
+```
+backend/
+├── server.js              # Express app, routes, DB bootstrap, weather loop
+├── lib/
+│   ├── schema.js          # SQL type inference + idempotent upsert builder
+│   ├── identifiers.js     # SQL identifier allow-list validation
+│   ├── beacons.js         # Beacon deduplication logic
+│   └── weather.js         # WMO code + wind-bearing formatting
+├── test/                  # node:test unit tests for lib/
+├── Dockerfile             # Production image (alpine, npm ci, non-root)
+├── docker-entrypoint.sh   # Mints a dev self-signed cert if none is mounted
+└── docker-compose.yml     # API + MySQL 8 stack
+```
 
 ## Database Schema
 

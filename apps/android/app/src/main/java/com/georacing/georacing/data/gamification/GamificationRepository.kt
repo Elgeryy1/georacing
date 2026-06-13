@@ -28,7 +28,6 @@ class GamificationRepository {
     private val _profile = MutableStateFlow(
         FanProfile(
             totalXP = 0,
-            level = 1,
             achievements = allAchievements,
             circuitsVisited = 0,
             kmWalked = 0f,
@@ -59,7 +58,6 @@ class GamificationRepository {
 
                 _profile.value = FanProfile(
                     totalXP = savedXP,
-                    level = (savedXP / 250) + 1,
                     achievements = updatedAchievements,
                     circuitsVisited = (data["circuitsVisited"] as? Number)?.toInt() ?: 0,
                     kmWalked = (data["kmWalked"] as? Number)?.toFloat() ?: 0f,
@@ -96,16 +94,20 @@ class GamificationRepository {
 
     fun unlockAchievement(id: String) {
         _profile.value = _profile.value.let { current ->
+            val target = current.achievements.find { it.id == id }
+            // Only award XP the first time an achievement is unlocked. Re-unlocking an
+            // already-unlocked (or unknown) achievement is a no-op for XP, so the total
+            // can never be inflated by repeated calls.
             val updated = current.achievements.map {
                 if (it.id == id && !it.isUnlocked) it.copy(isUnlocked = true, progress = 1f, unlockedAt = System.currentTimeMillis())
                 else it
             }
-            val gained = current.achievements.find { it.id == id }?.xpReward ?: 0
+            val gained = if (target != null && !target.isUnlocked) target.xpReward else 0
             val newXP = current.totalXP + gained
+            // level is derived from totalXP, so updating XP is enough.
             current.copy(
                 achievements = updated,
-                totalXP = newXP,
-                level = (newXP / 250) + 1
+                totalXP = newXP
             )
         }
         saveProfile()

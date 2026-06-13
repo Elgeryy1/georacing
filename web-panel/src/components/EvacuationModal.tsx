@@ -18,17 +18,18 @@ export const EvacuationModal: React.FC<EvacuationModalProps> = ({ isOpen, onClos
         setLoading(true);
         try {
             const newMode = isEvacuationActive ? "NORMAL" : "EVACUATION";
-            const message = isEvacuationActive ? "System Normal" : "EVACUATION ORDER - PLEASE EXIT";
+            // Keep the broadcast copy in Spanish, consistent with the rest of the
+            // race-control UI and with the default beacon messages catalogue.
+            const message = isEvacuationActive ? "Circulación Normal" : "EVACUACIÓN - Siga las Flechas";
 
             await api.setCircuitState(newMode, message);
 
-            // Also send command to beacons? Ideally API handles this or beacons poll. 
-            // For immediate effect we could iterate beacons, but let's rely on polling/db first as per plan.
+            // Beacons and visitor apps pick up the new circuit state on their next poll.
 
             onClose();
         } catch (err) {
             console.error(err);
-            alert("Error changing state");
+            alert("Error al cambiar el estado del circuito");
         } finally {
             setLoading(false);
         }
@@ -50,7 +51,7 @@ export const EvacuationModal: React.FC<EvacuationModalProps> = ({ isOpen, onClos
                             <p className="text-gray-400">Control de Emergencia Global</p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="p-2 text-gray-400 hover:text-white rounded-lg hover:bg-white/10">
+                    <button onClick={onClose} aria-label="Cerrar" className="p-2 text-gray-400 hover:text-white rounded-lg hover:bg-white/10">
                         <X className="w-6 h-6" />
                     </button>
                 </div>

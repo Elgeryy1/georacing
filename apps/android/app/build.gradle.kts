@@ -54,6 +54,20 @@ android {
         compose = true
         buildConfig = true
     }
+
+    testOptions {
+        unitTests {
+            // Return sensible defaults (0 / null / false) for un-stubbed android.* methods
+            // instead of throwing "Method ... not mocked". Pure-logic tests that never touch
+            // the framework (e.g. BlePayloadParser, BearingCalculator) then run on the bare
+            // JVM with no extra machinery. Tests that need real framework behaviour
+            // (android.location.Location math, android.util.Log) opt into Robolectric via
+            // @RunWith(RobolectricTestRunner::class) instead.
+            isReturnDefaultValues = true
+            // Required by Robolectric to load merged resources/manifest.
+            isIncludeAndroidResources = true
+        }
+    }
 }
 
 
@@ -96,6 +110,9 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
+    // Lifecycle-aware Flow collection in Compose (collectAsStateWithLifecycle).
+    // Same version family as the other lifecycle artifacts above.
+    implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
@@ -195,6 +212,9 @@ dependencies {
     testImplementation("org.mockito:mockito-core:5.11.0")
     testImplementation("org.mockito.kotlin:mockito-kotlin:5.2.1")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
+    // Robolectric provides real shadow implementations of android.* framework types
+    // (Location, Log, ...) so JVM unit tests can exercise GPS/navigation logic offline.
+    testImplementation("org.robolectric:robolectric:4.16.1")
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))

@@ -18,13 +18,18 @@ export enum ArrowDirection {
     FORWARD_RIGHT = 'FORWARD_RIGHT',
     BACKWARD_LEFT = 'BACKWARD_LEFT',
     BACKWARD_RIGHT = 'BACKWARD_RIGHT',
-    // Aliases for compatibility if needed, but UI will use FORWARD/BACKWARD
+    // Directional aliases: callers that think in screen terms (UP/DOWN) resolve
+    // to the same wire values as the compass terms (FORWARD/BACKWARD). The
+    // shared values are intentional, so the duplicate-value rule is disabled
+    // for this block only.
+    /* eslint-disable @typescript-eslint/no-duplicate-enum-values */
     UP = 'FORWARD',
     DOWN = 'BACKWARD',
     UP_LEFT = 'FORWARD_LEFT',
     UP_RIGHT = 'FORWARD_RIGHT',
     DOWN_LEFT = 'BACKWARD_LEFT',
     DOWN_RIGHT = 'BACKWARD_RIGHT'
+    /* eslint-enable @typescript-eslint/no-duplicate-enum-values */
 }
 
 export interface BeaconState {

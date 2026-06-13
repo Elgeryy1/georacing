@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { api } from "../services/apiClient";
 import { Users, Award, Search, Loader2 } from "lucide-react";
 import { useToast } from "../context/ToastContext";
@@ -40,7 +40,7 @@ export const UsersPage: React.FC = () => {
   const [givingCollectible, setGivingCollectible] = useState<string | null>(null);
   const { showToast } = useToast();
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
       // Fetch both real users and the gamification profiles
@@ -88,11 +88,11 @@ export const UsersPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [showToast]);
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [fetchUsers]);
 
   const handleGiveCollectible = async (uid: string, collectibleId: string) => {
     try {

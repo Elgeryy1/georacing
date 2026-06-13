@@ -4,16 +4,23 @@ import android.location.Location
 import com.georacing.georacing.utils.RouteSnapper
 import org.junit.Assert.*
 import org.junit.Test
+import org.junit.runner.RunWith
 import org.maplibre.android.geometry.LatLng
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 /**
  * FASE 2.1: Tests para snap adaptativo en dos pasadas.
- * 
+ *
  * Valida que:
  * - Primera pasada rápida funciona cuando estás cerca de la ruta
  * - Segunda pasada se activa cuando la distancia es grande
  * - No hay errores con rutas vacías o índices inválidos
+ *
+ * Robolectric supplies a real android.location.Location implementation.
  */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34], manifest = Config.NONE)
 class RouteSnapperAdaptiveTest {
     
     @Test

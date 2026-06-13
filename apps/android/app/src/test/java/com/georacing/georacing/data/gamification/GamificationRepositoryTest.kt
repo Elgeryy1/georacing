@@ -3,9 +3,18 @@ package com.georacing.georacing.data.gamification
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
+import org.junit.runner.RunWith
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
+/**
+ * Robolectric provides a real android.util.Log so the repository's logging
+ * (used in its backend-load fallback path) does not throw "not mocked".
+ */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34], manifest = Config.NONE)
 class GamificationRepositoryTest {
 
     private lateinit var repository: GamificationRepository
@@ -16,16 +25,21 @@ class GamificationRepositoryTest {
     }
 
     @Test
-    fun `initial profile has positive XP`() = runTest {
+    fun `initial profile starts at zero XP and level one`() = runTest {
+        // Before any backend state loads, the profile is the empty seed: no XP earned,
+        // so the derived level is 1.
         val profile = repository.profile.first()
-        assertTrue(profile.totalXP > 0)
+        assertEquals(0, profile.totalXP)
+        assertEquals(1, profile.level)
     }
 
     @Test
-    fun `initial profile has unlocked achievements`() = runTest {
+    fun `initial profile exposes the full achievement catalogue all locked`() = runTest {
         val profile = repository.profile.first()
-        val unlockedCount = profile.achievements.count { it.isUnlocked }
-        assertTrue("Should have pre-unlocked achievements for demo", unlockedCount > 0)
+        // Every catalogue achievement is present...
+        assertEquals(GamificationRepository.allAchievements.size, profile.achievements.size)
+        // ...and none is unlocked until the player earns it.
+        assertEquals(0, profile.achievements.count { it.isUnlocked })
     }
 
     @Test
@@ -65,15 +79,20 @@ class GamificationRepositoryTest {
 
     @Test
     fun `unlocking already unlocked achievement does not duplicate XP`() = runTest {
-        val initialProfile = repository.profile.first()
-        val unlockedAchievement = initialProfile.achievements.find { it.isUnlocked }
-        assertNotNull(unlockedAchievement)
-        val xpBefore = initialProfile.totalXP
+        // Unlock a fresh achievement first, then attempt to unlock the same one again.
+        val target = repository.profile.first().achievements.first { !it.isUnlocked }
+        repository.unlockAchievement(target.id)
+        val xpAfterFirstUnlock = repository.profile.first().totalXP
 
-        repository.unlockAchievement(unlockedAchievement!!.id)
+        // Re-unlocking the same achievement must be idempotent for XP.
+        repository.unlockAchievement(target.id)
 
-        val updatedProfile = repository.profile.first()
-        assertEquals("XP should not change when re-unlocking", xpBefore, updatedProfile.totalXP)
+        val xpAfterSecondUnlock = repository.profile.first().totalXP
+        assertEquals(
+            "XP should not change when re-unlocking",
+            xpAfterFirstUnlock,
+            xpAfterSecondUnlock
+        )
     }
 
     @Test

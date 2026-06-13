@@ -16,16 +16,27 @@ namespace BeaconApp.Services
         private readonly HttpClient _httpClient;
         private readonly string _baseUrl;
 
+        // Variable de entorno que habilita explícitamente saltarse la validación TLS.
+        // Pensada SOLO para desarrollo contra un endpoint con certificado autofirmado.
+        private const string AllowInsecureTlsEnvVar = "GEORACING_ALLOW_INSECURE_TLS";
+
         public ApiClient(string baseUrl)
         {
             // Asegurar que termine en / para que HttpClient resuelva bien las rutas relativas
             _baseUrl = baseUrl.TrimEnd('/') + "/";
-            
-            // Permitir certificados autosignados (HTTPS)
-            var handler = new HttpClientHandler
+
+            var handler = new HttpClientHandler();
+
+            // Por defecto se valida el certificado del servidor (comportamiento seguro).
+            // Solo en builds DEBUG y con GEORACING_ALLOW_INSECURE_TLS=1 se acepta un
+            // certificado autofirmado, de modo que una release publicada nunca quede
+            // expuesta a un ataque MITM.
+            if (IsInsecureTlsAllowed())
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true
-            };
+                handler.ServerCertificateCustomValidationCallback =
+                    (message, cert, chain, errors) => true;
+                Log("WARNING: validación de certificado TLS DESACTIVADA (modo dev).");
+            }
 
             _httpClient = new HttpClient(handler)
             {
@@ -33,7 +44,18 @@ namespace BeaconApp.Services
                 Timeout = TimeSpan.FromSeconds(10)
             };
 
-            Log($"Cliente API inicializado: {_baseUrl} (SSL ignorado)");
+            Log($"Cliente API inicializado: {_baseUrl}");
+        }
+
+        private static bool IsInsecureTlsAllowed()
+        {
+#if DEBUG
+            var flag = Environment.GetEnvironmentVariable(AllowInsecureTlsEnvVar);
+            return flag == "1" ||
+                   string.Equals(flag, "true", StringComparison.OrdinalIgnoreCase);
+#else
+            return false;
+#endif
         }
 
         /// <summary>

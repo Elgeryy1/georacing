@@ -73,7 +73,7 @@ class BeaconScanner: NSObject, ObservableObject, CLLocationManagerDelegate {
         
         // Closest beacon by accuracy (immediate/near)
         if let closest = clBeacons.first(where: { $0.accuracy != -1 && $0.accuracy < 5.0 }) { // 5 meters threshold
-             // Matche with config
+             // Match with config
             if let matched = configBeacons.first(where: {
                 $0.uuid.caseInsensitiveCompare(closest.uuid.uuidString) == .orderedSame &&
                 $0.major == closest.major.intValue &&
@@ -87,13 +87,14 @@ class BeaconScanner: NSObject, ObservableObject, CLLocationManagerDelegate {
                 return
             }
         }
-        
-        // If we lost proximity or empty, maybe reset?
-        // Or keep last known? For incident reporting, immediate presence is key.
-        // Let's reset if list is empty or far.
-        if clBeacons.isEmpty {
-           // We might want to keep it for a few seconds (hysteresis), but for simple impl:
-           // self.currentBeacon = nil
+
+        // No beacon is within the proximity threshold any more: we are out of range.
+        // Incident reporting relies on *immediate* presence, so a stale beacon would
+        // attach the wrong zone to a report. Clear the current beacon once we lose
+        // proximity (empty ranging list, or all ranged beacons too far / accuracy -1).
+        if self.currentBeacon != nil {
+            Logger.info("Out of beacon range — clearing current beacon")
+            self.currentBeacon = nil
         }
     }
     

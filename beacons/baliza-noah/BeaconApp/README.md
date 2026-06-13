@@ -4,20 +4,25 @@ Aplicación de escritorio para Windows (WPF .NET 8) que funciona como terminal d
 
 ## 📋 Características
 
-- **Pantalla completa** (modo kiosco)
+- **Pantalla completa** (modo kiosco, borderless y `Topmost`)
 - **Auto-configuración** desde `C:\ProgramData\GeoRacing\beacon.json`
-- **Comunicación con API REST** para recibir comandos y enviar telemetría
-- **4 modos de operación**:
-  - `UNCONFIGURED` - Sin configurar (azul)
-  - `NORMAL` - Operación normal (verde)
-  - `CONGESTION` - Advertencia de congestión (naranja)
-  - `EMERGENCY` - Emergencia/evacuación (rojo)
+- **Comunicación con API REST** para recibir comandos y enviar telemetría (heartbeat con batería)
+- **Difusión BLE** del estado del circuito vía `BluetoothLEAdvertisementPublisher` (Manufacturer ID `0x1234`)
+- **Modos de operación** (color de fondo asociado en `MainViewModel`):
+  - `UNCONFIGURED` - Sin configurar (azul `#1565C0`)
+  - `NORMAL` - Operación normal (verde `#2E7D32`)
+  - `CONGESTION` - Advertencia de congestión (naranja `#F57C00`)
+  - `EMERGENCY` - Emergencia (rojo `#C62828`)
+  - `EVACUATION` - Evacuación (rojo `#D32F2F`, fuerza flecha direccional)
+  - `MAINTENANCE` - Mantenimiento (morado `#7B1FA2`)
+- **Flecha direccional** con 8 orientaciones (incluye diagonales) para guiar evacuaciones
 
 ## 🔧 Requisitos
 
-- Windows 10/11
+- Windows 10/11 (build 19041 o superior; usa APIs WinRT de Bluetooth)
 - .NET 8 SDK
-- Acceso a la API REST de GeoRacing (por defecto: `http://192.168.1.99:4000`)
+- Adaptador Bluetooth LE para la difusión de baliza
+- Acceso a la API REST de GeoRacing (por defecto: `https://georacing.example.com:4010/api/`)
 
 ## 🚀 Instalación y Ejecución
 
@@ -53,66 +58,59 @@ Ubicación: `C:\ProgramData\GeoRacing\beacon.json`
 ```json
 {
   "beaconId": "BALIZA-1",
-  "apiBaseUrl": "http://192.168.1.99:4000"
+  "apiBaseUrl": "https://georacing.example.com:4010/api/",
+  "name": "Baliza Paddock A",
+  "description": "Mini-PC trackside",
+  "zoneId": 1,
+  "latitude": 41.57,
+  "longitude": 2.26
 }
 ```
 
-**Comportamiento al iniciar**:
+**Comportamiento al iniciar** (`BeaconConfigService.ReadOrCreateConfig`):
 
 - Si el archivo **NO existe**: Se crea automáticamente con:
   - `beaconId` = Nombre del PC (`Environment.MachineName`)
-  - `apiBaseUrl` = Variable de entorno `GEORACING_API_URL` o valor por defecto
+  - `apiBaseUrl` = URL HTTPS por defecto del backend
 
-- Si el archivo **existe**: Se lee y usa su configuración
+- Si el archivo **existe**: Se lee y usa su configuración. Si contiene una URL
+  de desarrollo antigua, se migra automáticamente a la URL HTTPS actual y se
+  reescribe el archivo (la migración tolera fallos de escritura: si no puede
+  persistir, sigue usando la URL en memoria sin perder la identidad de la baliza).
 
-- Si el archivo está **corrupto**: Se hace backup y se regenera
-
-### Variable de Entorno (opcional)
-
-```powershell
-# Configurar API URL mediante variable de entorno
-[System.Environment]::SetEnvironmentVariable("GEORACING_API_URL", "http://tu-servidor:4000", "Machine")
-```
+- Si el archivo está **corrupto**: Se hace un backup con marca de tiempo y se regenera.
 
 ## 🌐 Comunicación con API
+
+Todas las rutas son relativas a `apiBaseUrl`. El cliente acepta certificados
+autofirmados (servidor de desarrollo) — ver la sección *Estado* del README de `beacons`.
 
 ### Endpoints utilizados
 
 #### 1. Heartbeat / Registro
 ```
-POST /api/beacons
-{
-  "id": "BALIZA-1",
-  "battery": null,
-  "brightness": 80,
-  "mode": "NORMAL",
-  "online": true
-}
+POST beacons/heartbeat
 ```
-Se envía cada **10 segundos**.
+Cuerpo `BeaconHeartbeatRequest` (incluye `mode`, `arrow_direction`, `brightness`,
+`battery_level`, posición GPS y `zone_id`). Se envía cada **10 segundos**.
+Adicionalmente persiste batería y estado vía `POST _upsert` sobre la tabla `beacons`.
 
-#### 2. Obtener comando pendiente
+#### 2. Estado global del circuito
 ```
-GET /api/commands/pending/{beaconId}
+POST _get   { "table": "circuit_state", "where": { "id": "1" } }
 ```
-Se consulta cada **2 segundos**.
+Se consulta en cada tick de polling (**cada 300 ms**) y alimenta tanto la UI
+como el payload BLE (modo + temperatura).
 
-Respuesta:
-```json
-{
-  "id": 123,
-  "beaconId": "BALIZA-1",
-  "command": "UPDATE_CONFIG",
-  "value": "{\"mode\":\"NORMAL\",\"brightness\":80,\"arrow\":\"FORWARD\",\"zone\":\"Paddock A\"}",
-  "executed": false,
-  "createdAt": "2025-11-18T18:00:00.000Z"
-}
+#### 3. Comandos pendientes
 ```
+GET commands/pending/{beaconId}
+```
+Se consulta en cada tick de polling (**cada 300 ms**). Los comandos con más de
+60 minutos de antigüedad (comparando contra `DateTime.UtcNow`) se descartan.
+Tras procesarse, el comando se elimina con `POST _delete`.
 
-#### 3. Marcar comando como ejecutado
-```
-POST /api/commands/{id}/execute
-```
+Comandos soportados: `UPDATE_CONFIG`, `RESTART`, `SHUTDOWN`, `CLOSE` / `CLOSE_APP`.
 
 ## 🎨 Modos de Visualización
 
@@ -121,15 +119,21 @@ POST /api/commands/{id}/execute
 | **UNCONFIGURED** | Azul `#1565C0` | Baliza sin configurar |
 | **NORMAL** | Verde `#2E7D32` | Operación normal del circuito |
 | **CONGESTION** | Naranja `#F57C00` | Advertencia de congestión |
-| **EMERGENCY** | Rojo `#C62828` | Emergencia/evacuación |
+| **EMERGENCY** | Rojo `#C62828` | Emergencia |
+| **EVACUATION** | Rojo `#D32F2F` | Evacuación (fuerza flecha de salida) |
+| **MAINTENANCE** | Morado `#7B1FA2` | Mantenimiento / pit |
 
 ### Flechas direccionales
 
-- `NONE` - Sin flecha
-- `FORWARD` - ⬆
-- `LEFT` - ⬅
-- `RIGHT` - ➡
-- `BACKWARD` - ⬇
+La flecha rota según `arrow_direction`. Si vale `NONE`, se oculta (`Collapsed`).
+
+- `NONE` - Sin flecha (oculta)
+- `FORWARD` / `UP` - ⬆ (0°)
+- `RIGHT` - ➡ (90°)
+- `BACKWARD` / `DOWN` - ⬇ (180°)
+- `LEFT` - ⬅ (-90°)
+- Diagonales: `FORWARD_LEFT`/`UP_LEFT` (-45°), `FORWARD_RIGHT`/`UP_RIGHT` (45°),
+  `BACKWARD_LEFT`/`DOWN_LEFT` (-135°), `BACKWARD_RIGHT`/`DOWN_RIGHT` (135°)
 
 ## ⌨️ Controles
 
@@ -140,17 +144,20 @@ POST /api/commands/{id}/execute
 ```
 BeaconApp/
 ├── Config/
-│   └── BeaconConfigService.cs     # Gestión de beacon.json
+│   └── BeaconConfigService.cs     # Gestión de beacon.json (lectura/creación/migración)
 ├── Models/
-│   └── BeaconModels.cs            # Modelos de datos
+│   └── BeaconModels.cs            # DTOs + CustomDateTimeConverter (UTC)
 ├── Services/
-│   └── ApiClient.cs               # Cliente HTTP para API
+│   ├── ApiClient.cs               # Cliente HTTP para la API REST
+│   ├── ApiLogger.cs               # Cola de logs hacia la API (flush cada 5 s)
+│   ├── BleBeaconService.cs        # Difusión BLE del estado del circuito
+│   └── FileLogger.cs              # Log a disco con rotación (5 MB)
 ├── ViewModels/
-│   └── MainViewModel.cs           # Lógica de presentación
-├── MainWindow.xaml                # Interfaz XAML
+│   └── MainViewModel.cs           # MVVM: polling 300 ms + heartbeat 10 s
+├── MainWindow.xaml                # Interfaz XAML (vistas por modo)
 ├── MainWindow.xaml.cs             # Code-behind
-├── App.xaml                       # Configuración de aplicación
-└── BeaconApp.csproj               # Proyecto .NET
+├── App.xaml / App.xaml.cs         # Bootstrap + handlers de excepciones
+└── BeaconApp.csproj               # Proyecto .NET 8 (assembly: GeoRacingBeacon)
 ```
 
 ## 🔍 Logs
@@ -163,20 +170,23 @@ C:\ProgramData\GeoRacing\beacon-debug.log
 Formato:
 ```
 2025-11-18 18:30:45 [CONFIG] ✓ Configuración cargada: BALIZA-1
-2025-11-18 18:30:45 [API] Cliente API inicializado: http://192.168.1.99:4000
+2025-11-18 18:30:45 [API] Cliente API inicializado: https://georacing.example.com:4010/api/
 2025-11-18 18:30:45 [VM] ViewModel inicializado para baliza: BALIZA-1
-2025-11-18 18:30:55 [API] ✓ Heartbeat enviado: NORMAL
-2025-11-18 18:31:00 [API] ✓ Comando recibido: UPDATE_CONFIG (ID: 42)
+2025-11-18 18:30:55 [API] ✓ Heartbeat enviado (NORMAL)
+2025-11-18 18:31:00 [CMD] Recibido: UPDATE_CONFIG (ID: 42)
 ```
+
+> El log de aplicación (`beacon_log.txt`, junto al ejecutable) rota
+> automáticamente a `beacon_log.txt.old` al superar 5 MB para no crecer sin límite.
 
 ## 🐛 Solución de Problemas
 
 ### La baliza no se conecta a la API
 
-1. Verificar que la API está corriendo: `http://192.168.1.99:4000/health`
+1. Verificar que la API responde: `GET {apiBaseUrl}health`
 2. Revisar `beacon.json` y confirmar la URL correcta
-3. Verificar conectividad de red: `ping 192.168.1.99`
-4. Revisar logs en `beacon-debug.log`
+3. Verificar conectividad de red con el servidor del backend
+4. Revisar logs en `beacon-debug.log` y `beacon_log.txt`
 
 ### La configuración no cambia
 
@@ -215,10 +225,17 @@ Register-ScheduledTask -TaskName "GeoRacing Beacon" -Action $action -Trigger $tr
 
 ## 📝 Notas Técnicas
 
-- La aplicación usa `HttpClient` reutilizable para todas las peticiones
-- Los timers usan `System.Threading.Timer` para no bloquear el UI thread
-- Los cambios de configuración se aplican en el `Dispatcher` de WPF
-- El fondo cambia dinámicamente usando binding a `BackgroundColor`
+- La aplicación usa un `HttpClient` reutilizable (con timeout de 10 s) para todas las peticiones.
+- El timer de polling es **no reentrante**: usa periodo infinito y se re-arma en el
+  bloque `finally` del callback, de modo que un tick lento nunca solapa con el siguiente.
+- Las marcas de tiempo de los comandos se comparan en **UTC** (`DateTime.UtcNow`);
+  el `CustomDateTimeConverter` normaliza las fechas entrantes a UTC para evitar
+  errores por zona horaria o cultura local.
+- El nivel de batería se interpreta correctamente en equipos **sin batería**
+  (`BatteryLifePercent` devuelve `255` → se reporta `100`).
+- Los cambios de configuración y de UI se aplican siempre en el `Dispatcher` de WPF.
+- El payload BLE se reconstruye por completo en cada cambio de estado (WinRT no
+  permite reutilizar de forma fiable un publisher tras `Stop()`).
 
 ## 📄 Licencia
 

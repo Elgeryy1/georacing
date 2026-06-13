@@ -256,6 +256,25 @@ extension Color {
         uiColor.getRed(&r, green: &g, blue: &b, alpha: &a)
         return String(format: "#%02X%02X%02X", Int(r * 255), Int(g * 255), Int(b * 255))
     }
+
+    /// Strictly parse a hex colour string, returning `nil` for anything that is not a
+    /// well-formed 3-, 6- or 8-digit hex value.
+    ///
+    /// The non-failable `Color(hex:)` initializer (defined in `PublicTransportSheetView`)
+    /// is deliberately forgiving — it falls back to a default colour for malformed input so
+    /// UI code never has to deal with an optional. `fromHex` is the validating counterpart:
+    /// it is the API to reach for when you need to *know* whether a string is a usable hex
+    /// colour (e.g. validating catalogue data or user input).
+    ///
+    /// - Parameter hex: a colour string, with or without a leading `#`.
+    /// - Returns: a `Color` when `hex` is valid, otherwise `nil`.
+    static func fromHex(_ hex: String) -> Color? {
+        let cleaned = hex.trimmingCharacters(in: .whitespacesAndNewlines)
+                         .trimmingCharacters(in: CharacterSet(charactersIn: "#"))
+        guard cleaned.count == 3 || cleaned.count == 6 || cleaned.count == 8 else { return nil }
+        guard cleaned.allSatisfy(\.isHexDigit) else { return nil }
+        return Color(hex: cleaned)
+    }
 }
 
 // MARK: - String Similarity (for news dedup)

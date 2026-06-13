@@ -84,16 +84,23 @@ object TTSManager {
         if (instruction != lastInstruction) {
             spoken500 = false
             spoken200 = false
+            spoken100 = false
             spoken50 = false
             spokenNow = false
             lastInstruction = instruction
             Log.d(TAG, "FASE 2.4 - Nueva instrucción: '$instruction', flags reseteados")
         }
         
-        // FASE 2.4: Lógica refinada - solo dispara el umbral MÁS CERCANO aplicable
-        // Se evalúa de CERCA a LEJOS para priorizar urgencia
+        // FASE 2.4: Lógica refinada - solo dispara el umbral MÁS CERCANO aplicable.
+        // Se evalúa de CERCA a LEJOS y el `when` se detiene en la primera coincidencia,
+        // de modo que un salto brusco (p. ej. 600m → 150m) anuncia únicamente el umbral
+        // más cercano alcanzado ("200 metros") y nunca el que ya se sobrepasó ("500 metros").
+        //
+        // Cada rama marca SOLO su propio flag: en una aproximación gradual
+        // (450m → 190m → 40m) se anuncia cada umbral una vez, sin que un umbral lejano
+        // silencie a los más cercanos.
         var phrase: String? = null
-        
+
         when {
             // Umbral INMEDIATO (≤10m)
             distanceToManeuver <= 10 && !spokenNow -> {
@@ -101,42 +108,32 @@ object TTSManager {
                 spokenNow = true
                 Log.d(TAG, "FASE 2.4 - Umbral NOW (≤10m) alcanzado")
             }
-            
+
             // Umbral CERCA (≤50m)
             distanceToManeuver <= THRESHOLD_NEAR && !spoken50 -> {
                 phrase = "En 50 metros, $instruction"
                 spoken50 = true
-                spokenNow = true
                 Log.d(TAG, "FASE 2.4 - Umbral 50m alcanzado (dist=${distanceToManeuver.toInt()}m)")
             }
-            
+
             // Umbral PRÓXIMO (≤100m)
             distanceToManeuver <= THRESHOLD_CLOSE && !spoken100 -> {
                 phrase = "En 100 metros, $instruction"
                 spoken100 = true
-                spoken50 = true
-                spokenNow = true
                 Log.d(TAG, "FASE 2.4 - Umbral 100m alcanzado (dist=${distanceToManeuver.toInt()}m)")
             }
-            
+
             // Umbral MEDIO (≤200m)
             distanceToManeuver <= THRESHOLD_MEDIUM && !spoken200 -> {
                 phrase = "En 200 metros, $instruction"
                 spoken200 = true
-                spoken100 = true
-                spoken50 = true
-                spokenNow = true
                 Log.d(TAG, "FASE 2.4 - Umbral 200m alcanzado (dist=${distanceToManeuver.toInt()}m)")
             }
-            
+
             // Umbral LEJOS (≤500m)
             distanceToManeuver <= THRESHOLD_FAR && !spoken500 -> {
                 phrase = "En 500 metros, $instruction"
                 spoken500 = true
-                spoken200 = true
-                spoken100 = true
-                spoken50 = true
-                spokenNow = true
                 Log.d(TAG, "FASE 2.4 - Umbral 500m alcanzado (dist=${distanceToManeuver.toInt()}m)")
             }
         }

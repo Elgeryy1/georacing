@@ -37,6 +37,8 @@ const NewsPage = () => {
     const [editMode, setEditMode] = useState<string | null>(null);
     const [editedNews, setEditedNews] = useState<Partial<NewsItem>>({});
     const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [saveError, setSaveError] = useState<string | null>(null);
 
     useEffect(() => { fetchNews(); }, []);
 
@@ -52,14 +54,27 @@ const NewsPage = () => {
     };
 
     const handleSave = async () => {
-        if (!editedNews.title || !editedNews.content) return;
+        if (saving) return; // double-submit guard
+        const title = editedNews.title?.trim();
+        const content = editedNews.content?.trim();
+        if (!title) {
+            setSaveError('El título es obligatorio');
+            return;
+        }
+        if (!content) {
+            setSaveError('El contenido es obligatorio');
+            return;
+        }
+
+        setSaveError(null);
+        setSaving(true);
         try {
             const id = editMode === 'new' ? crypto.randomUUID() : editMode;
             const timestamp = editMode === 'new' ? Math.floor(Date.now() / 1000) : (editedNews.timestamp || Math.floor(Date.now() / 1000));
             await api.upsert('news', {
                 id,
-                title: editedNews.title,
-                content: editedNews.content,
+                title,
+                content,
                 timestamp,
                 category: editedNews.category || 'GENERAL',
                 priority: editedNews.priority || 'LOW',
@@ -69,7 +84,9 @@ const NewsPage = () => {
             fetchNews();
         } catch (e) {
             console.error(e);
-            alert('Error al guardar');
+            setSaveError('Error al guardar. Inténtalo de nuevo.');
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -99,7 +116,7 @@ const NewsPage = () => {
                         <p className="text-gray-400 text-sm mt-1">Publica noticias que verán los usuarios en la app</p>
                     </div>
                     <button
-                        onClick={() => { setEditMode('new'); setEditedNews({ category: 'GENERAL', priority: 'LOW' }); }}
+                        onClick={() => { setEditMode('new'); setEditedNews({ category: 'GENERAL', priority: 'LOW' }); setSaveError(null); }}
                         className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
                     >
                         <Plus size={16} /> Nueva Noticia
@@ -120,9 +137,14 @@ const NewsPage = () => {
                                 {PRIORITIES.map(p => <option key={p} value={p}>{p === 'HIGH' ? '🔴 Alta' : p === 'MEDIUM' ? '🟡 Media' : '🟢 Baja'}</option>)}
                             </select>
                         </div>
+                        {saveError && (
+                            <p className="text-sm text-red-400 bg-red-900/20 border border-red-900/40 rounded px-3 py-2 mt-3" role="alert">
+                                {saveError}
+                            </p>
+                        )}
                         <div className="flex gap-2 mt-3">
-                            <button onClick={handleSave} className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white rounded hover:bg-green-700"><Save size={14} /> Publicar</button>
-                            <button onClick={() => { setEditMode(null); setEditedNews({}); }} className="flex items-center gap-1 px-3 py-1.5 bg-gray-600 text-white rounded hover:bg-gray-500"><X size={14} /> Cancelar</button>
+                            <button onClick={handleSave} disabled={saving} className="flex items-center gap-1 px-3 py-1.5 bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded hover:bg-green-700"><Save size={14} /> {saving ? 'Publicando...' : 'Publicar'}</button>
+                            <button onClick={() => { setEditMode(null); setEditedNews({}); setSaveError(null); }} disabled={saving} className="flex items-center gap-1 px-3 py-1.5 bg-gray-600 disabled:opacity-50 text-white rounded hover:bg-gray-500"><X size={14} /> Cancelar</button>
                         </div>
                     </div>
                 )}
@@ -141,8 +163,8 @@ const NewsPage = () => {
                                 <p className="text-gray-400 text-sm mt-1">{n.content}</p>
                             </div>
                             <div className="flex gap-1 ml-4">
-                                <button onClick={() => { setEditMode(n.id); setEditedNews(n); }} className="text-blue-400 hover:text-blue-300 p-1"><Edit2 size={14} /></button>
-                                <button onClick={() => handleDelete(n.id)} className="text-red-400 hover:text-red-300 p-1"><Trash2 size={14} /></button>
+                                <button onClick={() => { setEditMode(n.id); setEditedNews(n); setSaveError(null); }} aria-label={`Editar noticia: ${n.title}`} className="text-blue-400 hover:text-blue-300 p-1"><Edit2 size={14} /></button>
+                                <button onClick={() => handleDelete(n.id)} aria-label={`Eliminar noticia: ${n.title}`} className="text-red-400 hover:text-red-300 p-1"><Trash2 size={14} /></button>
                             </div>
                         </div>
                     ))}
