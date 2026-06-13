@@ -253,6 +253,99 @@ class RoadmapViewModel : ViewModel() {
                         Icons.Default.Language
                     )
                 )
+            ),
+            FeatureCategory(
+                title = "F. BACKLOG v2: SEGURIDAD & EVACUACIÓN",
+                features = listOf(
+                    Feature(
+                        "Muster Point Check-in",
+                        "Reunificación post-evacuación: confirma que estás a salvo en el punto de encuentro.",
+                        FeatureStatus.BACKLOG,
+                        Icons.Default.HowToReg
+                    ),
+                    Feature(
+                        "Shelter-in-place por zona",
+                        "Instrucciones de refugio diferenciadas según tu zona del recinto.",
+                        FeatureStatus.BACKLOG,
+                        Icons.Default.Shield
+                    ),
+                    Feature(
+                        "Buscar persona perdida (BLE)",
+                        "Localiza a un acompañante por proximidad Bluetooth.",
+                        FeatureStatus.BACKLOG,
+                        Icons.Default.PersonSearch
+                    ),
+                    Feature(
+                        "Botón de pánico de staff",
+                        "Alerta inmediata a seguridad desde el personal del evento.",
+                        FeatureStatus.BACKLOG,
+                        Icons.Default.Campaign
+                    ),
+                    Feature(
+                        "Modo niño / pulsera digital",
+                        "Identificación segura del menor y reunificación rápida con tutores.",
+                        FeatureStatus.BACKLOG,
+                        Icons.Default.ChildCare
+                    )
+                )
+            ),
+            FeatureCategory(
+                title = "G. BACKLOG v2: FLUJO & ACCESIBILIDAD",
+                features = listOf(
+                    Feature(
+                        "Malla BLE multi-salto",
+                        "Propagación de alertas sin red mediante saltos entre dispositivos.",
+                        FeatureStatus.BACKLOG,
+                        Icons.Default.Hub
+                    ),
+                    Feature(
+                        "Salida escalonada",
+                        "Egress escalonado para evitar avalanchas a la salida.",
+                        FeatureStatus.BACKLOG,
+                        Icons.Default.ExitToApp
+                    ),
+                    Feature(
+                        "Cola virtual con franja horaria",
+                        "Reserva tu turno y evita esperas físicas.",
+                        FeatureStatus.BACKLOG,
+                        Icons.Default.Schedule
+                    ),
+                    Feature(
+                        "Accesibilidad en vivo",
+                        "Estado de rampas/ascensores crowdsourced en tiempo real.",
+                        FeatureStatus.BACKLOG,
+                        Icons.Default.Accessible
+                    ),
+                    Feature(
+                        "Ruta Calm / modo sensorial",
+                        "Itinerarios de baja estimulación para perfiles sensibles.",
+                        FeatureStatus.BACKLOG,
+                        Icons.Default.SelfImprovement
+                    ),
+                    Feature(
+                        "Turn-by-turn háptico",
+                        "Indicaciones por vibración en wearable, sin mirar la pantalla.",
+                        FeatureStatus.BACKLOG,
+                        Icons.Default.Vibration
+                    )
+                )
+            ),
+            FeatureCategory(
+                title = "H. BACKLOG v2: RESILIENCIA & OPERACIONES",
+                features = listOf(
+                    Feature(
+                        "Failover descentralizado",
+                        "El evento sigue operativo aunque caiga el backend central.",
+                        FeatureStatus.BACKLOG,
+                        Icons.Default.CloudOff
+                    ),
+                    Feature(
+                        "Salud predictiva de balizas",
+                        "Monitoriza la flota de beacons y anticipa fallos de batería/cobertura.",
+                        FeatureStatus.BACKLOG,
+                        Icons.Default.MonitorHeart
+                    )
+                )
             )
         )
         _roadmapData.value = data

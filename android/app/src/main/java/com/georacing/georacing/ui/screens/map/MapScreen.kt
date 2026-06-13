@@ -82,6 +82,8 @@ fun MapScreen(
 
     val selectedType by viewModel.selectedType.collectAsState()
     val visibleNodes by viewModel.visibleNodes.collectAsState()
+    val routeGeoJson by viewModel.routeGeoJson.collectAsState()
+    val routeInfo by viewModel.routeInfo.collectAsState()
     var isSidebarOpen by remember { mutableStateOf(false) }
 
     // Map Lifecycle & Context
@@ -137,6 +139,31 @@ fun MapScreen(
         }
     }
 
+    // Pedestrian Route Rendering (PedestrianPathfinder → SOURCE_ROUTE)
+    // When the user picks a destination, the ViewModel computes an A* route and emits
+    // a GeoJSON LineString that we draw on the existing glowing route layer.
+    LaunchedEffect(routeGeoJson, mapInstance, isMapStyleLoaded) {
+        val map = mapInstance
+        val style = map?.style
+        if (map != null && isMapStyleLoaded && style != null) {
+            try {
+                val source = style.getSourceAs<org.maplibre.android.style.sources.GeoJsonSource>(MapStyleManager.SOURCE_ROUTE)
+                val json = routeGeoJson
+                if (json != null) {
+                    source?.setGeoJson(json)
+                } else {
+                    // Restore the static circuit routes when navigation is cleared.
+                    try {
+                        val geoJson = context.assets.open("circuit_routes.geojson").bufferedReader().use { it.readText() }
+                        source?.setGeoJson(geoJson)
+                    } catch (_: Exception) { }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
     // Initialize MapLibre
     org.maplibre.android.MapLibre.getInstance(context)
 
@@ -186,6 +213,22 @@ fun MapScreen(
             }
         },
         onSearchClick = { navController.navigate(Screen.Search.route) },
+        routeInfo = routeInfo,
+        onNavigateToPoi = {
+            // Real pedestrian navigation: route from the user's current GPS to a
+            // representative POI (Fan Zone) using PedestrianPathfinder. Honors
+            // accessibility prefs, shade preference and live congestion in the VM.
+            mapView.getMapAsync { map ->
+                val last = if (map.locationComponent.isLocationComponentActivated) {
+                    map.locationComponent.lastKnownLocation
+                } else null
+                val userLatLng = last?.let {
+                    org.maplibre.android.geometry.LatLng(it.latitude, it.longitude)
+                }
+                viewModel.navigateToPedestrianNode("fan_zone", userLatLng)
+            }
+        },
+        onClearRoute = { viewModel.clearRoute() },
         isSidebarOpen = isSidebarOpen,
         onSidebarClose = { isSidebarOpen = false },
         navController = navController,
@@ -298,6 +341,9 @@ fun GoogleMapsStyleContent(
     onLocationClick: () -> Unit,
     onCompassClick: () -> Unit,
     onSearchClick: () -> Unit,
+    routeInfo: String? = null,
+    onNavigateToPoi: () -> Unit = {},
+    onClearRoute: () -> Unit = {},
     isSidebarOpen: Boolean,
     onSidebarClose: () -> Unit,
     navController: NavController,
@@ -509,7 +555,48 @@ fun GoogleMapsStyleContent(
                     )
                     
                     Spacer(modifier = Modifier.height(20.dp))
-                    
+
+                    // Active pedestrian route ETA (idea 9) + clear action
+                    if (routeInfo != null) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color(0xFF14141C))
+                                .padding(horizontal = 14.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.DirectionsWalk,
+                                contentDescription = "Ruta peatonal",
+                                tint = RacingAccent,
+                                modifier = Modifier.size(22.dp)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    "Ruta a pie",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = SubtleGray
+                                )
+                                Text(
+                                    routeInfo,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = SearchBarText
+                                )
+                            }
+                            IconButton(onClick = onClearRoute) {
+                                Icon(
+                                    Icons.Default.Close,
+                                    contentDescription = "Cancelar ruta",
+                                    tint = SubtleGray
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
+
                     if (selectedPlace != null) {
                         // Selected Place Info
                         Text(
@@ -544,8 +631,8 @@ fun GoogleMapsStyleContent(
                         ) {
                             QuickActionButton(
                                 icon = Icons.Default.Navigation,
-                                label = activeEvent.ctaLabel.replace("ñ", "n"),
-                                onClick = { navController.navigate(Screen.CircuitDestinations.route) },
+                                label = "Ruta a pie",
+                                onClick = onNavigateToPoi,
                                 modifier = Modifier.weight(1f)
                             )
                             QuickActionButton(

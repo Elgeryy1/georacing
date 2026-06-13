@@ -154,7 +154,10 @@ class MainActivity : ComponentActivity() {
 
         // 2. Initialize WorkManager (Existing)
         val workManager = WorkManager.getInstance(applicationContext)
-        
+
+        // Black Box (P4): schedule telemetry upload on Wi-Fi only (NetworkType.UNMETERED).
+        com.georacing.georacing.infrastructure.telemetry.TelemetrySyncWorker.schedule(applicationContext)
+
         val userPreferences = UserPreferencesDataStore(this)
 
         setContent {

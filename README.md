@@ -14,7 +14,7 @@
   <img src="https://img.shields.io/badge/C%23-512BD4?logo=dotnet&logoColor=white" alt="C#"/>
   <img src="https://img.shields.io/badge/Node.js-339933?logo=nodedotjs&logoColor=white" alt="Node.js"/>
   <img src="https://img.shields.io/badge/License-MIT-yellow" alt="License: MIT"/>
-  <img src="https://img.shields.io/badge/tests-177%20passing-brightgreen" alt="177 tests passing"/>
+  <img src="https://img.shields.io/badge/tests-212%20passing-brightgreen" alt="212 tests passing"/>
   <img src="https://img.shields.io/badge/CI-GitHub%20Actions-2088FF?logo=githubactions&logoColor=white" alt="CI: GitHub Actions"/>
 </p>
 
@@ -99,13 +99,13 @@ Beacons never receive pushes — they poll the API for pending commands and repo
 
 ## Testing
 
-The project ships **177 automated tests** that run in CI on every push:
+The project ships **212 automated tests** that run in CI on every push:
 
 | Component | Framework | Tests | Run locally |
 |---|---|:---:|---|
-| Web panel | Vitest | 37 | `cd web && npm test` |
+| Web panel | Vitest | 47 | `cd web && npm test` |
 | Android | JUnit (JVM unit tests) | 116 | `cd android && ./gradlew testDebugUnitTest` |
-| API | `node --test` | 24 | `cd api && npm test` |
+| API | `node --test` | 49 | `cd api && npm test` |
 
 The web panel additionally enforces `npm run lint` (ESLint, zero warnings) and a
 strict `tsc` typecheck as part of `npm run build`. See [.github/workflows](.github/workflows)
@@ -145,6 +145,12 @@ Each component is self-contained and has its own README with detailed setup inst
 - **Windows beacon** — open `windows/GeoRacingBeacon.sln` with Visual Studio on Windows (BLE advertising requires WinRT APIs). See [windows/BeaconApp/README.md](windows/BeaconApp/README.md).
 
 All credentials are injected via environment variables or local config files that are not part of this repository — `.example` templates are provided where relevant.
+
+## Roadmap
+
+A full traceability matrix of every product idea (5 resilience pillars + 66
+backlog items) against the real code — plus a second-wave backlog of new ideas —
+lives in [docs/IDEA_COVERAGE.md](docs/IDEA_COVERAGE.md).
 
 ## Contributing
 

@@ -22,6 +22,13 @@ import kotlinx.coroutines.launch
 
 class BeaconScanner(private val context: Context) {
 
+    // Black Box (P4): persist BLE failures offline for later upload over Wi-Fi.
+    private val blackBox: com.georacing.georacing.infrastructure.telemetry.BlackBoxLogger by lazy {
+        com.georacing.georacing.infrastructure.telemetry.BlackBoxLogger(
+            com.georacing.georacing.data.local.GeoRacingDatabase.getInstance(context).telemetryDao()
+        )
+    }
+
     private val _detectedBeacons = MutableStateFlow<List<DetectedBeacon>>(emptyList())
     val detectedBeacons: StateFlow<List<DetectedBeacon>> = _detectedBeacons.asStateFlow()
 
@@ -59,6 +66,16 @@ class BeaconScanner(private val context: Context) {
     private var lastRestartTime = 0L
 
     private val scanCallback = object : ScanCallback() {
+        override fun onScanFailed(errorCode: Int) {
+            // Real BLE failure: log to the Black Box for offline diagnostics (P4).
+            isScanning = false
+            _debugInfo.value = "Scan failed: $errorCode"
+            blackBox.logEvent(
+                "BLE_SCAN_FAILED",
+                "{\"errorCode\":$errorCode,\"ts\":${System.currentTimeMillis()}}"
+            )
+        }
+
         @SuppressLint("MissingPermission")
         override fun onScanResult(callbackType: Int, result: ScanResult?) {
             result?.let { scanResult ->
@@ -219,12 +236,29 @@ class BeaconScanner(private val context: Context) {
             isScanning = true
         } catch (e: Exception) {
             _debugInfo.value = "Filter Error: ${e.message}"
+            blackBox.logEvent(
+                "BLE_SCAN_START_ERROR",
+                "{\"message\":\"${e.message?.replace("\"", "'")}\",\"ts\":${System.currentTimeMillis()}}"
+            )
         }
     }
 
+    private var loggedBtOff = false
+
     private fun checkRequirements(): String? {
-        if (bluetoothAdapter == null || !bluetoothAdapter.isEnabled) return "BT OFF"
-        return null 
+        if (bluetoothAdapter == null || !bluetoothAdapter.isEnabled) {
+            // Log once per outage to avoid flooding the Black Box.
+            if (!loggedBtOff) {
+                loggedBtOff = true
+                blackBox.logEvent(
+                    "BLE_ADAPTER_UNAVAILABLE",
+                    "{\"reason\":\"${if (bluetoothAdapter == null) "no_adapter" else "disabled"}\",\"ts\":${System.currentTimeMillis()}}"
+                )
+            }
+            return "BT OFF"
+        }
+        loggedBtOff = false
+        return null
     }
 
     fun stopScanning() {

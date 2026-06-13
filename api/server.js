@@ -12,6 +12,7 @@ const { getSqlType, columnsToAdd, buildUpsert } = require('./lib/schema');
 const { findDuplicateBeaconIds } = require('./lib/beacons');
 const { getCardinalDirection, describeWeatherCode } = require('./lib/weather');
 const { isValidIdentifier, quoteIdentifier } = require('./lib/identifiers');
+const { countOccupancyByZone, buildDensityPayload } = require('./lib/density');
 
 // --- Environment Validation ---
 const REQUIRED_ENV = ['DB_HOST', 'DB_USER', 'DB_PASSWORD', 'DB_NAME'];
@@ -150,6 +151,48 @@ app.get('/api/state', async (req, res) => {
         res.json(rows[0] || {});
     } catch (err) {
         if (err.code === 'ER_NO_SUCH_TABLE') return res.json({});
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Zone crowd density (iOS: GET /zones/density -> /api/zones/density)
+//
+// The mobile apps poll this to warn about congested zones and suggest quieter
+// routes. There is no dedicated people-counting pipeline, so density is derived
+// DETERMINISTICALLY from data already in the DB (no randomness): we count live
+// group-GPS pings per zone (`group_gps`), falling back to beacon rows when no
+// GPS data exists. The pure mapping (count -> level/ratio/wait) lives in
+// lib/density (unit-tested). Returns an array of
+//   { zone_id, zone, density (0..1), count, estimated_wait_minutes,
+//     level: low|medium|high, density_level: LOW|MEDIUM|HIGH|CRITICAL, trend }
+// which is a superset satisfying both the web/task contract and the iOS DTO.
+app.get('/api/zones/density', async (req, res) => {
+    try {
+        // Primary signal: live group GPS positions (one row per recent ping).
+        let rows = [];
+        try {
+            [rows] = await pool.query('SELECT * FROM `group_gps`');
+        } catch (err) {
+            if (err.code !== 'ER_NO_SUCH_TABLE') throw err;
+        }
+
+        let counts = countOccupancyByZone(rows);
+
+        // Fallback signal: if there is no GPS data, derive occupancy from beacons
+        // grouped by their zone field. Deterministic and source-of-truth based.
+        if (counts.size === 0) {
+            let beaconRows = [];
+            try {
+                [beaconRows] = await pool.query('SELECT * FROM `beacons`');
+            } catch (err) {
+                if (err.code !== 'ER_NO_SUCH_TABLE') throw err;
+            }
+            counts = countOccupancyByZone(beaconRows);
+        }
+
+        res.json(buildDensityPayload(counts));
+    } catch (err) {
+        console.error('Error computing zone density:', err);
         res.status(500).json({ error: err.message });
     }
 });

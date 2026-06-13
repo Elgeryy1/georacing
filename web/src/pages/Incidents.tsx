@@ -3,9 +3,10 @@ import { Layout } from "../components/Layout";
 import { api } from "../services/apiClient";
 import { AlertTriangle, Plus, Filter } from "lucide-react";
 import { useToast } from "../context/ToastContext";
+import { triageIncidents, type Incident } from "../utils/incidentTriage";
 
 export const Incidents: React.FC = () => {
-    const [incidents, setIncidents] = useState<any[]>([]);
+    const [incidents, setIncidents] = useState<Incident[]>([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [submitting, setSubmitting] = useState(false);
@@ -24,7 +25,10 @@ export const Incidents: React.FC = () => {
     const fetchIncidents = async () => {
         try {
             const data = await api.getIncidents();
-            setIncidents(data);
+            // Collapse near-duplicate reports and order by severity (CRITICAL
+            // first), so operators triage the real, distinct incidents. See
+            // utils/incidentTriage.
+            setIncidents(triageIncidents(data as Incident[]));
         } catch (error) {
             console.error("Error fetching incidents:", error);
         } finally {
@@ -151,7 +155,17 @@ export const Incidents: React.FC = () => {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <div className="text-sm font-medium text-white">{inc.category}</div>
+                                            <div className="text-sm font-medium text-white flex items-center gap-2">
+                                                {inc.category}
+                                                {(inc.duplicate_count ?? 1) > 1 && (
+                                                    <span
+                                                        title={`${inc.duplicate_count} reportes agrupados`}
+                                                        className="px-2 py-0.5 text-xs rounded-full bg-dark-700 text-gray-300 border border-dark-600"
+                                                    >
+                                                        ×{inc.duplicate_count}
+                                                    </span>
+                                                )}
+                                            </div>
                                             <div className="text-sm text-gray-400">{inc.description}</div>
                                         </td>
                                         <td className="px-6 py-4 text-sm text-gray-300">

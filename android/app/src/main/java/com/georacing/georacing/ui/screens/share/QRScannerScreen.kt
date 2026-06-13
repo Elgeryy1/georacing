@@ -47,34 +47,64 @@ fun QRScannerScreen(
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val cameraPermissionState = rememberPermissionState(Manifest.permission.CAMERA)
-    
+
     val isLoading by viewModel.isLoading.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
-    
+
     var scannedCode by remember { mutableStateOf<String?>(null) }
     var hasScanned by remember { mutableStateOf(false) }
-    
+
+    // Auto-posicionamiento por QR (idea 5): los QR "georacing_marker" recalibran la
+    // ubicacion en vez de unirse a un grupo. Reutiliza el mismo escaner de camara.
+    val qrPositioning = remember { com.georacing.georacing.domain.manager.QrPositioningManager(context) }
+    var recalibratedZone by remember { mutableStateOf<String?>(null) }
+    DisposableEffect(Unit) { onDispose { qrPositioning.destroy() } }
+
     // Solicitar permiso de cámara al entrar
     LaunchedEffect(Unit) {
         if (!cameraPermissionState.status.isGranted) {
             cameraPermissionState.launchPermissionRequest()
         }
     }
-    
+
     // Procesar código escaneado
     LaunchedEffect(scannedCode) {
-        if (scannedCode != null && !hasScanned) {
+        val code = scannedCode
+        if (code != null && !hasScanned) {
             hasScanned = true
-            viewModel.joinSessionByCode(scannedCode!!)
-            
-            // Esperar a que termine y navegar al mapa
-            kotlinx.coroutines.delay(1500)
-            navController.navigate("group") {
-                popUpTo("qr_scanner") { inclusive = true }
+
+            // 1) ¿Es un marcador de posicionamiento GeoRacing?
+            val lastLocation = lastKnownLocationOrNull(context)
+            val marker = qrPositioning.processQrContent(code, lastLocation)
+
+            if (marker != null) {
+                // Recalibracion aplicada: el QrPositioningManager guardo la correccion.
+                val drift = qrPositioning.getLastDriftDistance()
+                recalibratedZone = if (drift != null) {
+                    "${marker.zone} · corregido ${drift.toInt()} m"
+                } else {
+                    marker.zone
+                }
+                Log.i("QRScanner", "Position recalibrated from marker ${marker.id} (${marker.zone})")
+
+                // Volver al mapa, que mostrara la ubicacion ya corregida.
+                kotlinx.coroutines.delay(1500)
+                navController.navigate("map") {
+                    popUpTo("qr_scanner") { inclusive = true }
+                }
+            } else {
+                // 2) No es un marcador → comportamiento normal: unirse al grupo.
+                viewModel.joinSessionByCode(code)
+
+                // Esperar a que termine y navegar al mapa
+                kotlinx.coroutines.delay(1500)
+                navController.navigate("group") {
+                    popUpTo("qr_scanner") { inclusive = true }
+                }
             }
         }
     }
-    
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -158,6 +188,32 @@ fun QRScannerScreen(
                 }
             }
             
+            // Confirmación de recalibración por QR de posicionamiento
+            recalibratedZone?.let { zone ->
+                Card(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .padding(24.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    )
+                ) {
+                    Column(modifier = Modifier.padding(20.dp)) {
+                        Text(
+                            text = "Posición recalibrada",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = zone,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                }
+            }
+
             // Mostrar error si hay
             errorMessage?.let { error ->
                 Snackbar(
@@ -295,7 +351,31 @@ class QRCodeAnalyzer(
                 Log.e("QRCodeAnalyzer", "Error analizando imagen", e)
             }
         }
-        
+
         imageProxy.close()
+    }
+}
+
+/**
+ * Devuelve la última ubicación conocida del sistema, o null si no hay permiso/proveedor.
+ * Usada por el auto-posicionamiento QR para calcular el drift del GPS.
+ */
+@android.annotation.SuppressLint("MissingPermission")
+private fun lastKnownLocationOrNull(context: android.content.Context): android.location.Location? {
+    return try {
+        val lm = context.getSystemService(android.content.Context.LOCATION_SERVICE) as? android.location.LocationManager
+            ?: return null
+        val providers = listOf(
+            android.location.LocationManager.GPS_PROVIDER,
+            android.location.LocationManager.NETWORK_PROVIDER,
+            android.location.LocationManager.PASSIVE_PROVIDER
+        )
+        providers.asSequence()
+            .mapNotNull { provider -> runCatching { lm.getLastKnownLocation(provider) }.getOrNull() }
+            .maxByOrNull { it.time }
+    } catch (e: SecurityException) {
+        null
+    } catch (e: Exception) {
+        null
     }
 }
