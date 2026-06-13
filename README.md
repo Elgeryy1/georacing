@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/logo.png" width="200" alt="GeoRacing logo"/>
+  <img src="docs/assets/georacing-logo.png" width="180" alt="GeoRacing logo"/>
 </p>
 
 <h1 align="center">GeoRacing</h1>
