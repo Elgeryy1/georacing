@@ -7,7 +7,7 @@ labels: bug
 
 ## Component
 
-<!-- Android app / iOS app / Web panel / Backend / Discord bot / Beacons -->
+<!-- Android app / iOS app / Web panel / REST API / Windows beacon -->
 
 ## Description
 

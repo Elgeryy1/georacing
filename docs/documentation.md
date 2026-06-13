@@ -20,17 +20,17 @@
 
 - **Información en tiempo real** a los asistentes del evento (aficionados) a través de apps móviles.
 - **Gestión centralizada** del evento a través de un panel web para el personal de organización.
-- **Señalización física inteligente** mediante balizas (pantallas con PC o Raspberry Pi) distribuidas por el circuito que muestran estado del circuito, rutas de evacuación, direcciones, etc.
+- **Señalización física inteligente** mediante beacons (pantallas con PC o Raspberry Pi) distribuidas por el circuito que muestran estado del circuito, rutas de evacuación, direcciones, etc.
 
 El sistema se compone de **cinco grandes módulos**, cada uno documentado en su propia carpeta:
 
 | Carpeta | Tecnología | Descripción |
 |---|---|---|
-| `Android_App/` | Kotlin + Jetpack Compose | Aplicación para asistentes Android |
-| `iOS_App/` | Swift + SwiftUI | Aplicación para asistentes iOS |
-| `Web_Panel/` | React + TypeScript + Vite | Panel de control web para organizadores |
-| `Baliza_Noah/` | C# + WPF (.NET) | Software de baliza (pantalla de señalización) |
-| `Baliza_Gerard/` | C# + WinRT (.NET) | Prototipo de baliza con BLE activo |
+| `android/` | Kotlin + Jetpack Compose | Aplicación para asistentes Android |
+| `ios/` | Swift + SwiftUI | Aplicación para asistentes iOS |
+| `web/` | React + TypeScript + Vite | Panel de control web para organizadores |
+| `windows/` | C# + WPF (.NET) | Beacon de Windows (pantalla de señalización) |
+| `api/` | Node.js + Express + MySQL | API REST principal |
 
 ---
 
@@ -52,23 +52,23 @@ El sistema se compone de **cinco grandes módulos**, cada uno documentado en su 
 └──────────────────┬───────────────────────────────┬──────────┘
                    │                               │
         ┌──────────▼──────────┐         ┌──────────▼──────────┐
-        │   Clientes Móviles  │         │     Balizas          │
+        │   Clientes Móviles  │         │     Beacons          │
         │                     │         │                       │
         │  ┌──────────────┐   │         │  ┌───────────────┐   │
-        │  │ Android App  │   │         │  │ Baliza Noah   │   │
+        │  │ Android App  │   │         │  │ Beacon Windows│   │
         │  │ (Kotlin)     │   │         │  │ (WPF C#)      │   │
         │  └──────────────┘   │         │  └───────────────┘   │
         │                     │         │                       │
-        │  ┌──────────────┐   │         │  ┌───────────────┐   │
-        │  │  iOS App     │   │         │  │ Baliza Gerard │   │
-        │  │  (Swift)     │   │         │  │ (WinRT C#)    │   │
-        │  └──────────────┘   │         │  └───────────────┘   │
+        │  ┌──────────────┐   │         │                       │
+        │  │  iOS App     │   │         │                       │
+        │  │  (Swift)     │   │         │                       │
+        │  └──────────────┘   │         │                       │
         └─────────────────────┘         └──────────────────────┘
                    ▲                               │
                    │                               │
                    │      BLE Advertising          │
                    └───────────────────────────────┘
-                   (Las balizas emiten señales BLE que
+                   (Los beacons emiten señales BLE que
                     las apps móviles detectan para
                     calcular proximidad y zona)
 
@@ -83,9 +83,9 @@ El sistema se compone de **cinco grandes módulos**, cada uno documentado en su 
 
 ## Componentes Principales
 
-### 1. Android App (`Android_App/`)
+### 1. Android App (`android/`)
 Aplicación Android para aficionados que asisten al evento.  
-Ver documentación completa: [`Android_App/documentation.md`](./Android_App/documentation.md)
+Ver documentación completa: [`android/documentation.md`](../android/documentation.md)
 
 **Características principales:**
 - Mapa del circuito con POIs (puntos de interés)
@@ -95,29 +95,29 @@ Ver documentación completa: [`Android_App/documentation.md`](./Android_App/docu
 - Tienda/pedidos de comida
 - Integración con Android Auto (CarPlay para Android)
 - Modo supervivencia de batería
-- Bluetooth Low Energy (BLE) para detectar balizas cercanas
+- Bluetooth Low Energy (BLE) para detectar beacons cercanos
 - Realidad Aumentada (AR) básica
 
-### 2. iOS App (`iOS_App/`)
+### 2. iOS App (`ios/`)
 Aplicación iOS para aficionados, con paridad de características respecto a Android.  
-Ver documentación completa: [`iOS_App/documentation.md`](./iOS_App/documentation.md)
+Ver documentación completa: [`ios/FEATURES.md`](../ios/FEATURES.md)
 
 **Características principales:**
 - Mapa con MapKit + rutas de navegación
 - Integración con CarPlay
 - Gestión de grupos y ubicación compartida
-- Escaneo BLE de balizas
+- Escaneo BLE de beacons
 - Noticias y Fan Zone
 - Quiz y gamificación
 - Sistema de pedidos con carrito
 
-### 3. Panel Web (`Web_Panel/`)
+### 3. Panel Web (`web/`)
 Panel de control para el personal de organización del evento.  
-Ver documentación completa: [`Web_Panel/documentation.md`](./Web_Panel/documentation.md)
+Ver documentación completa: [`web/README.md`](../web/README.md)
 
 **Características principales:**
 - Dashboard de métricas en tiempo real
-- Gestión completa de balizas (configurar, enviar comandos, visualizar estado)
+- Gestión completa de beacons (configurar, enviar comandos, visualizar estado)
 - Gestión de emergencias y evacuaciones
 - Estado global del circuito
 - Gestión de incidentes
@@ -126,9 +126,9 @@ Ver documentación completa: [`Web_Panel/documentation.md`](./Web_Panel/document
 - Noticias para fans
 - Gestión de usuarios
 
-### 4. Baliza Noah (`Baliza_Noah/`)
-Software de baliza con interfaz gráfica WPF para Windows.  
-Ver documentación completa: [`Baliza_Noah/documentation.md`](./Baliza_Noah/documentation.md)
+### 4. Beacon de Windows (`windows/`)
+Software de beacon con interfaz gráfica WPF para Windows.  
+Ver documentación completa: [`windows/BeaconApp/README.md`](../windows/BeaconApp/README.md)
 
 **Características principales:**
 - Pantalla de señalización a pantalla completa
@@ -140,14 +140,14 @@ Ver documentación completa: [`Baliza_Noah/documentation.md`](./Baliza_Noah/docu
 - Control remoto de brillo de pantalla
 - Soporte de comandos: RESTART, SHUTDOWN, CLOSE_APP, UPDATE_CONFIG
 
-### 5. Baliza Gerard (`Baliza_Gerard/`)
-Prototipo de baliza activa por PC (sin interfaz gráfica, solo consola).  
-Ver documentación completa: [`Baliza_Gerard/documentation.md`](./Baliza_Gerard/documentation.md)
+### 5. API (`api/`)
+API REST en Node.js + Express respaldada por MySQL.  
+Ver documentación completa: [`api/README.md`](../api/README.md)
 
 **Características principales:**
-- Proceso consola que emite BLE continuamente
-- Polling de la API para actualizar el payload BLE
-- Diseño simplificado, ideal para pruebas o hardware dedicado
+- Fuente única de verdad para beacons, comandos, zonas y estado del circuito
+- Endpoints genéricos de consulta/actualización sobre la base de datos
+- Crea y valida su esquema al arrancar
 
 ---
 
@@ -163,9 +163,9 @@ Activa evacuación global
     │
     ▼
 API REST ← Panel escribe en tabla "circuit_state" (global_mode = "EVACUATION")
-    │           y en tabla "beacons" (mode = "EVACUATION" para cada baliza)
+    │           y en tabla "beacons" (mode = "EVACUATION" para cada beacon)
     │
-    ├──► Balizas (Noah/Gerard) leen la API cada 300ms
+    ├──► Los beacons leen la API cada 300ms
     │       │
     │       └──► Cambian pantalla a modo EVACUACIÓN (fondo rojo + flechas)
     │       └──► Actualizan payload BLE con modo=0x03 (EVACUATION)
@@ -173,30 +173,30 @@ API REST ← Panel escribe en tabla "circuit_state" (global_mode = "EVACUATION")
     └──► Apps móviles (Android/iOS) leen la API / Firestore
              │
              └──► Notifican al usuario de la evacuación
-             └──► Detectan balizas BLE cercanas para mostrar
+             └──► Detectan beacons BLE cercanos para mostrar
                   dirección de evacuación más próxima
 ```
 
-### Flujo de configuración de una baliza
+### Flujo de configuración de un beacon
 
 ```
 OPERADOR (Panel Web)
     │
     ▼
-Modifica configuración de baliza en la UI
+Modifica la configuración del beacon en la UI
     │
     ▼
 Panel escribe comando "UPDATE_CONFIG" en tabla "commands"
     y actualiza registro en tabla "beacons"
     │
     ▼
-Baliza (Noah/Gerard) detecta el nuevo comando en el siguiente poll (300ms)
+El beacon detecta el nuevo comando en el siguiente poll (300ms)
     │
     ▼
-Baliza actualiza su pantalla: modo, mensaje, flechas, color, brillo
+El beacon actualiza su pantalla: modo, mensaje, flechas, color, brillo
     │
     ▼
-Baliza marca el comando como ejecutado (DELETE del comando)
+El beacon marca el comando como ejecutado (DELETE del comando)
     │
     ▼
 Panel web refleja el nuevo estado en el dashboard
@@ -212,13 +212,13 @@ La base de datos es MySQL, alojada en un NAS QNAP con el servidor API en `georac
 
 | Tabla | Descripción |
 |---|---|
-| `beacons` | Registro de todas las balizas físicas. Incluye estado, modo, flecha, mensaje, batería, posición GPS, zona, etc. |
-| `commands` | Cola de comandos pendientes para balizas. Las balizas hacen polling y consumen estos comandos. |
+| `beacons` | Registro de todos los beacons físicos. Incluye estado, modo, flecha, mensaje, batería, posición GPS, zona, etc. |
+| `commands` | Cola de comandos pendientes para beacons. Los beacons hacen polling y consumen estos comandos. |
 | `circuit_state` | Estado global del circuito (una sola fila con id=1). Contiene `global_mode`, temperatura, mensaje, ruta de evacuación. |
 | `zones` | Zonas del circuito (GRADA, PADDOCK, FANZONE, VIAL, PARKING). |
 | `incidents` | Incidentes reportados por usuarios o staff. |
 | `emergency_logs` | Registro de acciones de emergencia (quién activó, cuándo, qué tipo). |
-| `beacon_logs` | Logs de actividad de cada baliza (heartbeats, cambios de estado, errores). |
+| `beacon_logs` | Logs de actividad de cada beacon (heartbeats, cambios de estado, errores). |
 | `orders` | Pedidos de comida/productos realizados desde la app. |
 | `products` | Catálogo de productos/comida disponibles. |
 | `food_stands` | Puestos de comida y sus productos. |
@@ -230,7 +230,7 @@ La base de datos es MySQL, alojada en un NAS QNAP con el servidor API en `georac
 | Campo | Tipo | Descripción |
 |---|---|---|
 | `id` | INT (auto) | ID numérico interno |
-| `beacon_uid` | VARCHAR | Identificador único de la baliza (UUID) |
+| `beacon_uid` | VARCHAR | Identificador único del beacon (UUID) |
 | `name` | VARCHAR | Nombre descriptivo |
 | `description` | TEXT | Descripción del punto |
 | `zone_id` | INT | FK a zonas |
@@ -242,14 +242,14 @@ La base de datos es MySQL, alojada en un NAS QNAP con el servidor API en `georac
 | `color` | VARCHAR | Color de fondo en hex (#RRGGBB) |
 | `brightness` | INT | Brillo 0-100 |
 | `battery_level` | INT | Nivel de batería 0-100 |
-| `last_heartbeat` | DATETIME | Última vez que la baliza envió un heartbeat |
+| `last_heartbeat` | DATETIME | Última vez que el beacon envió un heartbeat |
 | `configured` | BOOLEAN | Si ha sido configurada manualmente |
 
 ---
 
 ## Protocolo BLE
 
-Las balizas emiten señales Bluetooth Low Energy (BLE) con un payload personalizado de **9 bytes** usando el campo `ManufacturerData`:
+Los beacons emiten señales Bluetooth Low Energy (BLE) con un payload personalizado de **9 bytes** usando el campo `ManufacturerData`:
 
 | Byte | Campo | Descripción |
 |---|---|---|
@@ -282,10 +282,10 @@ La API está alojada en `https://georacing.example.com:4010/api` y expone los si
 | `/_delete` | POST | Eliminación genérica: `{ table, where }` |
 | `/_ensure_table` | POST | Crea una tabla si no existe |
 | `/_ensure_column` | POST | Añade una columna si no existe |
-| `/beacons/heartbeat` | POST | Registra el heartbeat de una baliza |
-| `/commands/pending/:uid` | GET | Obtiene comandos pendientes para una baliza |
+| `/beacons/heartbeat` | POST | Registra el heartbeat de un beacon |
+| `/commands/pending/:uid` | GET | Obtiene comandos pendientes para un beacon |
 | `/commands/:id/execute` | POST | Marca un comando como ejecutado |
-| `/api/state` | GET | Estado del circuito (endpoint legacy de Baliza Gerard) |
+| `/api/state` | GET | Estado del circuito (endpoint legacy del beacon) |
 
 ---
 
@@ -317,13 +317,12 @@ La API está alojada en `https://georacing.example.com:4010/api` y expone los si
 | **Firebase (Web)** | 10.14 | Web Panel | Autenticación del panel |
 | **React Router** | 6.20 | Web Panel | Enrutamiento SPA |
 | **lucide-react** | 0.294 | Web Panel | Iconos |
-| **C#** | latest | Balizas | Lenguaje de las balizas |
-| **.NET (WPF)** | 7/8 | Baliza Noah | Framework UI de Windows (XAML) |
-| **WinRT BLE API** | - | Balizas | Bluetooth Low Energy en Windows |
-| **Newtonsoft.Json** | - | Baliza Gerard | Serialización JSON |
-| **System.Text.Json** | - | Baliza Noah | Serialización JSON nativa .NET |
-| **MySQL** | 8.x | Backend | Base de datos relacional |
-| **Node.js API** | - | Backend | Servidor REST personalizado |
+| **C#** | latest | Beacon de Windows | Lenguaje del beacon |
+| **.NET (WPF)** | 7/8 | Beacon de Windows | Framework UI de Windows (XAML) |
+| **WinRT BLE API** | - | Beacon de Windows | Bluetooth Low Energy en Windows |
+| **System.Text.Json** | - | Beacon de Windows | Serialización JSON nativa .NET |
+| **MySQL** | 8.x | API | Base de datos relacional |
+| **Node.js API** | - | API | Servidor REST personalizado |
 | **Firebase Auth** | - | Web + Móvil | Autenticación centralizada |
 | **Firebase Firestore** | - | Web + iOS | Base de datos NoSQL en la nube |
 
@@ -332,11 +331,11 @@ La API está alojada en `https://georacing.example.com:4010/api` y expone los si
 ## Estructura de Carpetas del Repositorio
 
 ```
-secretooooo/
+GeoRacing/
 ├── README.md                    # Descripción breve del repositorio
-├── documentation.md             # ← Este archivo (visión global)
+├── docs/documentation.md        # ← Este archivo (visión global)
 │
-├── Android_App/                 # App Android para asistentes
+├── android/                     # App Android para asistentes
 │   ├── documentation.md         # Documentación completa Android
 │   ├── app/src/main/java/com/georacing/georacing/
 │   │   ├── MainActivity.kt      # Punto de entrada de la app
@@ -352,8 +351,8 @@ secretooooo/
 │   ├── GeoRacingDB.sql          # Script SQL de la base de datos
 │   └── google-services.json     # Config Firebase (Android)
 │
-├── iOS_App/                     # App iOS para asistentes
-│   ├── documentation.md         # Documentación completa iOS
+├── ios/                         # App iOS para asistentes
+│   ├── FEATURES.md              # Lista de características iOS
 │   ├── GeoRacing/               # Código fuente principal
 │   │   ├── GeoRacingApp.swift   # Punto de entrada de la app
 │   │   ├── ContentView.swift    # Vista raíz
@@ -363,11 +362,10 @@ secretooooo/
 │   │   ├── Presentation/        # Vistas SwiftUI, ViewModels, componentes
 │   │   ├── CarPlay/             # Módulo CarPlay
 │   │   └── Resources/           # Assets, fuentes, localización
-│   ├── Podfile                  # Dependencias CocoaPods
-│   └── backend/                 # Backends auxiliares (OTP, transport API)
+│   └── Podfile                  # Dependencias CocoaPods
 │
-├── Web_Panel/                   # Panel web de control (operadores)
-│   ├── documentation.md         # Documentación completa Web Panel
+├── web/                         # Panel web de control (operadores)
+│   ├── README.md                # Documentación del panel web
 │   ├── src/
 │   │   ├── App.tsx              # Componente raíz + rutas
 │   │   ├── main.tsx             # Punto de entrada React
@@ -378,25 +376,24 @@ secretooooo/
 │   │   ├── context/             # Contextos (Auth, Toast)
 │   │   ├── types/               # Tipos TypeScript
 │   │   ├── firebase/            # Config y app Firebase
-│   │   ├── beacon_renderer/     # Renderizador visual de balizas
+│   │   ├── beacon_renderer/     # Renderizador visual de beacons
 │   │   └── utils/               # Funciones de utilidad
 │   ├── package.json             # Dependencias npm
 │   └── tailwind.config.js       # Config Tailwind CSS
 │
-├── Baliza_Noah/                 # Software baliza con UI (WPF)
-│   ├── documentation.md         # Documentación completa Baliza Noah
-│   ├── BeaconApp/
-│   │   ├── MainWindow.xaml      # UI principal (XAML)
-│   │   ├── MainWindow.xaml.cs   # Code-behind de la ventana
-│   │   ├── Models/              # Modelos de datos (DTOs)
-│   │   ├── Services/            # ApiClient, BleBeaconService, FileLogger
-│   │   ├── ViewModels/          # MainViewModel (lógica de negocio)
-│   │   └── Config/              # Gestión de configuración
-│   └── METROPOLIS BALIZA 2.sln  # Solución Visual Studio
+├── api/                         # API REST (Node.js + Express + MySQL)
+│   ├── README.md                # Documentación de la API
+│   ├── server.js                # Servidor REST
+│   └── lib/                     # Acceso a datos y utilidades
 │
-└── Baliza_Gerard/               # Prototipo de baliza activa (consola)
-    ├── documentation.md         # Documentación completa Baliza Gerard
-    ├── Program.cs               # Lógica completa del programa
-    ├── BeaconGui/               # Proyecto GUI alternativo
-    └── BeaconActivePc.csproj    # Proyecto principal
+└── windows/                     # Beacon de Windows con UI (WPF)
+    ├── BeaconApp/
+    │   ├── README.md            # Documentación del beacon
+    │   ├── MainWindow.xaml      # UI principal (XAML)
+    │   ├── MainWindow.xaml.cs   # Code-behind de la ventana
+    │   ├── Models/              # Modelos de datos (DTOs)
+    │   ├── Services/            # ApiClient, BleBeaconService, FileLogger
+    │   ├── ViewModels/          # MainViewModel (lógica de negocio)
+    │   └── Config/              # Gestión de configuración
+    └── GeoRacingBeacon.sln      # Solución Visual Studio
 ```

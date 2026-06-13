@@ -6,20 +6,19 @@ All notable changes to this project are documented here. The format is based on
 ## [Unreleased]
 
 ### Added
-- Test suites across the stack: Vitest for the web panel, JUnit for Android,
-  `node --test` for the backend and the Discord bot (**194 tests** in total).
+- Test suites across the stack: Vitest for the web panel (37), JUnit for
+  Android (116) and `node --test` for the API (24) — **177 tests** in total.
 - Continuous integration: GitHub Actions for the web panel (lint + test +
   build), Node services (syntax + tests) and Android (unit tests +
   `assembleDebug`, with the debug APK uploaded as an artifact).
-- `docker-compose.yml` and `Dockerfile` for the backend, plus a `Dockerfile`
-  for the Discord bot.
+- `docker-compose.yml` and `Dockerfile` for the API.
 - Project hygiene: `CODE_OF_CONDUCT.md`, `SECURITY.md`, `.editorconfig`,
   `.gitattributes`, issue and pull-request templates, and `docs/BUG_AUDIT.md`.
 - Per-component READMEs and an English `docs/ARCHITECTURE.md` with a Mermaid
   system diagram.
 
 ### Fixed
-- **Backend:** closed a SQL-injection vector in the dynamic-schema endpoints —
+- **API:** closed a SQL-injection vector in the dynamic-schema endpoints —
   all table and column identifiers are now validated against a strict allow-list
   and back-tick quoted; values stay parameterized. `_delete` rejects an empty
   `where`; `_ensure_column` restricts the column type to an allow-list.

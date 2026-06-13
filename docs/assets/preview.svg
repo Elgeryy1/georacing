@@ -127,5 +127,5 @@
   <text x="744" y="600" fill="#64748b" font-size="11">BLE zone detection · heading-up navigation · evacuation arrows in ~300 ms</text>
 
   <!-- footer caption -->
-  <text x="252" y="648" fill="#475569" font-size="11">Illustrative mock of the React control panel — see web-panel/ for the real application.</text>
+  <text x="252" y="648" fill="#475569" font-size="11">Illustrative mock of the React control panel — see web/ for the real application.</text>
 </svg>

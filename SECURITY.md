@@ -29,8 +29,7 @@ Instead, report privately through one of:
 Please include:
 
 - A description of the issue and the component affected
-  (`apps/android`, `apps/ios`, `web-panel`, `backend`, `beacons`,
-  `discord-bot`).
+  (`android`, `ios`, `web`, `api`, `windows`).
 - Steps to reproduce or a proof of concept.
 - The potential impact (data exposure, command injection, denial of service,
   spoofed beacon commands, etc.).
@@ -43,13 +42,13 @@ remediation plan or fix timeline within **30 days**, depending on severity.
 In scope:
 
 - The application source code in this repository.
-- The REST command/heartbeat protocol between the backend and the beacons.
+- The REST command/heartbeat protocol between the API and the beacons.
 - The BLE advertising payload and how the apps trust it.
-- Authentication/authorization logic in the web panel and backend.
+- Authentication/authorization logic in the web panel and API.
 
 Out of scope:
 
-- Third-party services (Firebase, Supabase, Groq, Discord) — report those to
+- Third-party services (Firebase) — report those to
   the respective vendor.
 - Issues that require a rooted/compromised device or physical access to a
   beacon PC.

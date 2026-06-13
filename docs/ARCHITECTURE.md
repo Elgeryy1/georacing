@@ -25,13 +25,11 @@
 
 | Component | Path | Technology | Role |
 |---|---|---|---|
-| Android app | `apps/android` | Kotlin + Jetpack Compose | Attendee app (Android) |
-| iOS app | `apps/ios` | Swift + SwiftUI | Attendee app (iOS) |
-| Web panel | `web-panel` | React + TypeScript + Vite | Organizer control panel |
-| Beacon (signage) | `beacons/baliza-noah` | C# + WPF (.NET) | Full-screen signage beacon with UI |
-| Beacon (prototype) | `beacons/baliza-gerard` | C# + WinRT (.NET) | Console-based active BLE beacon |
-| Backend API | `backend` | Node.js + Express + MySQL | Core REST API |
-| Discord bot | `discord-bot` | Node.js + discord.js | Community bot (Supabase + LLM) |
+| Android app | `android` | Kotlin + Jetpack Compose | Attendee app (Android) |
+| iOS app | `ios` | Swift + SwiftUI | Attendee app (iOS) |
+| Web panel | `web` | React + TypeScript + Vite | Organizer control panel |
+| Windows beacon | `windows` | C# + WPF (.NET) | Full-screen signage beacon with UI |
+| API | `api` | Node.js + Express + MySQL | Core REST API |
 
 ## System architecture
 
@@ -50,8 +48,7 @@ graph TB
     end
 
     subgraph Beacons["Physical beacons"]
-        BN["Beacon — WPF signage"]
-        BG["Beacon — console prototype"]
+        BN["Windows beacon — WPF signage"]
     end
 
     WEB["Web panel (React + TS)"]
@@ -63,11 +60,8 @@ graph TB
     WEB -->|Firebase Auth| FB
     WEB -->|REST| API
     BN -->|"command polling (300 ms) + heartbeat (10 s)"| API
-    BG -->|state polling| API
     BN -.->|BLE advertising| AND
     BN -.->|BLE advertising| IOS
-    BG -.->|BLE advertising| AND
-    BG -.->|BLE advertising| IOS
 ```
 
 Key properties:
@@ -76,11 +70,10 @@ Key properties:
 - **Firebase** provides authentication for the web panel and auxiliary data (Auth + Firestore) for the mobile apps.
 - **Beacons are pull-based**: they poll the API for pending commands and report heartbeats; nothing pushes to them.
 - **BLE is one-way**: beacons advertise; phones scan to determine proximity and zone.
-- The **Discord bot** is an independent community service (Supabase + Groq/OpenAI) and does not participate in the circuit data plane.
 
 ## Components
 
-### Android app (`apps/android`)
+### Android app (`android`)
 
 Attendee-facing Android application.
 
@@ -94,7 +87,7 @@ Attendee-facing Android application.
 - BLE scanning to detect nearby beacons
 - Basic augmented reality
 
-### iOS app (`apps/ios`)
+### iOS app (`ios`)
 
 Attendee-facing iOS application with feature parity targets relative to Android.
 
@@ -106,7 +99,7 @@ Attendee-facing iOS application with feature parity targets relative to Android.
 - Quiz and gamification
 - Cart-based ordering
 
-### Web panel (`web-panel`)
+### Web panel (`web`)
 
 Control panel for the event organization staff.
 
@@ -120,7 +113,7 @@ Control panel for the event organization staff.
 - Fan news publishing
 - User management
 
-### Beacon — WPF signage (`beacons/baliza-noah`)
+### Windows beacon — WPF signage (`windows`)
 
 Windows signage application with a full-screen WPF UI.
 
@@ -131,14 +124,6 @@ Windows signage application with a full-screen WPF UI.
 - Direction arrows configurable from the web panel
 - Remote screen-brightness control
 - Supported commands: `RESTART`, `SHUTDOWN`, `CLOSE_APP`, `UPDATE_CONFIG`
-
-### Beacon — console prototype (`beacons/baliza-gerard`)
-
-Headless console process intended for testing or dedicated hardware.
-
-- Continuously advertises BLE
-- Polls the API to refresh the BLE payload
-- Minimal, dependency-light design
 
 ## Global data flows
 
@@ -270,12 +255,9 @@ The schema is "Firestore-like": the `_ensure_*` endpoints let clients evolve tab
 | React 18 + TypeScript 5 + Vite 5 | Web panel | UI framework, typing, tooling |
 | Tailwind CSS 3 | Web panel | Utility-first styling |
 | React Router 6, lucide-react | Web panel | SPA routing, icons |
-| C# / .NET (WPF) | Beacons | Windows signage UI (XAML) |
-| WinRT BLE API | Beacons | BLE advertising on Windows |
-| Newtonsoft.Json / System.Text.Json | Beacons | JSON serialization |
-| Node.js + Express | Backend | REST API server |
-| MySQL 8 | Backend | Relational database |
+| C# / .NET (WPF) | Windows beacon | Windows signage UI (XAML) |
+| WinRT BLE API | Windows beacon | BLE advertising on Windows |
+| Newtonsoft.Json / System.Text.Json | Windows beacon | JSON serialization |
+| Node.js + Express | API | REST API server |
+| MySQL 8 | API | Relational database |
 | Firebase Auth + Firestore | Web + mobile | Authentication and cloud NoSQL data |
-| discord.js 14 | Discord bot | Discord gateway and slash commands |
-| Supabase | Discord bot | Realtime data and knowledge storage |
-| Groq SDK / OpenAI SDK | Discord bot | LLM-powered (RAG) answers |

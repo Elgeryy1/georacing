@@ -12,9 +12,8 @@ Which part of the platform does this affect?
 - [ ] Android app
 - [ ] iOS app
 - [ ] Web panel
-- [ ] Backend API
-- [ ] Beacons
-- [ ] Discord bot
+- [ ] REST API
+- [ ] Windows beacon
 - [ ] Docs / other
 
 ## Problem

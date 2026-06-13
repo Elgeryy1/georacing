@@ -6,12 +6,11 @@
 
 ## Affected area
 
-- [ ] Android app (`apps/android`)
-- [ ] iOS app (`apps/ios`)
-- [ ] Web panel (`web-panel`)
-- [ ] Backend (`backend`)
-- [ ] Discord bot (`discord-bot`)
-- [ ] Beacons (`beacons`)
+- [ ] Android app (`android`)
+- [ ] iOS app (`ios`)
+- [ ] Web panel (`web`)
+- [ ] REST API (`api`)
+- [ ] Windows beacon (`windows`)
 - [ ] Docs / CI / other
 
 ## Checklist

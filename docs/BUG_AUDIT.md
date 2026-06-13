@@ -14,9 +14,9 @@ build environment, so their fixes are conservative, mechanical changes.
 
 | Component | Verified build | Notes |
 |-----------|----------------|-------|
-| web-panel | ✅ `tsc --noEmit` + `vite build` | strict TypeScript, clean |
-| apps/android | ✅ `./gradlew assembleDebug` | build files restored from the matching team snapshot; `google-services.json.example` includes a placeholder OAuth client so the google-services plugin generates `default_web_client_id` |
-| apps/ios | ⬜ not compiled here | fixes are mechanical; verify in Xcode |
+| web | ✅ `tsc --noEmit` + `vite build` | strict TypeScript, clean |
+| android | ✅ `./gradlew assembleDebug` | build files restored from the matching team snapshot; `google-services.json.example` includes a placeholder OAuth client so the google-services plugin generates `default_web_client_id` |
+| ios | ⬜ not compiled here | fixes are mechanical; verify in Xcode |
 | beacons (C#) | ⬜ not compiled here | fixes are mechanical; verify in Visual Studio |
 
 ## Android — Fixed
