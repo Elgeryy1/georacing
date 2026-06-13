@@ -85,16 +85,26 @@ namespace BeaconApp.ViewModels
             Log("🚀 Iniciando servicios de fondo (300ms)...");
 
             // Timer 1: Polling (leer comandos + sync config)
+            // Periodo infinito: se rearma al FINAL del callback para evitar reentradas
+            // si una iteración tarda más que el intervalo.
             _pollingTimer = new Timer(
-                async _ => 
+                async _ =>
                 {
-                    await CheckGlobalStateAsync(); // Prioridad: Estado Global
-                    await SyncConfigAsync();    // Leer estado DB individual
-                    await PollCommandsAsync();  // Leer comandos
+                    try
+                    {
+                        await CheckGlobalStateAsync(); // Prioridad: Estado Global
+                        await SyncConfigAsync();    // Leer estado DB individual
+                        await PollCommandsAsync();  // Leer comandos
+                    }
+                    finally
+                    {
+                        try { _pollingTimer?.Change(POLLING_INTERVAL_MS, Timeout.Infinite); }
+                        catch (ObjectDisposedException) { /* timer eliminado en Stop() */ }
+                    }
                 },
                 null,
                 TimeSpan.FromMilliseconds(1000),
-                TimeSpan.FromMilliseconds(POLLING_INTERVAL_MS)
+                Timeout.InfiniteTimeSpan
             );
 
             // Timer 2: Heartbeat (registrarse)
@@ -266,6 +276,10 @@ namespace BeaconApp.ViewModels
                 // Ya no necesitamos sincronizar aquí porque lo hace el polling cada 300ms
                 // Simplemente enviamos el estado actual
 
+                // BatteryLifePercent devuelve 255 (NoSystemBattery) en equipos sin batería:
+                // en ese caso reportamos 100 en lugar de 25500.
+                var batteryPercent = System.Windows.Forms.SystemInformation.PowerStatus.BatteryLifePercent;
+
                 var heartbeat = new BeaconHeartbeatRequest
                 {
                     BeaconUid = _config.BeaconId,
@@ -280,7 +294,7 @@ namespace BeaconApp.ViewModels
                     Message = DisplayText,
                     Color = BackgroundColor,
                     Brightness = CurrentBrightness,
-                    BatteryLevel = (int)(System.Windows.Forms.SystemInformation.PowerStatus.BatteryLifePercent * 100)
+                    BatteryLevel = batteryPercent > 1.0f ? 100 : (int)(batteryPercent * 100)
                 };
 
                 await _apiClient.SendHeartbeatAsync(heartbeat);

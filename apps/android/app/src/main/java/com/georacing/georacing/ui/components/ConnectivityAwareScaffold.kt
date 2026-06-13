@@ -24,12 +24,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.georacing.georacing.debug.ScenarioSimulator
+import com.georacing.georacing.ui.theme.LocalEventVisualStyle
 
 @Composable
 fun ConnectivityAwareScaffold(
     content: @Composable () -> Unit
 ) {
     val isNetworkDead by ScenarioSimulator.isNetworkDead.collectAsState()
+    val visuals = LocalEventVisualStyle.current
 
     Box(modifier = Modifier.fillMaxSize()) {
         
@@ -41,7 +43,7 @@ fun ConnectivityAwareScaffold(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color(0xFF0E0E18)) // Racing Dark Surface
+                    .background(visuals.panelSurfaceStrong)
                     .padding(32.dp),
                 contentAlignment = Alignment.Center
             ) {
@@ -52,13 +54,13 @@ fun ConnectivityAwareScaffold(
                     Icon(
                         imageVector = Icons.Default.Warning,
                         contentDescription = "Critical Failure",
-                        tint = Color(0xFFE8253A), // Racing Red
+                        tint = visuals.navSelected,
                         modifier = Modifier.size(80.dp)
                     )
 
                     Text(
                         text = "CRITICAL NETWORK FAILURE\nERROR 503",
-                        color = Color(0xFF06B6D4),
+                        color = visuals.heroChipText,
                         fontSize = 20.sp,
                         fontFamily = FontFamily.Monospace,
                         fontWeight = FontWeight.Bold,
@@ -68,7 +70,7 @@ fun ConnectivityAwareScaffold(
 
                     Text(
                         text = "ACTIVATING OFFLINE PROTOCOL...\nESTABLISHING MESH NODE...",
-                        color = Color(0xFF06B6D4).copy(alpha = 0.8f),
+                        color = visuals.heroChipText.copy(alpha = 0.8f),
                         fontSize = 14.sp,
                         fontFamily = FontFamily.Monospace,
                         letterSpacing = 1.5.sp,
@@ -88,14 +90,14 @@ fun ConnectivityAwareScaffold(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .border(2.dp, Color(0xFFF8FAFC), RoundedCornerShape(4.dp))
+                            .border(2.dp, MaterialTheme.colorScheme.onBackground, RoundedCornerShape(4.dp))
                             .clickable { /* Action for demo */ }
                             .padding(16.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = "VER TICKET OFFLINE",
-                            color = Color(0xFFF8FAFC),
+                            color = MaterialTheme.colorScheme.onBackground,
                             fontFamily = FontFamily.Monospace,
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 1.5.sp
@@ -109,20 +111,22 @@ fun ConnectivityAwareScaffold(
 
 @Composable
 fun TerminalDataRow(label: String, value: String) {
+    val visuals = LocalEventVisualStyle.current
+
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(
             text = label.uppercase(),
-            color = Color(0xFF06B6D4).copy(alpha = 0.6f),
+            color = visuals.heroChipText.copy(alpha = 0.6f),
             fontFamily = FontFamily.Monospace,
             fontSize = 14.sp,
             letterSpacing = 1.5.sp
         )
         Text(
             text = value,
-            color = Color(0xFF06B6D4),
+            color = visuals.heroChipText,
             fontFamily = FontFamily.Monospace,
             fontWeight = FontWeight.Bold,
             fontSize = 14.sp

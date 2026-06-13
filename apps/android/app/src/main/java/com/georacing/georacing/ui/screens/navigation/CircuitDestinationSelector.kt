@@ -88,7 +88,7 @@ fun CircuitDestinationSelector(
                             description = "Acceso Principal del Circuit de Barcelona-Catalunya",
                             icon = Icons.Default.Stadium,
                             onClick = {
-                                navController.navigate("circuit_navigation/main_gate")
+                                navController.navigate("circuit_navigation/gate_3")
                             }
                         )
                     }

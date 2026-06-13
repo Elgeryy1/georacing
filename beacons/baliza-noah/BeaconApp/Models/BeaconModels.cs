@@ -130,14 +130,13 @@ namespace BeaconApp.Models
             var str = reader.GetString();
             if (string.IsNullOrEmpty(str)) return DateTime.MinValue;
 
-            // Intentar formato con espacio (DB) usando InvariantCulture para evitar errores de locales (ej: ES vs EN)
-            if (DateTime.TryParse(str, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var dt))
+            // Intentar formato con espacio (DB) usando InvariantCulture para evitar errores de locales (ej: ES vs EN).
+            // AssumeUniversal: las fechas sin zona se interpretan como UTC (el servidor envía UTC).
+            // AdjustToUniversal: las fechas con offset (ISO con Z o +hh:mm) se convierten a UTC en vez de a hora local.
+            if (DateTime.TryParse(str, System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.AssumeUniversal | System.Globalization.DateTimeStyles.AdjustToUniversal, out var dt))
             {
-                if (dt.Kind == DateTimeKind.Unspecified)
-                {
-                    return DateTime.SpecifyKind(dt, DateTimeKind.Utc);
-                }
-                return dt;
+                return dt; // Kind == Utc
             }
             
             return DateTime.MinValue;

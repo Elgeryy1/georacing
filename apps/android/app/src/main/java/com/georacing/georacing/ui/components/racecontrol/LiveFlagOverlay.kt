@@ -19,8 +19,7 @@ import androidx.compose.ui.unit.sp
 import com.georacing.georacing.domain.model.CircuitMode
 import com.georacing.georacing.domain.model.CircuitState
 import com.georacing.georacing.ui.theme.*
-import com.georacing.georacing.ui.glass.LiquidSurface
-import com.georacing.georacing.ui.glass.LocalBackdrop
+import com.georacing.georacing.ui.glass.GlassSurface
 
 @Composable
 fun LiveFlagOverlay(
@@ -125,16 +124,15 @@ private fun RaceControlBanner(
     alpha: Float,
     modifier: Modifier = Modifier
 ) {
-    val backdrop = LocalBackdrop.current
-    LiquidSurface(
-        backdrop = backdrop,
+    GlassSurface(
         modifier = modifier.fillMaxWidth(),
-        surfaceColor = color.copy(alpha = 0.7f * alpha)
+        surfaceTint = color,
+        alpha = 0.5f // Transparency for glass effect
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 20.dp),
+                .padding(vertical = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
         Text(

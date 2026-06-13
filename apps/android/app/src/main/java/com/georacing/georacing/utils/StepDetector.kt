@@ -93,20 +93,25 @@ object StepDetector {
         stepIndex: Int,
         route: RouteResult
     ): Double {
-        // Calcular en qué índice de points empieza este step
+        // The maneuver for the NEXT step is at the END of the current step.
+        // So we need distance from current position to the end of this step.
+        // End of step = sum of distances of steps[0..stepIndex] (inclusive)
         var accumulatedDistance = 0.0
-        for (i in 0 until stepIndex) {
+        for (i in 0..stepIndex) {
             accumulatedDistance += route.steps[i].distance
         }
         
-        // Convertir distancia acumulada a índice aproximado
-        val progressToStep = accumulatedDistance / route.distance
-        val stepStartIndex = (progressToStep * route.points.size).toInt()
+        // Convert accumulated distance to approximate point index
+        val progressToStepEnd = if (route.distance > 0) accumulatedDistance / route.distance else 0.0
+        val stepEndIndex = (progressToStepEnd * route.points.size).toInt()
             .coerceIn(0, route.points.size - 1)
         
-        // Sumar distancias desde currentIndex hasta stepStartIndex
+        // If current index is already past the step end, distance is 0
+        if (currentIndex >= stepEndIndex) return 0.0
+        
+        // Sum real GPS distances from current position to step end point
         var distToStep = 0.0
-        for (i in currentIndex until stepStartIndex.coerceAtMost(route.points.size - 1)) {
+        for (i in currentIndex until stepEndIndex.coerceAtMost(route.points.size - 1)) {
             val p1 = route.points[i].toLocation()
             val p2 = route.points[i + 1].toLocation()
             distToStep += p1.distanceTo(p2).toDouble()

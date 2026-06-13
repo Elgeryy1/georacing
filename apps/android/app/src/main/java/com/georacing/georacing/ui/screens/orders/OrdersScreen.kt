@@ -17,7 +17,6 @@ import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material3.*
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,8 +33,6 @@ import com.georacing.georacing.data.billing.BillingManager
 import com.georacing.georacing.data.billing.FakePaymentProcessor
 import com.georacing.georacing.data.billing.PaymentResult
 import com.georacing.georacing.ui.components.background.CarbonBackground
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import com.georacing.georacing.ui.theme.*
 import com.georacing.georacing.data.orders.OrdersRepositoryImpl
 import com.georacing.georacing.domain.orders.OrderLine
@@ -304,7 +301,7 @@ fun OrdersScreenContent(
                                 shape = RoundedCornerShape(12.dp),
                                 modifier = Modifier.height(56.dp)
                             ) {
-                                Icon(Icons.Default.ShoppingCart, contentDescription = "Carrito de compras", tint = Color(0xFFF8FAFC))
+                                Icon(Icons.Default.ShoppingCart, null, tint = Color(0xFFF8FAFC))
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text("PAGAR", fontWeight = FontWeight.ExtraBold, letterSpacing = 1.sp, color = Color(0xFFF8FAFC))
                             }
@@ -313,19 +310,10 @@ fun OrdersScreenContent(
                 }
             }
         ) { padding ->
-            var isRefreshing by remember { mutableStateOf(false) }
-            val refreshScope = rememberCoroutineScope()
-            PullToRefreshBox(
-                isRefreshing = isRefreshing,
-                onRefresh = {
-                    isRefreshing = true
-                    refreshScope.launch { delay(1500); isRefreshing = false }
-                },
-                modifier = Modifier.fillMaxSize().padding(padding)
-            ) {
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
+                    .padding(padding)
                     .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 contentPadding = PaddingValues(bottom = 16.dp) // Content padding
@@ -360,7 +348,6 @@ fun OrdersScreenContent(
                         quantity = qty,
                         onAdd = { onAddProduct(product) },
                         onRemove = { onRemoveProduct(product) }
-
                     )
                 }
             }
@@ -373,7 +360,7 @@ fun OrdersScreenContent(
                 containerColor = Color(0xFF14141C),
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.CheckCircle, contentDescription = "Pedido confirmado", tint = Color(0xFF22C55E), modifier = Modifier.size(32.dp))
+                        Icon(Icons.Default.CheckCircle, null, tint = Color(0xFF22C55E), modifier = Modifier.size(32.dp))
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
                             "¡Pedido Realizado!",
@@ -395,7 +382,6 @@ fun OrdersScreenContent(
                 },
                 modifier = Modifier.border(1.dp, Color(0xFF22C55E), RoundedCornerShape(24.dp))
             )
-        }
         }
     }
 }
@@ -497,7 +483,7 @@ fun ProductGlassCard(
                             .size(32.dp)
                             .border(1.dp, Color(0xFF64748B), CircleShape)
                     ) {
-                        Icon(Icons.Default.Remove, contentDescription = "Quitar uno", tint = Color(0xFFF8FAFC), modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.Remove, null, tint = Color(0xFFF8FAFC), modifier = Modifier.size(16.dp))
                     }
                     
                     Text(
@@ -515,7 +501,7 @@ fun ProductGlassCard(
                         .size(32.dp)
                         .background(if (isAvailable) Color(0xFFE8253A) else Color(0xFF64748B), CircleShape)
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = "Añadir uno", tint = Color(0xFFF8FAFC), modifier = Modifier.size(16.dp))
+                    Icon(Icons.Default.Add, null, tint = Color(0xFFF8FAFC), modifier = Modifier.size(16.dp))
                 }
             }
         }

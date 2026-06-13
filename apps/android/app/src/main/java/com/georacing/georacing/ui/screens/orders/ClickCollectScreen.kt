@@ -1,10 +1,11 @@
 package com.georacing.georacing.ui.screens.orders
 
-import android.location.Location
 import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
@@ -21,6 +22,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -28,6 +30,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.georacing.georacing.data.firestorelike.FirestoreLikeApi
 import com.georacing.georacing.data.firestorelike.FirestoreLikeClient
+import com.georacing.georacing.ui.components.HomeIconButton
+import com.georacing.georacing.ui.components.background.CarbonBackground
+import com.georacing.georacing.ui.theme.*
 import kotlinx.coroutines.delay
 
 /**
@@ -44,7 +49,8 @@ import kotlinx.coroutines.delay
 fun ClickCollectScreen(
     onNavigateBack: () -> Unit = {},
     onNavigateToOrders: (String) -> Unit = {}, // standId
-    onNavigateToMyOrders: () -> Unit = {}
+    onNavigateToMyOrders: () -> Unit = {},
+    onNavigateHome: () -> Unit = {}
 ) {
     // ── Stands del circuito — datos reales del backend ──
     var stands by remember { mutableStateOf<List<FoodStand>>(emptyList()) }
@@ -79,13 +85,13 @@ fun ClickCollectScreen(
     var selectedStand by remember { mutableStateOf<FoodStand?>(null) }
     var activeOrder by remember { mutableStateOf<CollectOrder?>(null) }
     var showOrderTracker by remember { mutableStateOf(false) }
+    var selectedFilter by remember { mutableStateOf("🍔 Todo") }
 
-    // Simular progreso del pedido activo — En producción, esto se consultaría al backend
+    // Simular progreso del pedido activo
     LaunchedEffect(activeOrder) {
         if (activeOrder != null && activeOrder?.status != CollectOrderStatus.DELIVERED) {
             delay(15_000)
             activeOrder = activeOrder?.copy(status = CollectOrderStatus.PREPARING)
-            // Guardar estado en backend
             try {
                 activeOrder?.let {
                     FirestoreLikeClient.api.upsert(FirestoreLikeApi.UpsertRequest(
@@ -99,103 +105,198 @@ fun ClickCollectScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Click & Collect") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver")
-                    }
-                },
-                actions = {
-                    // Botón para ver mis pedidos
-                    Badge(containerColor = MaterialTheme.colorScheme.primary) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        CarbonBackground()
+
+        Scaffold(
+            containerColor = Color.Transparent,
+            topBar = {
+                // Racing-style glass top bar
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                        .glassSmall(shape = RoundedCornerShape(16.dp))
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, "Atrás", tint = Color(0xFFF8FAFC))
+                        }
+
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFFE8253A))
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "CLICK & COLLECT",
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.ExtraBold,
+                                    letterSpacing = 1.5.sp
+                                ),
+                                color = Color(0xFFF8FAFC)
+                            )
+                        }
+
                         IconButton(onClick = onNavigateToMyOrders) {
-                            Icon(Icons.Default.Receipt, "Mis pedidos")
+                            Icon(Icons.Default.Receipt, "Mis pedidos", tint = Color(0xFFF8FAFC))
                         }
                     }
                 }
-            )
-        }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-        ) {
-            // ── Pedido activo ──
-            AnimatedVisibility(visible = activeOrder != null) {
-                activeOrder?.let { order ->
-                    ActiveOrderCard(
-                        order = order,
-                        stand = stands.find { it.id == order.standId },
-                        onTrack = { showOrderTracker = true }
-                    )
-                }
             }
-
-            // ── Header ──
-            Text(
-                text = "📍 Puntos de recogida",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(16.dp)
-            )
-
-            // ── Filtros rápidos ──
-            LazyRow(
-                contentPadding = PaddingValues(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) { padding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .verticalScroll(rememberScrollState())
             ) {
-                val filters = listOf("🍔 Todo", "🍕 Comida", "🍺 Bebidas", "🍦 Dulces", "⚡ Rápido")
-                items(filters) { filter ->
-                    FilterChip(
-                        onClick = { /* Filter logic */ },
-                        label = { Text(filter) },
-                        selected = filter == "🍔 Todo"
+                // ── Pedido activo ──
+                AnimatedVisibility(visible = activeOrder != null) {
+                    activeOrder?.let { order ->
+                        ActiveOrderCard(
+                            order = order,
+                            stand = stands.find { it.id == order.standId },
+                            onTrack = { showOrderTracker = true }
+                        )
+                    }
+                }
+
+                // ── Header ──
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                ) {
+                    Icon(
+                        Icons.Default.LocationOn, null,
+                        tint = Color(0xFFE8253A),
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "PUNTOS DE RECOGIDA",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.ExtraBold,
+                            letterSpacing = 1.5.sp
+                        ),
+                        color = Color(0xFFF8FAFC)
                     )
                 }
-            }
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // ── Lista de stands ──
-            stands.forEach { stand ->
-                StandCard(
-                    stand = stand,
-                    isSelected = selectedStand?.id == stand.id,
-                    onSelect = { selectedStand = stand },
-                    onOrder = {
-                        // Simular crear pedido (en producción → navegar a OrdersScreen)
-                        activeOrder = CollectOrder(
-                            orderId = "ORD-${System.currentTimeMillis() % 10000}",
-                            standId = stand.id,
-                            standName = stand.name,
-                            status = CollectOrderStatus.CONFIRMED,
-                            estimatedMinutes = stand.waitMinutes + 5,
-                            pickupCode = "GR-${(100..999).random()}"
-                        )
-                        onNavigateToOrders(stand.id)
+                // ── Filtros racing ──
+                val filters = listOf("🍔 Todo", "🍕 Comida", "🍺 Bebidas", "🍦 Dulces", "⚡ Rápido")
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(filters) { filter ->
+                        val isSelected = filter == selectedFilter
+                        val bgAlpha = if (isSelected) 0.2f else 0.05f
+                        val accentColor = if (isSelected) Color(0xFFE8253A) else TextSecondary
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(50))
+                                .background(accentColor.copy(alpha = bgAlpha))
+                                .border(
+                                    0.5.dp,
+                                    accentColor.copy(alpha = if (isSelected) 0.5f else 0.1f),
+                                    RoundedCornerShape(50)
+                                )
+                                .clickable { selectedFilter = filter }
+                                .padding(horizontal = 14.dp, vertical = 8.dp)
+                        ) {
+                            Text(
+                                filter,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isSelected) Color(0xFFF8FAFC) else TextSecondary
+                            )
+                        }
                     }
-                )
-            }
+                }
 
-            Spacer(modifier = Modifier.height(80.dp))
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // ── Loading state ──
+                if (isLoadingStands) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(48.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            color = Color(0xFFE8253A),
+                            strokeWidth = 2.dp,
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+                } else if (stands.isEmpty()) {
+                    // Empty state
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                            .liquidGlass(shape = RoundedCornerShape(16.dp))
+                            .padding(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("🍽️", fontSize = 48.sp)
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text(
+                                "No hay stands disponibles",
+                                color = TextSecondary,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                } else {
+                    // ── Lista de stands ──
+                    stands.forEach { stand ->
+                        StandCard(
+                            stand = stand,
+                            isSelected = selectedStand?.id == stand.id,
+                            onSelect = { selectedStand = stand },
+                            onOrder = {
+                                activeOrder = CollectOrder(
+                                    orderId = "ORD-${System.currentTimeMillis() % 10000}",
+                                    standId = stand.id,
+                                    standName = stand.name,
+                                    status = CollectOrderStatus.CONFIRMED,
+                                    estimatedMinutes = stand.waitMinutes + 5,
+                                    pickupCode = "GR-${(100..999).random()}"
+                                )
+                                onNavigateToOrders(stand.id)
+                            }
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(100.dp))
+            }
         }
-    }
 
-    // ── Bottom Sheet: Tracker ──
-    if (showOrderTracker && activeOrder != null) {
-        OrderTrackerSheet(
-            order = activeOrder!!,
-            stand = stands.find { it.id == activeOrder!!.standId },
-            onDismiss = { showOrderTracker = false },
-            onCollected = {
-                activeOrder = activeOrder?.copy(status = CollectOrderStatus.DELIVERED)
-                showOrderTracker = false
-            }
-        )
+        // ── Bottom Sheet: Tracker ──
+        if (showOrderTracker && activeOrder != null) {
+            OrderTrackerSheet(
+                order = activeOrder!!,
+                stand = stands.find { it.id == activeOrder!!.standId },
+                onDismiss = { showOrderTracker = false },
+                onCollected = {
+                    activeOrder = activeOrder?.copy(status = CollectOrderStatus.DELIVERED)
+                    showOrderTracker = false
+                }
+            )
+        }
     }
 }
 
@@ -208,39 +309,44 @@ private fun StandCard(
     onSelect: () -> Unit,
     onOrder: () -> Unit
 ) {
-    val borderColor by animateColorAsState(
-        if (isSelected) MaterialTheme.colorScheme.primary
-        else MaterialTheme.colorScheme.outlineVariant,
-        label = "border"
-    )
+    val accentColor = if (isSelected) Color(0xFFE8253A) else null
 
-    Card(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp)
-            .clickable { onSelect() },
-        colors = CardDefaults.cardColors(
-            containerColor = if (stand.isOpen)
-                MaterialTheme.colorScheme.surface
-            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        ),
-        border = if (isSelected) CardDefaults.outlinedCardBorder().copy(
-            width = 2.dp
-        ) else null
+            .liquidGlass(
+                shape = RoundedCornerShape(16.dp),
+                accentGlow = accentColor
+            )
+            .then(
+                if (isSelected) Modifier.border(
+                    1.dp,
+                    Color(0xFFE8253A).copy(alpha = 0.4f),
+                    RoundedCornerShape(16.dp)
+                ) else Modifier
+            )
+            .clickable { onSelect() }
+            .padding(16.dp)
     ) {
         Row(
-            modifier = Modifier.padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Emoji grande
-            Text(
-                text = stand.name.take(2),
-                fontSize = 32.sp,
-                modifier = Modifier.width(48.dp),
-                textAlign = TextAlign.Center
-            )
+            // Emoji icon box
+            Box(
+                modifier = Modifier
+                    .size(52.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(
+                        if (stand.isOpen) Color(0xFFF8FAFC).copy(alpha = 0.08f)
+                        else Color(0xFFEF4444).copy(alpha = 0.08f)
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(stand.name.take(2), fontSize = 24.sp)
+            }
 
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(14.dp))
 
             // Info
             Column(modifier = Modifier.weight(1f)) {
@@ -248,22 +354,34 @@ private fun StandCard(
                     Text(
                         text = stand.name,
                         style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color(0xFFF8FAFC)
                     )
                     if (!stand.isOpen) {
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "CERRADO",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.error
-                        )
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(50))
+                                .background(Color(0xFFEF4444).copy(alpha = 0.15f))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = "CERRADO",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color(0xFFEF4444),
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 9.sp
+                            )
+                        }
                     }
                 }
                 Text(
                     text = stand.description,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = TextSecondary,
+                    maxLines = 1
                 )
+                Spacer(modifier = Modifier.height(6.dp))
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -273,14 +391,15 @@ private fun StandCard(
                         Icon(
                             Icons.Default.Schedule,
                             contentDescription = null,
-                            modifier = Modifier.size(14.dp),
+                            modifier = Modifier.size(13.dp),
                             tint = if (stand.waitMinutes > 10)
-                                MaterialTheme.colorScheme.error
-                            else Color(0xFF4CAF50)
+                                Color(0xFFEF4444) else Color(0xFF22C55E)
                         )
                         Text(
-                            text = " ${stand.waitMinutes} min",
-                            style = MaterialTheme.typography.labelSmall
+                            text = " ${stand.waitMinutes}'",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = TextSecondary,
+                            fontWeight = FontWeight.Bold
                         )
                     }
                     // Rating
@@ -288,30 +407,44 @@ private fun StandCard(
                         Icon(
                             Icons.Default.Star,
                             contentDescription = null,
-                            modifier = Modifier.size(14.dp),
-                            tint = Color(0xFFFFC107)
+                            modifier = Modifier.size(13.dp),
+                            tint = Color(0xFFD4A855)
                         )
                         Text(
                             text = " ${stand.rating}",
-                            style = MaterialTheme.typography.labelSmall
+                            style = MaterialTheme.typography.labelSmall,
+                            color = TextSecondary,
+                            fontWeight = FontWeight.Bold
                         )
                     }
-                    // Ubicación
+                    // Zona
                     Text(
                         text = "📍 ${stand.zone}",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = TextTertiary,
+                        fontSize = 10.sp
                     )
                 }
             }
 
             // Botón pedir
             if (stand.isOpen) {
-                FilledTonalButton(
+                Spacer(modifier = Modifier.width(8.dp))
+                Button(
                     onClick = onOrder,
-                    modifier = Modifier.padding(start = 8.dp)
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFE8253A)
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
                 ) {
-                    Text("Pedir")
+                    Text(
+                        "PEDIR",
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = 1.sp,
+                        fontSize = 12.sp,
+                        color = Color(0xFFF8FAFC)
+                    )
                 }
             }
         }
@@ -325,57 +458,96 @@ private fun ActiveOrderCard(
     onTrack: () -> Unit
 ) {
     val statusColor = when (order.status) {
-        CollectOrderStatus.CONFIRMED -> Color(0xFF2196F3)
-        CollectOrderStatus.PREPARING -> Color(0xFFFF9800)
-        CollectOrderStatus.READY -> Color(0xFF4CAF50)
-        CollectOrderStatus.DELIVERED -> Color.Gray
+        CollectOrderStatus.CONFIRMED -> ElectricBlue
+        CollectOrderStatus.PREPARING -> Color(0xFFFFA726)
+        CollectOrderStatus.READY -> Color(0xFF22C55E)
+        CollectOrderStatus.DELIVERED -> TextTertiary
     }
 
-    Card(
+    // Pulse animation for ready state
+    val infiniteTransition = rememberInfiniteTransition(label = "order_pulse")
+    val pulseAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.6f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(800),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulse"
+    )
+
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp)
-            .clickable { onTrack() },
-        colors = CardDefaults.cardColors(containerColor = statusColor.copy(alpha = 0.1f))
+            .liquidGlass(
+                shape = RoundedCornerShape(16.dp),
+                accentGlow = statusColor
+            )
+            .border(1.dp, statusColor.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
+            .clickable { onTrack() }
+            .padding(16.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                // Pulse dot
                 Box(
                     modifier = Modifier
                         .size(12.dp)
                         .clip(CircleShape)
-                        .background(statusColor)
+                        .background(statusColor.copy(
+                            alpha = if (order.status == CollectOrderStatus.READY) pulseAlpha else 1f
+                        ))
                 )
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(10.dp))
                 Text(
                     text = order.statusText(),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleSmall.copy(
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = 0.5.sp
+                    ),
                     color = statusColor
                 )
                 Spacer(modifier = Modifier.weight(1f))
-                Text(
-                    text = order.pickupCode,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
+                // Pickup code badge
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color(0xFFF8FAFC).copy(alpha = 0.08f))
+                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = order.pickupCode,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Black,
+                        color = Color(0xFFF8FAFC),
+                        letterSpacing = 1.sp
+                    )
+                }
             }
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "${stand?.name ?: order.standName} • ~${order.estimatedMinutes} min",
-                style = MaterialTheme.typography.bodySmall
+                text = "${stand?.name ?: order.standName} · ~${order.estimatedMinutes} min",
+                style = MaterialTheme.typography.bodySmall,
+                color = TextSecondary
             )
 
             if (order.status == CollectOrderStatus.READY) {
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(12.dp))
                 Button(
                     onClick = onTrack,
                     modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF22C55E)),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    Icon(Icons.Default.Place, contentDescription = null)
+                    Icon(Icons.Default.Place, contentDescription = null, tint = Color(0xFF080810))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Ir a recoger")
+                    Text(
+                        "IR A RECOGER",
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = 1.sp,
+                        color = Color(0xFF080810)
+                    )
                 }
             }
         }
@@ -390,7 +562,11 @@ private fun OrderTrackerSheet(
     onDismiss: () -> Unit,
     onCollected: () -> Unit
 ) {
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = Color(0xFF14141C),
+        scrimColor = Color(0xFF080810).copy(alpha = 0.7f)
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -413,11 +589,16 @@ private fun OrderTrackerSheet(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Box(
                             modifier = Modifier
-                                .size(32.dp)
+                                .size(36.dp)
                                 .clip(CircleShape)
                                 .background(
-                                    if (index <= currentStep) Color(0xFF4CAF50)
-                                    else MaterialTheme.colorScheme.outlineVariant
+                                    if (index <= currentStep) Color(0xFF22C55E)
+                                    else Color(0xFF1E1E2A)
+                                )
+                                .then(
+                                    if (index > currentStep) Modifier.border(
+                                        1.dp, Color(0xFF64748B).copy(alpha = 0.3f), CircleShape
+                                    ) else Modifier
                                 ),
                             contentAlignment = Alignment.Center
                         ) {
@@ -431,35 +612,68 @@ private fun OrderTrackerSheet(
                             } else {
                                 Text(
                                     "${index + 1}",
-                                    color = Color.White,
+                                    color = if (index <= currentStep) Color.White else TextTertiary,
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Bold
                                 )
                             }
                         }
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(label, style = MaterialTheme.typography.labelSmall)
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            label,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (index <= currentStep) Color(0xFFF8FAFC) else TextTertiary,
+                            fontWeight = if (index == currentStep) FontWeight.Bold else FontWeight.Normal
+                        )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
-            // Código de recogida grande
-            Text("Código de recogida", style = MaterialTheme.typography.labelMedium)
+            // Código de recogida
+            Text(
+                "CÓDIGO DE RECOGIDA",
+                style = MaterialTheme.typography.labelMedium,
+                color = TextSecondary,
+                letterSpacing = 1.5.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = order.pickupCode,
                 style = MaterialTheme.typography.displaySmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
+                fontWeight = FontWeight.Black,
+                color = Color(0xFFE8253A),
+                letterSpacing = 2.sp
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
-            // Info del stand
+            // Stand info
             if (stand != null) {
-                Text("📍 ${stand.name}", style = MaterialTheme.typography.titleMedium)
-                Text(stand.zone, style = MaterialTheme.typography.bodySmall)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        Icons.Default.LocationOn, null,
+                        tint = Color(0xFFE8253A),
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        stand.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color(0xFFF8FAFC),
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Text(
+                    stand.zone,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextSecondary
+                )
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -467,9 +681,18 @@ private fun OrderTrackerSheet(
             if (order.status == CollectOrderStatus.READY) {
                 Button(
                     onClick = onCollected,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF22C55E)),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("✅ Ya lo tengo")
+                    Text(
+                        "✅ YA LO TENGO",
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = 1.sp,
+                        color = Color(0xFF080810)
+                    )
                 }
             }
 

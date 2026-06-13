@@ -33,7 +33,7 @@ class CrowdDensityService: ObservableObject {
             do {
                 let list = try await self.apiService.fetchZoneDensities()
                 await MainActor.run {
-                    self.densities = Dictionary(uniqueKeysWithValues: list.map { ($0.zone_id, $0) })
+                    self.densities = Dictionary(list.map { ($0.zone_id, $0) }, uniquingKeysWith: { _, new in new })
                 }
             } catch {
                 Logger.error("[CrowdDensityService] Error fetching crowd density: \(error)")

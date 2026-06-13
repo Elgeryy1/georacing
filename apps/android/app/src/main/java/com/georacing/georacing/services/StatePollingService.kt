@@ -14,6 +14,10 @@ import com.georacing.georacing.ui.evacuation.EvacuationActivity
 import kotlinx.coroutines.*
 
 class StatePollingService : Service() {
+    companion object {
+        private const val ORDER_STATUS_POLL_INTERVAL_MS = 15_000L
+    }
+
     private val job = SupervisorJob()
     private val scope = CoroutineScope(Dispatchers.IO + job)
     private var lastKnownMode: String? = null
@@ -76,7 +80,9 @@ class StatePollingService : Service() {
                                   beaconAdvertiser.startAdvertising(user.uid)
                               }
                          } else {
-                              beaconAdvertiser.startAdvertising(user.uid)
+                              // Sharing disabled: stop broadcasting the user beacon
+                              // instead of advertising it without coordinates.
+                              beaconAdvertiser.stopAdvertising()
                          }
 
                          val result = api.get(
@@ -99,7 +105,7 @@ class StatePollingService : Service() {
                 } catch (e: Exception) {
                     Log.e("StatePolling", "Order Poll / Adv Error", e)
                 }
-                delay(30000) // Check every 30 seconds
+                delay(ORDER_STATUS_POLL_INTERVAL_MS)
             }
         }
 
@@ -249,8 +255,8 @@ class StatePollingService : Service() {
 
     private fun createMonitoringNotification(): android.app.Notification {
         return NotificationCompat.Builder(this, "MONITORING_CHANNEL")
-            .setContentTitle("GeoRacing Security")
-            .setContentText("Iniciando escáner...")
+            .setContentTitle("GeoRacing")
+            .setContentText("Monitorización activa")
             .setSmallIcon(android.R.drawable.ic_menu_compass)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOnlyAlertOnce(true)
@@ -259,8 +265,8 @@ class StatePollingService : Service() {
 
     private fun updateMonitoringNotification(text: String) {
         val notification = NotificationCompat.Builder(this, "MONITORING_CHANNEL")
-            .setContentTitle("GeoRacing BLE Debug")
-            .setContentText(text)
+            .setContentTitle("GeoRacing")
+            .setContentText("Monitorización activa")
             .setSmallIcon(android.R.drawable.ic_menu_compass)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOnlyAlertOnce(true)

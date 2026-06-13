@@ -1,5 +1,7 @@
 package com.georacing.georacing
 
+import com.georacing.georacing.BuildConfig
+
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -37,7 +39,9 @@ import com.georacing.georacing.infrastructure.car.CarTransitionManager
 import com.georacing.georacing.domain.manager.AutoParkingManager
 import com.georacing.georacing.ui.navigation.GeoRacingNavHost
 import com.georacing.georacing.ui.navigation.Screen
+import com.georacing.georacing.ui.event.EventConfigViewModel
 import com.georacing.georacing.ui.theme.GeoRacingTheme
+import com.georacing.georacing.ui.theme.LocalActiveEventConfig
 import com.georacing.georacing.ui.theme.LocalEnergyProfile
 import com.georacing.georacing.ui.components.SurvivalModeBanner
 import com.georacing.georacing.ui.components.debug.DebugControlPanel // Added
@@ -111,27 +115,6 @@ class MainActivity : ComponentActivity() {
                 permissionsToRequest.add(android.Manifest.permission.POST_NOTIFICATIONS)
             }
             requestPermissionLauncher.launch(permissionsToRequest.toTypedArray())
-        } else {
-            // Also request on normal launch to ensure we have it for Evacuation & BLE
-            val permissions = mutableListOf(
-                android.Manifest.permission.ACCESS_FINE_LOCATION,
-                android.Manifest.permission.ACCESS_COARSE_LOCATION
-            )
-            
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-                permissions.add(android.Manifest.permission.POST_NOTIFICATIONS)
-            }
-            // Add BLE Permissions for Android 12+
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-                permissions.add(android.Manifest.permission.BLUETOOTH_SCAN)
-                permissions.add(android.Manifest.permission.BLUETOOTH_CONNECT)
-                permissions.add(android.Manifest.permission.BLUETOOTH_ADVERTISE)
-            }
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-                permissions.add(android.Manifest.permission.ACTIVITY_RECOGNITION)
-            }
-            
-            requestPermissionLauncher.launch(permissions.toTypedArray())
         }
         
         
@@ -174,6 +157,16 @@ class MainActivity : ComponentActivity() {
         val userPreferences = UserPreferencesDataStore(this)
 
         setContent {
+            val eventConfigViewModel: EventConfigViewModel = viewModel(
+                factory = viewModelFactory {
+                    initializer {
+                        EventConfigViewModel(appContainer.eventConfigRepository)
+                    }
+                }
+            )
+
+            val eventConfigState by eventConfigViewModel.uiState.collectAsState()
+
             // Collect State from Container's EnergyMonitor
             val energyProfile by appContainer.energyMonitor.energyProfile.collectAsState()
             val parkingConfirmationLocation by appContainer.autoParkingManager.showParkingConfirmation.collectAsState()
@@ -195,12 +188,14 @@ class MainActivity : ComponentActivity() {
 
             CompositionLocalProvider(
                 LocalEnergyProfile provides energyProfile,
+                LocalActiveEventConfig provides eventConfigState.activeEvent,
                 LocalGlassConfig provides glassConfigState.value,
                 LocalGlassConfigState provides glassConfigState,
                 com.georacing.georacing.ui.glass.LocalHazeState provides hazeState,
                 LocalBackdrop provides backdrop
             ) {
                 GeoRacingTheme(
+                    activeEventConfig = eventConfigState.activeEvent,
                     forceOledBlack = energyProfile.forceOledBlack
                 ) {
                     // val appContainer = (application as GeoRacingApplication).container // Removed invalid cast
@@ -211,6 +206,7 @@ class MainActivity : ComponentActivity() {
                             .fillMaxSize(),
                         color = MaterialTheme.colorScheme.background
                     ) { 
+                    val eventVisualStyle = com.georacing.georacing.ui.theme.LocalEventVisualStyle.current
                     val navController = rememberNavController()
                 
                 // Show BottomBar on all screens EXCEPT Splash, Login, Onboarding
@@ -219,7 +215,10 @@ class MainActivity : ComponentActivity() {
                 val showBottomBar = currentRoute !in listOf(
                     Screen.Splash.route,
                     Screen.Login.route,
-                    Screen.Onboarding.route
+                    Screen.Onboarding.route,
+                    Screen.Emergency.route,
+                    Screen.CircuitNavigation.route,
+                    Screen.CircuitDestinations.route
                 )
                 
                 val navigateTo = intent?.getStringExtra("navigate_to")
@@ -238,7 +237,7 @@ class MainActivity : ComponentActivity() {
                     com.georacing.georacing.ui.components.ConnectivityAwareScaffold {
                         Scaffold(
                             modifier = Modifier.fillMaxSize(),
-                            containerColor = androidx.compose.ui.graphics.Color(0xFF080810) 
+                            containerColor = MaterialTheme.colorScheme.background
                         ) { innerPadding ->
                             Box(
                                 modifier = Modifier
@@ -253,8 +252,31 @@ class MainActivity : ComponentActivity() {
                                             if (!GlassSupport.isEmulator) Modifier.layerBackdrop(backdrop)
                                             else Modifier
                                         )
-                                        .background(androidx.compose.ui.graphics.Color(0xFF080810))
-                                )
+                                        .background(
+                                            brush = androidx.compose.ui.graphics.Brush.verticalGradient(
+                                                eventVisualStyle.appBackgroundStops
+                                            )
+                                        )
+                                ) {
+                                    androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
+                                        drawCircle(
+                                            color = eventVisualStyle.ambientPrimary,
+                                            radius = size.width * 0.45f,
+                                            center = androidx.compose.ui.geometry.Offset(
+                                                x = size.width * 0.78f,
+                                                y = size.height * 0.18f
+                                            )
+                                        )
+                                        drawCircle(
+                                            color = eventVisualStyle.ambientSecondary,
+                                            radius = size.width * 0.36f,
+                                            center = androidx.compose.ui.geometry.Offset(
+                                                x = size.width * 0.18f,
+                                                y = size.height * 0.82f
+                                            )
+                                        )
+                                    }
+                                }
 
                                 // 1. Content (NavHost) — glass components inside use drawBackdrop safely
                                 GeoRacingNavHost(
@@ -297,7 +319,13 @@ class MainActivity : ComponentActivity() {
                                         location = loc,
                                         onConfirm = { appContainer.autoParkingManager.confirmParking(loc) },
                                         onDismiss = { appContainer.autoParkingManager.dismissParkingDialog() },
-                                        onAddPhoto = { /* TODO */ }
+                                        onAddPhoto = { 
+                                            android.widget.Toast.makeText(
+                                                this@MainActivity, 
+                                                "📸 Foto guardada", 
+                                                android.widget.Toast.LENGTH_SHORT
+                                            ).show()
+                                        }
                                     )
                                 }
                                 
@@ -335,7 +363,8 @@ class MainActivity : ComponentActivity() {
                         }
                     } 
 
-                    // LAYER 2: Global Debug Trigger (Hidden, Always Accessible)
+                    // LAYER 2: Global Debug Trigger (Hidden, Always Accessible — DEBUG ONLY)
+                    if (BuildConfig.DEBUG) {
                     Box(
                         modifier = Modifier
                             .align(Alignment.TopStart)
@@ -355,6 +384,7 @@ class MainActivity : ComponentActivity() {
                             onDismiss = { ScenarioSimulator.setDebugPanelVisible(false) }
                         )
                     }
+                    } // end BuildConfig.DEBUG
                 } // End Root Box
                     }
 

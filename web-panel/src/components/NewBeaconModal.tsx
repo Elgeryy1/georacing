@@ -33,6 +33,8 @@ export const NewBeaconModal: React.FC<NewBeaconModalProps> = ({ beacon, onClose,
     try {
       showToast("Configurando baliza...", "info");
       
+      const parsedTags = tags.split(",").map(t => t.trim()).filter(Boolean);
+
       await beaconsService.configureBeacon(beacon.beaconId, {
         mode,
         arrow,
@@ -40,12 +42,14 @@ export const NewBeaconModal: React.FC<NewBeaconModalProps> = ({ beacon, onClose,
         color,
         brightness,
         language,
+        zone: zone.trim(),
+        tags: parsedTags.length > 0 ? parsedTags : undefined,
         evacuationExit: ""
       });
-      
+
       showToast("✅ Baliza configurada correctamente", "success");
+      // No cerramos aquí: onConfigured() encadena la siguiente baliza pendiente (flujo multi-baliza)
       onConfigured();
-      onClose();
     } catch (error) {
       console.error("Error configurando baliza:", error);
       showToast("❌ Error al configurar la baliza", "error");

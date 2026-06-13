@@ -13,14 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.rememberCoroutineScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -37,6 +29,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
@@ -61,11 +54,6 @@ import androidx.navigation.NavController
 import com.georacing.georacing.domain.repository.PoiRepository
 import com.georacing.georacing.domain.model.Poi
 import com.georacing.georacing.domain.model.PoiType
-
-import com.georacing.georacing.ui.glass.LiquidCard
-import com.georacing.georacing.ui.glass.LiquidPill
-import com.georacing.georacing.ui.glass.LocalBackdrop
-import com.kyant.backdrop.Backdrop
 
 // Racing Dark Theme Colors
 private val RacingAccent = Color(0xFF06B6D4)    // NeonCyan
@@ -124,7 +112,6 @@ fun PoiListScreen(
 
     val pois by viewModel.visiblePois.collectAsState()
     val selectedType by viewModel.selectedType.collectAsState()
-    val backdrop = LocalBackdrop.current
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -142,80 +129,81 @@ fun PoiListScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 item {
-                    LiquidPill(
-                        backdrop = backdrop,
-                        modifier = Modifier.clickable { viewModel.filterByType(null) },
-                        surfaceColor = if (selectedType == null) RacingAccent.copy(alpha = 0.2f) else ChipBg.copy(alpha = 0.5f),
-                        tint = if (selectedType == null) RacingAccent else Color.Unspecified
-                    ) {
-                        Text(
-                            "Todos",
-                            color = if (selectedType == null) Color.White else ChipText,
-                            fontWeight = if (selectedType == null) FontWeight.Bold else FontWeight.Normal,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                        )
-                    }
+                    FilterChip(
+                        selected = selectedType == null,
+                        onClick = { viewModel.filterByType(null) },
+                        label = { Text("Todos") },
+                        colors = FilterChipDefaults.filterChipColors(
+                            containerColor = ChipBg,
+                            selectedContainerColor = ChipBgSelected
+                        ),
+                        border = FilterChipDefaults.filterChipBorder(
+                            borderColor = Color(0xFF2A2A3C),
+                            selectedBorderColor = RacingAccent,
+                            enabled = true,
+                            selected = selectedType == null
+                        ),
+                        shape = RoundedCornerShape(20.dp)
+                    )
                 }
                 items(poiCategoryChips) { chip ->
                     val isSelected = selectedType == chip.type
-                    LiquidPill(
-                        backdrop = backdrop,
-                        modifier = Modifier.clickable {
+                    FilterChip(
+                        selected = isSelected,
+                        onClick = {
                             viewModel.filterByType(if (isSelected) null else chip.type)
                         },
-                        surfaceColor = if (isSelected) RacingAccent.copy(alpha = 0.2f) else ChipBg.copy(alpha = 0.5f),
-                        tint = if (isSelected) RacingAccent else Color.Unspecified
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp)
-                        ) {
-                            Text(chip.emoji, fontSize = 14.sp)
-                            Text(
-                                chip.label,
-                                color = if (isSelected) Color.White else ChipText,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                            )
-                        }
-                    }
+                        label = {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(chip.emoji, fontSize = 14.sp)
+                                Text(
+                                    chip.label,
+                                    color = if (isSelected) RacingAccent else ChipText
+                                )
+                            }
+                        },
+                        colors = FilterChipDefaults.filterChipColors(
+                            containerColor = ChipBg,
+                            selectedContainerColor = ChipBgSelected
+                        ),
+                        border = FilterChipDefaults.filterChipBorder(
+                            borderColor = Color(0xFF2A2A3C),
+                            selectedBorderColor = RacingAccent,
+                            enabled = true,
+                            selected = isSelected
+                        ),
+                        shape = RoundedCornerShape(20.dp)
+                    )
                 }
             }
 
-            // POI List with pull-to-refresh
-            var isRefreshing by remember { mutableStateOf(false) }
-            val scope = rememberCoroutineScope()
-            PullToRefreshBox(
-                isRefreshing = isRefreshing,
-                onRefresh = {
-                    isRefreshing = true
-                    scope.launch { delay(1500); isRefreshing = false }
-                },
-                modifier = Modifier.fillMaxSize()
+            // POI List
+            LazyColumn(
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                LazyColumn(
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(pois) { poi ->
-                        PoiCard(
-                            poi = poi,
-                            backdrop = backdrop,
-                            onNavigateClick = { /* TODO: Navigate to POI */ }
-                        )
-                    }
+                items(pois) { poi ->
+                    PoiCard(
+                        poi = poi,
+                        onNavigateClick = { /* TODO: Navigate to POI */ }
+                    )
                 }
             }
         }
         
         // Floating Search Pill (Top)
-        LiquidPill(
-            backdrop = backdrop,
+        Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .statusBarsPadding()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            surfaceColor = SearchBarBg.copy(alpha = 0.5f)
+                .padding(horizontal = 16.dp, vertical = 12.dp)
+                .shadow(4.dp, RoundedCornerShape(28.dp)),
+            shape = RoundedCornerShape(28.dp),
+            colors = CardDefaults.cardColors(containerColor = SearchBarBg),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
         ) {
             Row(
                 modifier = Modifier
@@ -265,14 +253,13 @@ fun PoiListScreen(
 @Composable
 fun PoiCard(
     poi: Poi,
-    backdrop: Backdrop,
     onNavigateClick: () -> Unit
 ) {
-    LiquidCard(
-        backdrop = backdrop,
+    Card(
         modifier = Modifier.fillMaxWidth(),
-        cornerRadius = 24.dp,
-        surfaceColor = com.georacing.georacing.ui.theme.AsphaltGrey.copy(alpha = 0.6f)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF14141C)),
+        shape = RoundedCornerShape(16.dp)
     ) {
         Row(
             modifier = Modifier

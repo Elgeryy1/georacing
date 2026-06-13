@@ -70,10 +70,10 @@ export const Dashboard: React.FC = () => {
               <Activity className="w-4 h-4 text-green-500" />
             </div>
             <div className="text-2xl font-bold text-white">
-              {circuitState?.mode || "NORMAL"}
+              {circuitState?.global_mode || circuitState?.mode || "NORMAL"}
             </div>
             <p className="text-xs text-gray-500 mt-1">
-              Última act: {circuitState?.updated_at ? new Date(circuitState.updated_at).toLocaleTimeString() : "-"}
+              Última act: {(() => { const ts = circuitState?.last_updated ?? circuitState?.updated_at; return ts ? new Date(ts).toLocaleTimeString() : "-"; })()}
             </p>
           </div>
 

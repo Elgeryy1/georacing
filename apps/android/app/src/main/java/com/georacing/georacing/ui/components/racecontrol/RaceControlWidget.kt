@@ -24,6 +24,8 @@ fun RaceControlWidget(
     state: CircuitState,
     modifier: Modifier = Modifier
 ) {
+    val visuals = LocalEventVisualStyle.current
+
     // Defines header color based on flag status
     val statusColor = when (state.mode) {
         CircuitMode.NORMAL, CircuitMode.GREEN_FLAG -> CircuitGreen
@@ -57,7 +59,7 @@ fun RaceControlWidget(
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = AsphaltGrey)
+        colors = CardDefaults.cardColors(containerColor = visuals.panelSurfaceStrong)
     ) {
         Column {
             // Header
@@ -96,19 +98,19 @@ fun RaceControlWidget(
                 ) {
                     Column {
                         Text(
-                            text = "SESSION TIME",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                letterSpacing = 1.5.sp
-                            ),
-                            color = NeutralGrey
-                        )
+                        text = "SESSION TIME",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            letterSpacing = 1.5.sp
+                        ),
+                        color = visuals.panelMuted
+                    )
                         Text(
                             text = session.sessionTime,
                             style = MaterialTheme.typography.titleLarge.copy(
                                 fontFamily = FontFamily.Monospace,
                                 fontWeight = FontWeight.Bold
                             ),
-                            color = TextPrimary
+                            color = visuals.heroHeadlineColor
                         )
                     }
                     Column(horizontalAlignment = Alignment.End) {
@@ -117,7 +119,7 @@ fun RaceControlWidget(
                             style = MaterialTheme.typography.labelSmall.copy(
                                 letterSpacing = 1.5.sp
                             ),
-                            color = NeutralGrey
+                            color = visuals.panelMuted
                         )
                         Text(
                             text = "${session.currentLap}/${session.totalLaps}",
@@ -125,14 +127,14 @@ fun RaceControlWidget(
                                 fontFamily = FontFamily.Monospace,
                                 fontWeight = FontWeight.Bold
                             ),
-                            color = TextPrimary
+                            color = visuals.heroHeadlineColor
                         )
                     }
                 }
 
                 HorizontalDivider(
                     modifier = Modifier.padding(vertical = 12.dp),
-                    color = OutlineLight
+                    color = visuals.panelOutline
                 )
 
                 // Top 3 Drivers
@@ -147,6 +149,7 @@ fun RaceControlWidget(
 
 @Composable
 private fun DriverRow(driver: DriverInfo) {
+    val visuals = LocalEventVisualStyle.current
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
@@ -156,7 +159,7 @@ private fun DriverRow(driver: DriverInfo) {
             modifier = Modifier
                 .size(24.dp)
                 .background(
-                    color = if (driver.position == 1) RacingRed else MetalGrey,
+                    color = if (driver.position == 1) visuals.navSelected else visuals.panelSurface,
                     shape = RoundedCornerShape(4.dp)
                 ),
             contentAlignment = Alignment.Center
@@ -175,7 +178,7 @@ private fun DriverRow(driver: DriverInfo) {
             Text(
                 text = driver.name,
                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                color = TextPrimary
+                color = visuals.heroHeadlineColor
             )
         }
         
@@ -183,7 +186,7 @@ private fun DriverRow(driver: DriverInfo) {
         Text(
             text = driver.gap,
             style = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
-            color = if(driver.position == 1) StatusGreen else TextSecondary
+            color = if (driver.position == 1) visuals.navSelected else visuals.heroBodyColor
         )
         
         Spacer(modifier = Modifier.width(8.dp))
@@ -192,14 +195,14 @@ private fun DriverRow(driver: DriverInfo) {
         Box(
             modifier = Modifier
                 .size(16.dp)
-                .background(Color(0xFFF8FAFC), androidx.compose.foundation.shape.CircleShape)
-                .border(1.dp, Color(0xFF080810), androidx.compose.foundation.shape.CircleShape),
+                .background(visuals.heroHeadlineColor, androidx.compose.foundation.shape.CircleShape)
+                .border(1.dp, visuals.panelOutline, androidx.compose.foundation.shape.CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 text = driver.tireCompound,
                 style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Black),
-                color = Color(0xFF080810)
+                color = MaterialTheme.colorScheme.background
             )
         }
     }

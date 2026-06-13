@@ -103,7 +103,9 @@ object FeatureRegistry {
     )
 
     val visibleFeatures: List<Feature>
-        get() = allFeatures.filter { it.audience == FeatureAudience.PUBLIC }
+        get() = allFeatures.filter { 
+            it.audience == FeatureAudience.PUBLIC && it.status != FeatureStatus.PLACEHOLDER 
+        }
 
     fun features(category: FeatureCategory): List<Feature> =
         visibleFeatures.filter { it.category == category }.sortedBy { it.priority }

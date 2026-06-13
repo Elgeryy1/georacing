@@ -60,7 +60,6 @@ fun SettingsScreen(
     val currentLanguage by viewModel.preferredLanguage.collectAsState()
     val highContrast by viewModel.highContrast.collectAsState()
     val largeFont by viewModel.largeFont.collectAsState()
-    val avoidStairs by viewModel.avoidStairs.collectAsState()
     var notificationsEnabled by remember { mutableStateOf(true) }
     
     val healthConnectGranted by viewModel.healthConnectPermissionsGranted.collectAsState()
@@ -81,7 +80,6 @@ fun SettingsScreen(
         currentLanguage = currentLanguage,
         highContrast = highContrast,
         largeFont = largeFont,
-        avoidStairs = avoidStairs,
         notificationsEnabled = notificationsEnabled,
         versionTapCount = versionTapCount,
         showStaffModeUnlocked = showStaffModeUnlocked,
@@ -90,7 +88,6 @@ fun SettingsScreen(
         onSetLanguage = { viewModel.setLanguage(it) },
         onSetHighContrast = { viewModel.setHighContrast(it) },
         onSetLargeFont = { viewModel.setLargeFont(it) },
-        onSetAvoidStairs = { viewModel.setAvoidStairs(it) },
         onToggleNotifications = { notificationsEnabled = it },
         onToggleHealthConnect = { shouldEnable ->
              if (shouldEnable) {
@@ -132,7 +129,6 @@ fun SettingsScreenContent(
     currentLanguage: String,
     highContrast: Boolean,
     largeFont: Boolean,
-    avoidStairs: Boolean = false,
     notificationsEnabled: Boolean,
     versionTapCount: Int = 0,
     showStaffModeUnlocked: Boolean = false,
@@ -141,7 +137,6 @@ fun SettingsScreenContent(
     onSetLanguage: (String) -> Unit,
     onSetHighContrast: (Boolean) -> Unit,
     onSetLargeFont: (Boolean) -> Unit,
-    onSetAvoidStairs: (Boolean) -> Unit = {},
     onToggleNotifications: (Boolean) -> Unit,
     onToggleHealthConnect: (Boolean) -> Unit = {},
     onResetOnboarding: () -> Unit,
@@ -288,22 +283,6 @@ fun SettingsScreenContent(
                             LiquidToggle(
                                 selected = { largeFont },
                                 onSelect = onSetLargeFont,
-                                backdrop = backdrop
-                            )
-                        }
-                        HorizontalDivider(color = Color.Gray.copy(alpha = 0.2f))
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text("Rutas sin escaleras", color = TextPrimary)
-                                Text(
-                                    "Evitar escaleras en rutas peatonales",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = TextSecondary
-                                )
-                            }
-                            LiquidToggle(
-                                selected = { avoidStairs },
-                                onSelect = onSetAvoidStairs,
                                 backdrop = backdrop
                             )
                         }

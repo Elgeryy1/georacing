@@ -36,6 +36,7 @@ class GroupRepository: ObservableObject {
         self.currentGroup = nil
         self.groupMembers = []
         cancellables.removeAll()
+        locationRepository.stopPolling()
     }
     
     private func startPollingMembers() {

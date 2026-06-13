@@ -97,19 +97,43 @@ class GeoRacingCarScreen(carContext: CarContext) : Screen(carContext), DefaultLi
     override fun onGetTemplate(): Template {
         val itemListBuilder = ItemList.Builder()
 
-        // Create a distance span which is required for PlaceListMapTemplate rows
-        val distance = Distance.create(0.0, Distance.UNIT_KILOMETERS)
-        val distanceSpan = DistanceSpan.create(distance)
-        val distanceText = SpannableString("   ") // Empty space
-        distanceText.setSpan(distanceSpan, 0, distanceText.length, Spanned.SPAN_INCLUSIVE_INCLUSIVE)
+        // Helper to create a distance span for display
+        fun createDistanceSpan(km: Double): SpannableString {
+            val dist = Distance.create(km, Distance.UNIT_KILOMETERS)
+            val span = DistanceSpan.create(dist)
+            val text = SpannableString(" ")
+            text.setSpan(span, 0, 1, Spanned.SPAN_INCLUSIVE_INCLUSIVE)
+            return text
+        }
+
+        // Dummy distance placeholder (required for PlaceListMapTemplate)
+        val defaultDistanceText = createDistanceSpan(0.0)
+
+        // ── Featured destinations with premium labels ──────
+        // Circuit center reference point for approximate distances
+        val circuitCenterLat = 41.5700
+        val circuitCenterLon = 2.2611
 
         for (node in displayNodes) {
-            // Icon selection logic could be improved here (Gate vs Parking icon) if ItemList supported it easily
-            val title = if (node.type == com.georacing.georacing.domain.model.NodeType.GATE) "🚪 ${node.name}" else "🅿️ ${node.name}"
+            // Approximate straight-line distance in km
+            val dLat = Math.toRadians(node.lat - circuitCenterLat)
+            val dLon = Math.toRadians(node.lon - circuitCenterLon)
+            val a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                    Math.cos(Math.toRadians(circuitCenterLat)) * Math.cos(Math.toRadians(node.lat)) *
+                    Math.sin(dLon / 2) * Math.sin(dLon / 2)
+            val approxKm = 6371.0 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
             
+            // Premium icon + label formatting
+            val isGate = node.type == com.georacing.georacing.domain.model.NodeType.GATE
+            val icon = if (isGate) "🚪" else "🅿️"
+            val category = if (isGate) "Acceso" else "Parking"
+            val title = "$icon ${node.name}"
+            
+            val distText = createDistanceSpan(approxKm)
+
             val row = Row.Builder()
                 .setTitle(title)
-                .addText(distanceText) // Required to avoid crash
+                .addText(distText)
                 .setOnClickListener {
                     screenManager.push(
                         GeoRacingNavigationScreen(
@@ -126,8 +150,8 @@ class GeoRacingCarScreen(carContext: CarContext) : Screen(carContext), DefaultLi
 
         // Add Free Drive Option at the top
         val freeDriveRow = Row.Builder()
-            .setTitle("Free Drive")
-            .addText(distanceText) // Required to avoid crash in PlaceListMapTemplate
+            .setTitle("🏁 Free Drive")
+            .addText(defaultDistanceText)
             .setOnClickListener {
                 screenManager.push(GeoRacingNavigationScreen(carContext))
             }
@@ -135,7 +159,7 @@ class GeoRacingCarScreen(carContext: CarContext) : Screen(carContext), DefaultLi
         itemListBuilder.addItem(freeDriveRow)
 
         return PlaceListMapTemplate.Builder()
-            .setTitle("GeoRacing Destinations")
+            .setTitle("GeoRacing · Circuit Destinations")
             .setHeaderAction(Action.APP_ICON)
             .setItemList(itemListBuilder.build())
             .setActionStrip(
@@ -145,6 +169,18 @@ class GeoRacingCarScreen(carContext: CarContext) : Screen(carContext), DefaultLi
                             .setTitle("Search")
                             .setOnClickListener {
                                 screenManager.push(DestinationSearchScreen(carContext))
+                            }
+                            .build()
+                    )
+                    .addAction(
+                        Action.Builder()
+                            .setTitle("Status")
+                            .setOnClickListener {
+                                screenManager.push(RaceStatusScreen(
+                                    carContext,
+                                    com.georacing.georacing.domain.model.CircuitMode.GREEN_FLAG,
+                                    "C"
+                                ))
                             }
                             .build()
                     )
@@ -213,10 +249,10 @@ class GeoRacingCarScreen(carContext: CarContext) : Screen(carContext), DefaultLi
     }
 
     private fun setupMap(map: MapLibreMap) {
-        // Use Waze cartoon style
-        val wazeStyleJson = mapStyleManager.buildWazeStyleJson()
+        // Premium dark satellite style with neon overlays
+        val premiumStyleJson = mapStyleManager.buildWazeStyleJson()
         
-        map.setStyle(Style.Builder().fromJson(wazeStyleJson)) { style ->
+        map.setStyle(Style.Builder().fromJson(premiumStyleJson)) { style ->
             mapStyleManager.applyWazeLayers(style)
             enableLocationComponent(style)
             startLocationUpdates()

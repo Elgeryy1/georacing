@@ -27,8 +27,7 @@ class GroupViewModel: ObservableObject {
             
         repository.$groupMembers
             .receive(on: DispatchQueue.main)
-            .assign(to: \.members, on: self)
-            .store(in: &cancellables)
+            .assign(to: &$members)
     }
     
     @MainActor

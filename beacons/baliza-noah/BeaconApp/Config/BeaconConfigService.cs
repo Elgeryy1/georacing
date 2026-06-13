@@ -51,10 +51,20 @@ namespace BeaconApp.Config
                         {
                             Log("⚠ Detectada configuración antigua. Actualizando a HTTPS...");
                             configJson.apiBaseUrl = "https://georacing.example.com:4010/api/";
-                            
-                            // Guardar cambios
-                            SaveConfig(configJson);
-                            Log($"✓ Configuración actualizada a: {configJson.apiBaseUrl}");
+
+                            // Guardar cambios en su propio try/catch: si la escritura falla,
+                            // seguimos con la config en memoria. NO dejar que la excepción
+                            // caiga al catch exterior (haría BackupCorruptedFile y destruiría
+                            // la identidad de la baliza por un simple fallo de escritura).
+                            try
+                            {
+                                SaveConfig(configJson);
+                                Log($"✓ Configuración actualizada a: {configJson.apiBaseUrl}");
+                            }
+                            catch (Exception saveEx)
+                            {
+                                Log($"⚠ No se pudo persistir la URL actualizada (se usará en memoria): {saveEx.Message}");
+                            }
                         }
 
                         return new BeaconConfig(

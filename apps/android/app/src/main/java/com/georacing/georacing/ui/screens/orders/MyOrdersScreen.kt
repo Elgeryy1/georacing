@@ -1,24 +1,19 @@
 package com.georacing.georacing.ui.screens.orders
 
-import androidx.compose.animation.*
-import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -34,19 +29,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 
-data class OrderItem(
-    val productId: String,
-    val name: String,
-    val quantity: Int,
-    val unitPrice: Double
-)
-
 data class OrderTicket(
     val id: String,
     val orderId: String,
     val status: String,
     val itemsSummary: String,
-    val items: List<OrderItem>,
     val total: Double,
     val createdAt: String
 )
@@ -76,20 +63,23 @@ fun MyOrdersScreen(navController: NavController) {
                 orders = result.mapNotNull {
                     try {
                         val itemsJson = it["items_json"] as? String ?: "[]"
-                        // Parse JSON into individual items
+                        // Parse JSON summary
                         var summaryText = ""
-                        val parsedItems = mutableListOf<OrderItem>()
                         try {
                              val jsonArray = JSONArray(itemsJson)
+                             val summaryList = mutableListOf<String>()
                              for (i in 0 until jsonArray.length()) {
                                  val obj = jsonArray.getJSONObject(i)
+                                 // Ideally we need product names but order might just have IDs if stored raw.
+                                 // Wait, OrderLine stored productId? Or Name? 
+                                 // Actually OrderLine has productId, quantity, price.
+                                 // Displaying "3 items" is safer if we don't have product map here.
+                                 // Or we fetch products too. For tickets, "Order #123" is enough.
+                                 // Let's try to extract Quantity
                                  val qty = obj.optInt("quantity", 1)
-                                 val productId = obj.optString("product_id", "")
-                                 val name = obj.optString("name", "Producto #${productId.take(6)}")
-                                 val unitPrice = obj.optDouble("unit_price", 0.0)
-                                 parsedItems.add(OrderItem(productId, name, qty, unitPrice))
+                                 summaryList.add("${qty}x Item")
                              }
-                             summaryText = "${parsedItems.size} artículos"
+                             summaryText = "${summaryList.size} articulos"
                         } catch (e: Exception) { summaryText = "Varios productos" }
 
                         OrderTicket(
@@ -97,7 +87,6 @@ fun MyOrdersScreen(navController: NavController) {
                             orderId = it["order_id"] as? String ?: "???",
                             status = it["status"] as? String ?: "PENDING",
                             itemsSummary = summaryText,
-                            items = parsedItems,
                             total = (it["total_amount"] as? Number)?.toDouble() ?: 0.0,
                             createdAt = it["created_at"] as? String ?: ""
                         )
@@ -217,13 +206,6 @@ fun Header(text: String) {
 
 @Composable
 fun OrderCard(order: OrderTicket, isReady: Boolean) {
-    var isExpanded by remember { mutableStateOf(false) }
-    val rotationAngle by animateFloatAsState(
-        targetValue = if (isExpanded) 180f else 0f,
-        animationSpec = spring(stiffness = Spring.StiffnessMedium),
-        label = "chevron"
-    )
-
     val borderColor = when {
         isReady -> Color(0xFF22C55E)
         order.status == "PREPARING" -> Color(0xFFFFA726) // Amber
@@ -236,7 +218,6 @@ fun OrderCard(order: OrderTicket, isReady: Boolean) {
             .fillMaxWidth()
             .liquidGlass(shape = RoundedCornerShape(16.dp))
             .border(1.dp, borderColor, RoundedCornerShape(16.dp))
-            .clickable { isExpanded = !isExpanded }
             .padding(20.dp)
     ) {
         Column {
@@ -245,7 +226,7 @@ fun OrderCard(order: OrderTicket, isReady: Boolean) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(modifier = Modifier.weight(1f)) {
+                Column {
                     Text(
                         text = if (isReady) "TICKET DE RECOGIDA" else "PEDIDO #${order.orderId.takeLast(4)}",
                         style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.5.sp),
@@ -260,31 +241,24 @@ fun OrderCard(order: OrderTicket, isReady: Boolean) {
                     )
                 }
                 
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (isReady) {
-                        Box(modifier = Modifier.background(Color(0xFF22C55E), RoundedCornerShape(8.dp)).padding(horizontal = 12.dp, vertical = 6.dp)) {
-                            Text("LISTO", color = Color(0xFF080810), fontWeight = FontWeight.Black, letterSpacing = 1.sp)
-                        }
-                    } else {
-                        val statusText = when(order.status) {
-                            "PAID" -> "EN COLA"
-                            "PREPARING" -> "COCINANDO..."
-                            "DELIVERED" -> "ENTREGADO"
-                            else -> order.status
-                        }
-                        val statusColor = if(order.status == "PREPARING") Color(0xFFFFA726) else Color(0xFF64748B)
-                        Text(
-                            text = statusText,
-                            style = MaterialTheme.typography.bodyMedium.copy(letterSpacing = 1.sp),
-                            color = statusColor,
-                            fontWeight = FontWeight.ExtraBold
-                        )
+                if (isReady) {
+                    Box(modifier = Modifier.background(Color(0xFF22C55E), RoundedCornerShape(8.dp)).padding(horizontal = 12.dp, vertical = 6.dp)) {
+                        Text("LISTO", color = Color(0xFF080810), fontWeight = FontWeight.Black, letterSpacing = 1.sp)
                     }
-                    Icon(
-                        Icons.Default.KeyboardArrowDown,
-                        contentDescription = if (isExpanded) "Contraer" else "Expandir",
-                        tint = Color(0xFF64748B),
-                        modifier = Modifier.graphicsLayer { rotationZ = rotationAngle }
+                } else {
+                    val statusText = when(order.status) {
+                        "PAID" -> "EN COLA"
+                        "PREPARING" -> "COCINANDO..."
+                        "DELIVERED" -> "ENTREGADO"
+                        else -> order.status
+                    }
+                    val statusColor = if(order.status == "PREPARING") Color(0xFFFFA726) else Color(0xFF64748B)
+                    
+                     Text(
+                        text = statusText,
+                        style = MaterialTheme.typography.bodyMedium.copy(letterSpacing = 1.sp),
+                        color = statusColor,
+                        fontWeight = FontWeight.ExtraBold
                     )
                 }
             }
@@ -297,45 +271,6 @@ fun OrderCard(order: OrderTicket, isReady: Boolean) {
             ) {
                  Text(order.itemsSummary, color = Color(0xFFF8FAFC), fontWeight = FontWeight.Bold)
                  Text("€${"%.2f".format(order.total)}", color = Color(0xFFE8253A), fontWeight = FontWeight.ExtraBold)
-            }
-            
-            // ── Expandable Items (iOS parity: OrderRowView) ──
-            AnimatedVisibility(
-                visible = isExpanded && order.items.isNotEmpty(),
-                enter = fadeIn() + expandVertically(),
-                exit = fadeOut() + shrinkVertically()
-            ) {
-                Column(modifier = Modifier.padding(top = 12.dp)) {
-                    HorizontalDivider(color = Color(0xFF64748B).copy(alpha = 0.3f))
-                    Spacer(modifier = Modifier.height(10.dp))
-                    order.items.forEach { item ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                "${item.quantity}x",
-                                color = Color(0xFFFFA726),
-                                fontWeight = FontWeight.Bold,
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.width(36.dp)
-                            )
-                            Text(
-                                item.name,
-                                color = Color(0xFFF8FAFC),
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.weight(1f)
-                            )
-                            Text(
-                                "€${"%.2f".format(item.unitPrice * item.quantity)}",
-                                color = Color(0xFF64748B),
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                        }
-                    }
-                }
             }
             
             if (isReady) {

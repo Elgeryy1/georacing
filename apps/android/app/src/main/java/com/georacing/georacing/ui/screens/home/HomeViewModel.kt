@@ -59,8 +59,8 @@ class HomeViewModel(
         beaconScanner?.let { scanner ->
             viewModelScope.launch {
                 while (true) {
-                    kotlinx.coroutines.delay(3000) // Loop every 3s
-                    scanner.pruneInactiveDevices(10000) // TTL 10s
+                    kotlinx.coroutines.delay(15_000) // Loop every 15s (battery friendly)
+                    scanner.pruneInactiveDevices(20_000) // TTL 20s
                 }
             }
         }

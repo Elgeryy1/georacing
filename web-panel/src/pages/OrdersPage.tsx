@@ -160,7 +160,8 @@ const OrdersPage = () => {
                                         const pid = item.product_id || item.id || "";
                                         const catalogItem = productsMap[pid];
                                         const name = item.name || catalogItem?.name || "Producto Desconocido";
-                                        const price = item.unit_price ?? item.price ?? Number(catalogItem?.price) ?? 0;
+                                        // `?? 0` does not catch NaN, so an unknown product rendered "€NaN".
+                                        const price = Number(item.unit_price ?? item.price ?? catalogItem?.price) || 0;
                                         const quantity = item.quantity ?? 1;
 
                                         return (

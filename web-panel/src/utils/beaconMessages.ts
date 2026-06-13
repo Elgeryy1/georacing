@@ -159,6 +159,60 @@ const getNormalModeMessage = (arrow: ArrowDirection, language: Language): string
       DE: "Zurück Rechts",
       IT: "Indietro Destra",
       PT: "Volte Direita"
+    },
+    FORWARD: {
+      ES: "Continúe Recto",
+      CA: "Continuï Recte",
+      EN: "Continue Straight",
+      FR: "Continuez Tout Droit",
+      DE: "Geradeaus Weiter",
+      IT: "Proseguire Dritto",
+      PT: "Continue em Frente"
+    },
+    BACKWARD: {
+      ES: "Retroceda",
+      CA: "Retrocedeixi",
+      EN: "Go Back",
+      FR: "Reculez",
+      DE: "Zurück",
+      IT: "Tornare Indietro",
+      PT: "Volte"
+    },
+    FORWARD_LEFT: {
+      ES: "Diagonal Izquierda",
+      CA: "Diagonal Esquerra",
+      EN: "Diagonal Left",
+      FR: "Diagonale Gauche",
+      DE: "Diagonal Links",
+      IT: "Diagonale Sinistra",
+      PT: "Diagonal Esquerda"
+    },
+    FORWARD_RIGHT: {
+      ES: "Diagonal Derecha",
+      CA: "Diagonal Dreta",
+      EN: "Diagonal Right",
+      FR: "Diagonale Droite",
+      DE: "Diagonal Rechts",
+      IT: "Diagonale Destra",
+      PT: "Diagonal Direita"
+    },
+    BACKWARD_LEFT: {
+      ES: "Retroceda Izquierda",
+      CA: "Retrocedeixi Esquerra",
+      EN: "Back Left",
+      FR: "Reculez à Gauche",
+      DE: "Zurück Links",
+      IT: "Indietro Sinistra",
+      PT: "Volte Esquerda"
+    },
+    BACKWARD_RIGHT: {
+      ES: "Retroceda Derecha",
+      CA: "Retrocedeixi Dreta",
+      EN: "Back Right",
+      FR: "Reculez à Droite",
+      DE: "Zurück Rechts",
+      IT: "Indietro Destra",
+      PT: "Volte Direita"
     }
   };
 

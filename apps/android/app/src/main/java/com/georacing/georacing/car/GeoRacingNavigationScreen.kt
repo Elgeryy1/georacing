@@ -328,12 +328,11 @@ class GeoRacingNavigationScreen(
             // 1. STOP Navigation Button
             .addAction(
                 Action.Builder()
-                    .setTitle("Detener")
                     .setIcon(
                         CarIcon.Builder(
                             androidx.core.graphics.drawable.IconCompat.createWithResource(
                                 carContext,
-                                android.R.drawable.ic_delete // Using system stop icon
+                                android.R.drawable.ic_delete
                             )
                         ).setTint(CarColor.RED).build()
                     )
@@ -701,11 +700,11 @@ class GeoRacingNavigationScreen(
         
         android.util.Log.d(TAG, "🗺️ setupMapStyle: Iniciando carga de estilo...")
         
-        // Detectar automáticamente el modo oscuro/claro del sistema
-        val isDarkMode = (carContext.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
-        val json = if (isDarkMode) mapStyleManager.STYLE_NIGHT_JSON else mapStyleManager.STYLE_DAY_JSON
+        // Always use premium dark satellite style for best in-car visibility
+        val isDarkMode = manualDarkMode ?: ((carContext.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES)
+        val json = mapStyleManager.buildWazeStyleJson()
         
-        android.util.Log.d(TAG, "🎨 Modo: ${if (isDarkMode) "OSCURO" else "CLARO"}")
+        android.util.Log.d(TAG, "🎨 Modo: PREMIUM DARK SATELLITE (sensor: ${if (isDarkMode) "NOCHE" else "DÍA"})")
         
         map.setStyle(Style.Builder().fromJson(json)) { style ->
             android.util.Log.d(TAG, "🗺️ Callback de estilo ejecutado, isFullyLoaded=${style.isFullyLoaded}")
@@ -748,8 +747,8 @@ class GeoRacingNavigationScreen(
         android.util.Log.d(TAG, "🔧 initializeMapComponents: Iniciando...")
         
         try {
-            mapStyleManager.applyLayers(style)
-            android.util.Log.d(TAG, "✅ Capas aplicadas")
+            mapStyleManager.applyWazeLayers(style)
+            android.util.Log.d(TAG, "✅ Capas premium aplicadas (glowing routes + hazards)")
         } catch (e: Exception) {
             android.util.Log.e(TAG, "❌ Error aplicando capas: ${e.message}", e)
         }
@@ -1354,6 +1353,11 @@ private fun speak(text: String) {
             carContext.getCarService(AppManager::class.java).setSurfaceCallback(null)
             presentation?.dismiss()
             virtualDisplay?.release()
+            // Release the TextToSpeech engine, otherwise it leaks the service
+            // connection (and may keep speaking) for every navigation screen opened.
+            tts?.stop()
+            tts?.shutdown()
+            tts = null
             android.util.Log.d(TAG, "✅ Recursos liberados")
         }
     }

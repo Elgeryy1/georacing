@@ -271,7 +271,7 @@ fun SosToolCard(
             ) {
                 Icon(
                     imageVector = icon,
-                    contentDescription = title,
+                    contentDescription = null,
                     tint = color,
                     modifier = Modifier.size(24.dp)
                 )

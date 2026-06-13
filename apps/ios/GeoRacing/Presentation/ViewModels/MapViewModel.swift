@@ -122,15 +122,13 @@ class MapViewModel: ObservableObject {
                 }
                 return items
             }
-            .assign(to: \.allAnnotations, on: self)
-            .store(in: &cancellables)
+            .assign(to: &$allAnnotations)
     }
 
     private func setupLocationSubscription() {
         LocationManager.shared.$location
             .receive(on: DispatchQueue.main)
-            .assign(to: \.userLocation, on: self)
-            .store(in: &cancellables)
+            .assign(to: &$userLocation)
             
         // Monitor Navigation Progress
         LocationManager.shared.$location
@@ -170,8 +168,7 @@ class MapViewModel: ObservableObject {
     private func setupGroupSubscription() {
         groupRepository.$groupMembers
             .receive(on: DispatchQueue.main)
-            .assign(to: \.friends, on: self)
-            .store(in: &cancellables)
+            .assign(to: &$friends)
     }
 
     func loadPOIs() {

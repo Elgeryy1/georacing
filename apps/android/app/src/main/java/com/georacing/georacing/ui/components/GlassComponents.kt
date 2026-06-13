@@ -82,7 +82,7 @@ fun RacingButton(
             horizontalArrangement = Arrangement.Center
         ) {
             if (icon != null) {
-                Icon(imageVector = icon, contentDescription = text, modifier = Modifier.size(20.dp))
+                Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(20.dp))
                 Spacer(modifier = Modifier.width(10.dp))
             }
             Text(
@@ -117,7 +117,7 @@ fun StatusPill(
         if (icon != null) {
             Icon(
                 imageVector = icon,
-                contentDescription = text,
+                contentDescription = null,
                 tint = color,
                 modifier = Modifier.size(14.dp)
             )
@@ -157,7 +157,7 @@ fun HUDRow(
             ) {
                 Icon(
                     imageVector = icon,
-                    contentDescription = label,
+                    contentDescription = null,
                     tint = TextSecondary,
                     modifier = Modifier.size(14.dp)
                 )

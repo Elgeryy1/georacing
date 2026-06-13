@@ -42,8 +42,11 @@ class AutoParkingManager(
         private const val TAG = "AutoParkingManager"
         private const val MAX_ACCEPTABLE_ACCURACY_METERS = 50f
         private const val RETRY_DELAY_MS = 2000L
-        private const val USER_NAME = "Gery" // Hardcoded for now - TODO: Read from user profile
     }
+
+    private val userName: String
+        get() = com.google.firebase.auth.FirebaseAuth.getInstance()
+            .currentUser?.displayName?.split(" ")?.firstOrNull() ?: "Piloto"
 
     private val fusedLocationClient: FusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(context)
     private val scope = CoroutineScope(Dispatchers.Main)
@@ -171,7 +174,7 @@ class AutoParkingManager(
             } else if (gateAssignment == null) {
                 // Usuario fuera del perímetro del circuito
                 TTSManager.speak(
-                    "Coche guardado, $USER_NAME. Parece que estás fuera del circuito.",
+                    "Coche guardado, $userName. Parece que estás fuera del circuito.",
                     tts, 
                     interruptCurrent = true
                 )
@@ -195,7 +198,7 @@ class AutoParkingManager(
         }
         
         return "$parkingInfo " +
-               "Tu puerta óptima es la ${gateAssignment.gateName}, $USER_NAME. " +
+               "Tu puerta óptima es la ${gateAssignment.gateName}. " +
                "A unos ${gateAssignment.walkingTimeMinutes} minutos caminando."
     }
 

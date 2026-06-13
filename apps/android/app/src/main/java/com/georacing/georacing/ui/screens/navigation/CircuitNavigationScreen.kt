@@ -30,8 +30,6 @@ import com.georacing.georacing.R
 import com.georacing.georacing.car.MapStyleManager
 import com.georacing.georacing.navigation.NavigationState
 import com.georacing.georacing.ui.components.GamifiedSpeedometer
-import com.georacing.georacing.ui.components.HazardAlertOverlay
-import com.georacing.georacing.ui.components.RaceStatusPill
 import com.georacing.georacing.ui.glass.LiquidCard
 import com.georacing.georacing.ui.glass.LocalBackdrop
 import org.maplibre.android.MapLibre
@@ -77,11 +75,8 @@ fun CircuitNavigationScreen(
     val showArrivalDialog by viewModel.showArrivalDialog.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
     
-    // Waze-style state
-    val circuitMode by viewModel.circuitMode.collectAsState()
-    val activeHazards by viewModel.activeHazards.collectAsState()
+    // Speed state
     val currentSpeed by viewModel.currentSpeed.collectAsState()
-    val speedLimit by viewModel.speedLimit.collectAsState()
     
     // MapView y MapLibreMap
     var mapView by remember { mutableStateOf<MapView?>(null) }
@@ -162,29 +157,18 @@ fun CircuitNavigationScreen(
             modifier = Modifier.fillMaxSize()
         )
         
-        // Race Status Pill (reemplaza TopAppBar)
-        RaceStatusPill(
-            circuitMode = circuitMode,
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .statusBarsPadding()
-                .padding(top = 12.dp)
-        )
-        
-        // Hazard Alert Overlay (pop-ups de incidentes)
-        HazardAlertOverlay(
-            hazards = activeHazards,
-            modifier = Modifier.align(Alignment.TopCenter)
-        )
-        
-        // Gamified Speedometer (esquina inferior izquierda)
-        GamifiedSpeedometer(
-            currentSpeed = currentSpeed,
-            speedLimit = speedLimit,
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(start = 16.dp, bottom = 100.dp)
-        )
+        // Gamified Speedometer (esquina inferior izquierda, above nav panel)
+        if (navigationState is NavigationState.Active) {
+            val activeState = navigationState as NavigationState.Active
+            GamifiedSpeedometer(
+                currentSpeed = currentSpeed,
+                speedLimit = activeState.currentSpeedLimit,
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .navigationBarsPadding()
+                    .padding(start = 16.dp, bottom = 240.dp)
+            )
+        }
         
         // Action Buttons (esquina superior derecha - reemplazo de TopAppBar actions)
         Row(
@@ -211,7 +195,7 @@ fun CircuitNavigationScreen(
             FloatingActionButton(
                 onClick = {
                     viewModel.stopNavigation()
-                    navController.popBackStack()
+                    navController.navigateUp()
                 },
                 containerColor = MaterialTheme.colorScheme.surface,
                 modifier = Modifier.size(48.dp)
@@ -239,6 +223,7 @@ fun CircuitNavigationScreen(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
+                    .navigationBarsPadding()
                     .padding(16.dp)
             )
         }
@@ -304,10 +289,16 @@ fun CircuitNavigationScreen(
         }
     }
     
-    // Lifecycle del MapView
+    // Lifecycle del MapView — stop/pause before destroy to avoid crash
     DisposableEffect(Unit) {
         onDispose {
-            mapView?.onDestroy()
+            try {
+                mapView?.onPause()
+                mapView?.onStop()
+                mapView?.onDestroy()
+            } catch (e: Exception) {
+                android.util.Log.e("CircuitNavScreen", "Error destroying MapView", e)
+            }
         }
     }
 }
@@ -416,7 +407,7 @@ fun NavigationInfoPanel(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = getManeuverIcon(step.maneuver.type),
+                            imageVector = getManeuverIcon(step.maneuver.type, step.maneuver.modifier),
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onPrimaryContainer,
                             modifier = Modifier.size(28.dp)
@@ -432,7 +423,7 @@ fun NavigationInfoPanel(
                             color = MaterialTheme.colorScheme.primary
                         )
                         Text(
-                            text = getManeuverText(step.maneuver.type, step.name),
+                            text = getManeuverText(step.maneuver.type, step.maneuver.modifier, step.name),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurface
                         )
@@ -542,34 +533,54 @@ fun ArrivalDialog(
 /**
  * Obtiene el icono correspondiente a un tipo de maniobra.
  */
-fun getManeuverIcon(type: String): androidx.compose.ui.graphics.vector.ImageVector {
+fun getManeuverIcon(type: String, modifier: String?): androidx.compose.ui.graphics.vector.ImageVector {
     return when {
-        type.contains("left", ignoreCase = true) -> Icons.Default.TurnLeft
-        type.contains("right", ignoreCase = true) -> Icons.Default.TurnRight
-        type.contains("straight", ignoreCase = true) -> Icons.Default.ArrowUpward
-        type.contains("roundabout", ignoreCase = true) -> Icons.Default.Sync
+        modifier?.contains("left", ignoreCase = true) == true -> Icons.Default.TurnLeft
+        modifier?.contains("right", ignoreCase = true) == true -> Icons.Default.TurnRight
+        type == "depart" || type == "continue" || type == "new name" -> Icons.Default.ArrowUpward
+        type.contains("roundabout", ignoreCase = true) || type == "rotary" -> Icons.Default.Sync
+        type == "arrive" -> Icons.Default.Place
+        type == "merge" -> Icons.Default.CallMerge
+        type.contains("ramp", ignoreCase = true) -> Icons.Default.Merge
         else -> Icons.Default.Navigation
     }
 }
 
 /**
- * Genera texto de instrucción legible.
+ * Genera texto de instrucción legible a partir del tipo de maniobra OSRM.
  */
-fun getManeuverText(type: String, roadName: String?): String {
-    val action = when {
-        type.contains("turn") && type.contains("left") -> "Gira a la izquierda"
-        type.contains("turn") && type.contains("right") -> "Gira a la derecha"
-        type.contains("straight") -> "Continúa recto"
-        type.contains("roundabout") -> "Toma la rotonda"
-        type.contains("end of road") -> "Al final de la calle"
-        else -> "Continúa"
+fun getManeuverText(type: String, modifier: String?, roadName: String?): String {
+    val direction = when (modifier) {
+        "left" -> "a la izquierda"
+        "right" -> "a la derecha"
+        "sharp left" -> "bruscamente a la izquierda"
+        "sharp right" -> "bruscamente a la derecha"
+        "slight left" -> "ligeramente a la izquierda"
+        "slight right" -> "ligeramente a la derecha"
+        "straight" -> "recto"
+        "uturn" -> "dando la vuelta"
+        else -> ""
     }
     
-    return if (!roadName.isNullOrBlank() && roadName != "unknown") {
+    val action = when (type) {
+        "turn" -> "Gira $direction"
+        "depart" -> "Sal $direction"
+        "arrive" -> "Has llegado a tu destino"
+        "merge" -> "Incorpórate $direction"
+        "on ramp" -> "Toma la rampa $direction"
+        "off ramp" -> "Sal por la rampa $direction"
+        "fork" -> "Toma el desvío $direction"
+        "end of road" -> "Al final de la vía, gira $direction"
+        "continue", "new name" -> "Continúa $direction"
+        "roundabout", "rotary" -> "En la rotonda, toma la salida $direction"
+        else -> "Continúa $direction"
+    }
+    
+    return if (!roadName.isNullOrBlank() && roadName != "unknown" && type != "arrive") {
         "$action hacia $roadName"
     } else {
         action
-    }
+    }.trim()
 }
 
 /**

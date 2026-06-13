@@ -5,36 +5,24 @@ import android.util.Log
 import com.georacing.georacing.domain.model.AppMode
 import com.georacing.georacing.domain.model.CircuitMode
 import com.georacing.georacing.domain.model.CircuitState
-import com.georacing.georacing.domain.model.DriverInfo
 import com.georacing.georacing.domain.model.RaceSessionInfo
 import com.georacing.georacing.domain.repository.CircuitStateRepository
 import com.google.gson.Gson
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 
 /**
- * Offline-First wrapper para CircuitStateRepository.
+ * Offline-first wrapper para CircuitStateRepository.
  *
- * # Estrategia:
- * - El estado del circuito se polleja cada 5s (datos volátiles).
- * - Cada respuesta exitosa se cachea con timestamp.
- * - Si la red falla, emite el último estado conocido desde SharedPreferences.
- * - Incluye indicador de frescura para que la UI distinga datos live vs cacheados.
- *
- * # Flujo:
- * ```
- * loop {
- *   [Network API] --OK--> emit(data) + cache en SharedPreferences
- *         |
- *        FAIL --> leer SharedPreferences --> emit(cached con "⚡ Datos en caché")
- *                      |
- *                     VACÍO --> emit(default UNKNOWN state)
- *   delay(5000)
- * }
- * ```
+ * Usa la señal de red como fuente primaria, cachea respuestas válidas y
+ * recurre al último estado conocido cuando la red falla o devuelve UNKNOWN.
  */
 class OfflineFirstCircuitStateRepository(
     private val networkRepository: CircuitStateRepository,
@@ -50,49 +38,48 @@ class OfflineFirstCircuitStateRepository(
         private const val KEY_UPDATED_AT = "updated_at"
         private const val KEY_SESSION_JSON = "session_json"
         private const val KEY_CACHED_AT = "cached_at"
+
+        private val FALLBACK_STATE = CircuitState(
+            mode = CircuitMode.UNKNOWN,
+            message = "Sin conexion",
+            temperature = null,
+            updatedAt = ""
+        )
     }
 
     private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     private val gson = Gson()
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    override fun getCircuitState(): Flow<CircuitState> = flow {
-        while (true) {
-            try {
-                // Intentar obtener de la red (un solo valor del polling flow)
-                val state = networkRepository.getCircuitState().firstOrNull()
-                if (state != null && state.mode != CircuitMode.UNKNOWN) {
-                    // Red OK → cachear y emitir
-                    cacheState(state)
-                    Log.d(TAG, "Red OK: estado=${state.mode}, msg=${state.message}")
-                    emit(state)
-                } else {
-                    // Red devolvió UNKNOWN → usar caché
-                    val cached = getCachedState()
-                    if (cached != null) {
-                        Log.d(TAG, "Red UNKNOWN, usando caché: ${cached.mode}")
-                        emit(cached.copy(message = "⚡ ${cached.message ?: "Datos en caché"}"))
-                    } else {
-                        emit(state ?: CircuitState(CircuitMode.UNKNOWN, "Sin Conexión", null, ""))
-                    }
-                }
-            } catch (e: Exception) {
-                // Red falló → fallback a caché
-                Log.e(TAG, "Error de red, usando caché: ${e.message}")
-                val cached = getCachedState()
-                if (cached != null) {
-                    Log.d(TAG, "Fallback caché: ${cached.mode}")
-                    emit(cached.copy(message = "⚡ ${cached.message ?: "Datos en caché"}"))
-                } else {
-                    Log.w(TAG, "Sin caché, emitiendo estado por defecto")
-                    emit(CircuitState(CircuitMode.UNKNOWN, "Sin Conexión", null, ""))
-                }
+    private val sharedState = networkRepository.getCircuitState()
+        .map { state ->
+            if (state.mode != CircuitMode.UNKNOWN) {
+                cacheState(state)
+                Log.d(TAG, "Red OK: estado=${state.mode}, msg=${state.message}")
+                state
+            } else {
+                getCachedState()?.copy(
+                    message = buildCachedMessage(getCachedState()?.message)
+                ) ?: FALLBACK_STATE
             }
-            delay(5000)
         }
-    }
+        .catch { e ->
+            Log.e(TAG, "Error de red, usando cache: ${e.message}", e)
+            emit(
+                getCachedState()?.copy(
+                    message = buildCachedMessage(getCachedState()?.message)
+                ) ?: FALLBACK_STATE
+            )
+        }
+        .stateIn(
+            scope = scope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = getCachedState() ?: FALLBACK_STATE
+        )
+
+    override fun getCircuitState(): Flow<CircuitState> = sharedState
 
     override fun setCircuitState(mode: CircuitMode, message: String?) {
-        // Delegar al repo de red
         networkRepository.setCircuitState(mode, message)
     }
 
@@ -103,14 +90,14 @@ class OfflineFirstCircuitStateRepository(
         val cacheInfo = if (cacheAge >= 0) {
             "Cache: ${cacheAge / 1000}s ago"
         } else {
-            "Cache: vacío"
+            "Cache: vacio"
         }
         emit("OfflineFirst | $cacheInfo")
     }
 
-    // =========================================================================
-    // Cache (SharedPreferences)
-    // =========================================================================
+    private fun buildCachedMessage(originalMessage: String?): String {
+        return "Cache local: ${originalMessage ?: "datos guardados"}"
+    }
 
     private fun cacheState(state: CircuitState) {
         try {
@@ -130,13 +117,21 @@ class OfflineFirstCircuitStateRepository(
     private fun getCachedState(): CircuitState? {
         return try {
             val modeName = prefs.getString(KEY_MODE, null) ?: return null
-            val mode = try { CircuitMode.valueOf(modeName) } catch (_: Exception) { CircuitMode.UNKNOWN }
+            val mode = try {
+                CircuitMode.valueOf(modeName)
+            } catch (_: Exception) {
+                CircuitMode.UNKNOWN
+            }
             val message = prefs.getString(KEY_MESSAGE, null)
             val temperature = prefs.getString(KEY_TEMPERATURE, null)
             val updatedAt = prefs.getString(KEY_UPDATED_AT, "") ?: ""
             val sessionJson = prefs.getString(KEY_SESSION_JSON, null)
             val sessionInfo = sessionJson?.let {
-                try { gson.fromJson(it, RaceSessionInfo::class.java) } catch (_: Exception) { null }
+                try {
+                    gson.fromJson(it, RaceSessionInfo::class.java)
+                } catch (_: Exception) {
+                    null
+                }
             }
 
             CircuitState(
@@ -147,24 +142,18 @@ class OfflineFirstCircuitStateRepository(
                 sessionInfo = sessionInfo
             )
         } catch (e: Exception) {
-            Log.e(TAG, "Error al leer caché de estado del circuito", e)
+            Log.e(TAG, "Error al leer cache de estado del circuito", e)
             null
         }
     }
 
-    /**
-     * Edad del caché en milisegundos. -1 si no hay caché.
-     */
     fun getCacheAgeMs(): Long {
         val cachedAt = prefs.getLong(KEY_CACHED_AT, -1)
         return if (cachedAt > 0) System.currentTimeMillis() - cachedAt else -1
     }
 
-    /**
-     * Limpia el caché local del estado del circuito.
-     */
     fun clearCache() {
         prefs.edit().clear().apply()
-        Log.d(TAG, "Caché de estado del circuito limpiado")
+        Log.d(TAG, "Cache de estado del circuito limpiado")
     }
 }

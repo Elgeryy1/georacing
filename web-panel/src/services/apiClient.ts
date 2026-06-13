@@ -8,12 +8,22 @@ interface RequestOptions extends RequestInit {
   retries?: number;
 }
 
+/** Error thrown when the server responded with a non-2xx HTTP status. Never retried. */
+export class HttpError extends Error {
+  status: number;
+  constructor(status: number, message?: string) {
+    super(message || `HTTP ${status}`);
+    this.name = "HttpError";
+    this.status = status;
+  }
+}
+
 async function request<T>(url: string, options: RequestOptions = {}): Promise<T> {
   const { timeout = 5000, retries = 3, ...fetchOptions } = options;
   const fullUrl = url.startsWith("http") ? url : `${API_BASE_URL}${url}`;
 
-  // Ensure HTTPS
-  const secureUrl = fullUrl.replace(/^http:\/\//, "https://");
+  // Force HTTPS only in production builds (allow plain http in local dev)
+  const secureUrl = import.meta.env.PROD ? fullUrl.replace(/^http:\/\//, "https://") : fullUrl;
 
   let lastError: unknown;
 
@@ -35,10 +45,12 @@ async function request<T>(url: string, options: RequestOptions = {}): Promise<T>
       if (!res.ok) {
         const errorText = await res.text();
         console.error(`API Error [${secureUrl}]: ${res.status} ${res.statusText} - ${errorText}`);
-        throw new Error(errorText || `HTTP ${res.status}`);
+        throw new HttpError(res.status, errorText);
       }
       return await res.json();
     } catch (err) {
+      // HTTP errors received from the server must not be retried
+      if (err instanceof HttpError) throw err;
       lastError = err;
       console.warn(`Attempt ${i + 1}/${retries + 1} failed for ${secureUrl}:`, err);
       if (i < retries) {
@@ -70,6 +82,7 @@ export const api = {
   upsert: async (table: string, data: any): Promise<void> => {
     await request<void>("/_upsert", {
       method: "POST",
+      retries: 0, // mutations are never retried automatically
       body: JSON.stringify({ table, data })
     });
   },
@@ -81,6 +94,7 @@ export const api = {
   delete: async (table: string, where: Record<string, any>): Promise<void> => {
     await request<void>("/_delete", {
       method: "POST",
+      retries: 0, // mutations are never retried automatically
       body: JSON.stringify({ table, where })
     });
   },
@@ -129,7 +143,7 @@ export const api = {
 
   setCircuitState: async (mode: string, message: string = ""): Promise<void> => {
     await api.upsert("circuit_state", {
-      id: "1",
+      id: 1,
       global_mode: mode,
       message: message,
       last_updated: new Date().toISOString().slice(0, 19).replace('T', ' ')

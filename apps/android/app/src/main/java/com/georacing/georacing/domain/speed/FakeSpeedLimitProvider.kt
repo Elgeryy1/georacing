@@ -4,7 +4,7 @@ import android.location.Location
 import android.util.Log
 
 /**
- * FASE 3.2: Implementación PLACEHOLDER de SpeedLimitProvider.
+ * Proveedor de límites de velocidad estimados.
  * 
  * IMPORTANTE: Esta es una implementación temporal que estima el límite de velocidad
  * según la velocidad actual del vehículo. NO usa datos reales de límites de vía.
@@ -44,7 +44,7 @@ class FakeSpeedLimitProvider : SpeedLimitProvider {
             else -> 120            // Autopista
         }
         
-        Log.v(TAG, "PLACEHOLDER: Speed=${speedKmh.toInt()}km/h → Estimated limit=${estimatedLimit}km/h")
+        Log.v(TAG, "Speed=${speedKmh.toInt()}km/h → Limit=${estimatedLimit}km/h")
         
         return estimatedLimit
     }

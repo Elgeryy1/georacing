@@ -6,16 +6,27 @@ import java.nio.ByteOrder
 
 object BlePayloadParser {
 
-    // Payload size 8 or 9 (9 includes temperature)
-    // We allow 8 for backward compatibility, 9 for new.
-    // FIX: Strict Upper Limit to avoid reading User Beacons (13 bytes)
-    private const val PAYLOAD_MIN_SIZE = 8
-    private const val PAYLOAD_MAX_SIZE = 9
+    // Circuit (v1) payload: 8 bytes, or 9 with trailing temperature.
+    // Staff danger/evacuation (v2) payload: 13 bytes (adds a 4-byte source id).
+    private const val V1_MIN_SIZE = 8
+    private const val V1_MAX_SIZE = 9
+    private const val V2_SIZE = 13
     private const val MANUFACTURER_ID = 0x1234 // Test ID
 
     fun parse(manufacturerId: Int, bytes: ByteArray?): BleCircuitSignal? {
-        if (manufacturerId != MANUFACTURER_ID || bytes == null || 
-            bytes.size < PAYLOAD_MIN_SIZE || bytes.size > PAYLOAD_MAX_SIZE) {
+        if (manufacturerId != MANUFACTURER_ID || bytes == null || bytes.isEmpty()) {
+            return null
+        }
+        // Validate the size against the version in the first byte so the staff
+        // v2 broadcast (13 bytes) is not silently dropped, while still rejecting
+        // unrelated user beacons.
+        val declaredVersion = bytes[0].toInt() and 0xFF
+        val sizeOk = when (declaredVersion) {
+            1 -> bytes.size in V1_MIN_SIZE..V1_MAX_SIZE
+            2 -> bytes.size == V2_SIZE
+            else -> false
+        }
+        if (!sizeOk) {
             return null
         }
 

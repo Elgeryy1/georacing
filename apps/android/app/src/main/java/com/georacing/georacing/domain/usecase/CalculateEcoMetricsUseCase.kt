@@ -1,7 +1,7 @@
 package com.georacing.georacing.domain.usecase
 
 import com.georacing.georacing.domain.model.EcoMetrics
-import com.georacing.georacing.infrastructure.health.HealthConnectManager
+import com.georacing.georacing.data.health.HealthConnectManager
 
 /**
  * Caso de uso que aplica las reglas de negocio de Sostenibilidad.
@@ -19,8 +19,9 @@ class CalculateEcoMetricsUseCase(
      * Genera las métricas de eco consultando silenciosamente a HealthConnect.
      */
     suspend operator fun invoke(): EcoMetrics {
-        val steps = healthConnectManager.getTodaySteps()
-        val distanceMeters = healthConnectManager.getTodayDistanceMeters()
+        val dailyMetrics = healthConnectManager.readDailyMetrics()
+        val steps = dailyMetrics.steps
+        val distanceMeters = dailyMetrics.distanceMeters
         
         // Si no hay permisos o no hay cuenta de distancia, podemos hacer una estimación 
         // fallback (ej: 0.70m por paso) para que la UI nunca esté vacía.
@@ -40,3 +41,4 @@ class CalculateEcoMetricsUseCase(
         )
     }
 }
+

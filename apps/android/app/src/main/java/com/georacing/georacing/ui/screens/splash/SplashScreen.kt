@@ -20,16 +20,24 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.georacing.georacing.data.firebase.FirebaseInitializer
+import com.georacing.georacing.data.local.UserPreferencesDataStore
 import com.georacing.georacing.ui.navigation.Screen
+import com.georacing.georacing.ui.theme.LocalActiveEventConfig
+import com.georacing.georacing.ui.theme.LocalEventVisualStyle
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 
 @Composable
 fun SplashScreen(navController: NavHostController) {
+    val context = LocalContext.current
+    val activeEvent = LocalActiveEventConfig.current
+    val visuals = LocalEventVisualStyle.current
     var progress by remember { mutableFloatStateOf(0f) }
     var startAnimation by remember { mutableStateOf(false) }
     var statusMessage by remember { mutableStateOf("Iniciando...") }
@@ -75,6 +83,10 @@ fun SplashScreen(navController: NavHostController) {
         
         val authService = com.georacing.georacing.data.firebase.FirebaseAuthService()
         val currentUser = authService.getCurrentUser()
+
+        statusMessage = "Cargando configuración..."
+        progress = 0.75f
+        val onboardingCompleted = UserPreferencesDataStore(context).onboardingCompleted.first()
         
         progress = 0.9f
         statusMessage = "Preparando experiencia..."
@@ -84,38 +96,18 @@ fun SplashScreen(navController: NavHostController) {
         statusMessage = "¡Listo!"
         delay(300)
         
-        // Decidir navegación basada en si hay usuario
-        if (currentUser != null && !currentUser.isAnonymous) {
-            // Usuario con Google logueado → ir a Home
-            Log.d("SplashScreen", "✅ Usuario Google logueado: ${currentUser.email}")
-            
-            // Garantizar que la DB SQL tiene los datos (importante tras reinstalación de app)
-            try {
-                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                    com.georacing.georacing.data.repository.NetworkUserRepository().registerUser(
-                        uid = currentUser.uid,
-                        name = currentUser.displayName,
-                        email = currentUser.email,
-                        photoUrl = currentUser.photoUrl?.toString()
-                    )
-                }
-            } catch (e: Exception) {
-                Log.w("SplashScreen", "Error registrando usuario en background", e)
-            }
+        val nextRoute = when {
+            !onboardingCompleted -> Screen.Onboarding.route
+            currentUser != null && !currentUser.isAnonymous -> Screen.Home.route
+            else -> Screen.Login.route
+        }
 
-            Log.d("SplashScreen", "Navegando a Home...")
-            navController.navigate(Screen.Home.route) {
+        Log.d("SplashScreen", "Onboarding completado: $onboardingCompleted")
+        Log.d("SplashScreen", "Usuario actual: $currentUser")
+        Log.d("SplashScreen", "Navegando a $nextRoute...")
+
+        navController.navigate(nextRoute) {
                 popUpTo(0) { inclusive = true }
-            }
-        } else {
-            // Sin usuario o anónimo → ir a Login
-            Log.d("SplashScreen", "❌ Sin usuario con Google → Login")
-            Log.d("SplashScreen", "Usuario actual: $currentUser")
-            Log.d("SplashScreen", "Es anónimo: ${currentUser?.isAnonymous}")
-            Log.d("SplashScreen", "Navegando a Login (route=${Screen.Login.route})...")
-            navController.navigate(Screen.Login.route) {
-                popUpTo(0) { inclusive = true }
-            }
         }
     }
     
@@ -124,11 +116,7 @@ fun SplashScreen(navController: NavHostController) {
             .fillMaxSize()
             .background(
                 brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFF06060C),
-                        Color(0xFF0A0A12),
-                        Color(0xFF080810)
-                    )
+                    colors = visuals.appBackgroundStops
                 )
             ),
         contentAlignment = Alignment.Center
@@ -139,7 +127,7 @@ fun SplashScreen(navController: NavHostController) {
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        Color(0xFFE8253A).copy(alpha = 0.06f),
+                        visuals.ambientPrimary,
                         Color.Transparent
                     ),
                     center = Offset(size.width * 0.8f, size.height * 0.15f),
@@ -152,7 +140,7 @@ fun SplashScreen(navController: NavHostController) {
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        Color(0xFF00E5FF).copy(alpha = 0.03f),
+                        visuals.ambientSecondary,
                         Color.Transparent
                     ),
                     center = Offset(size.width * 0.2f, size.height * 0.8f),
@@ -176,7 +164,7 @@ fun SplashScreen(navController: NavHostController) {
                 .height(90.dp)
                 .offset(y = carOffsetY)
                 .graphicsLayer(scaleX = carScale, scaleY = carScale)
-            )
+            , accentColor = visuals.navSelected)
             
             Spacer(modifier = Modifier.height(36.dp))
             
@@ -185,23 +173,23 @@ fun SplashScreen(navController: NavHostController) {
                 Box(
                     modifier = Modifier
                         .size(10.dp)
-                        .background(Color(0xFFE8253A), shape = CircleShape)
+                        .background(visuals.navSelected, shape = CircleShape)
                 )
                 Spacer(modifier = Modifier.width(10.dp))
                 Text(
-                    text = "GEORACING",
+                    text = activeEvent.shortName.uppercase(),
                     fontSize = 34.sp,
                     fontWeight = FontWeight.Black,
-                    letterSpacing = 3.sp,
+                    letterSpacing = if (visuals.variant == com.georacing.georacing.data.event.EventThemeVariant.NIGHT) 0.5.sp else 3.sp,
                     color = Color.White
                 )
             }
             
             Text(
-                text = "CIRCUIT DE BARCELONA CATALUNYA",
+                text = activeEvent.venueName.uppercase(),
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
-                letterSpacing = 2.sp,
+                letterSpacing = if (visuals.variant == com.georacing.georacing.data.event.EventThemeVariant.NIGHT) 0.4.sp else 2.sp,
                 color = Color(0xFF64748B),
                 modifier = Modifier.padding(top = 8.dp)
             )
@@ -209,7 +197,11 @@ fun SplashScreen(navController: NavHostController) {
             Spacer(modifier = Modifier.height(56.dp))
             
             // Rev Counter Loader
-            RevCounterLoader(progress = progress)
+            RevCounterLoader(
+                progress = progress,
+                accentStops = visuals.loaderStops,
+                trackColor = visuals.loaderTrack
+            )
             
             Spacer(modifier = Modifier.height(20.dp))
             
@@ -218,7 +210,7 @@ fun SplashScreen(navController: NavHostController) {
                 fontSize = 20.sp,
                 fontWeight = FontWeight.ExtraBold,
                 letterSpacing = 1.sp,
-                color = Color(0xFFE8253A)
+                color = visuals.navSelected
             )
             
             Spacer(modifier = Modifier.height(10.dp))
@@ -237,7 +229,10 @@ fun SplashScreen(navController: NavHostController) {
 }
 
 @Composable
-fun F1CarIcon(modifier: Modifier = Modifier) {
+fun F1CarIcon(
+    modifier: Modifier = Modifier,
+    accentColor: Color = Color(0xFFE8253A)
+) {
     Canvas(modifier = modifier) {
         val width = size.width
         val height = size.height
@@ -286,13 +281,13 @@ fun F1CarIcon(modifier: Modifier = Modifier) {
         
         drawPath(
             path = mainBodyPath,
-            color = Color(0xFFE8253A),
+            color = accentColor,
             style = Stroke(width = 3f * scale, cap = StrokeCap.Round, join = StrokeJoin.Round)
         )
         
         // Detalle del Halo
         drawLine(
-            color = Color(0xFFFF3352),
+            color = accentColor.copy(alpha = 0.85f),
             start = Offset(95f * scale + offsetX, 25f * scale + offsetY),
             end = Offset(115f * scale + offsetX, 25f * scale + offsetY),
             strokeWidth = 2f * scale,
@@ -317,7 +312,7 @@ fun F1CarIcon(modifier: Modifier = Modifier) {
         
         drawPath(
             path = rearWheelPath,
-            color = Color(0xFFE8253A).copy(alpha = 0.5f),
+            color = accentColor.copy(alpha = 0.5f),
             style = Stroke(width = 2.5f * scale, cap = StrokeCap.Round)
         )
         
@@ -339,18 +334,32 @@ fun F1CarIcon(modifier: Modifier = Modifier) {
         
         drawPath(
             path = frontWheelPath,
-            color = Color(0xFFE8253A).copy(alpha = 0.5f),
+            color = accentColor.copy(alpha = 0.5f),
             style = Stroke(width = 2.5f * scale, cap = StrokeCap.Round)
         )
     }
 }
 
 @Composable
-fun RevCounterLoader(progress: Float, modifier: Modifier = Modifier) {
+fun RevCounterLoader(
+    progress: Float,
+    modifier: Modifier = Modifier,
+    accentStops: List<Color> = listOf(
+        Color(0xFFE8253A),
+        Color(0xFFFF3352),
+        Color(0xFFE8253A)
+    ),
+    trackColor: Color = Color(0xFF1E293B)
+) {
     val animatedProgress by animateFloatAsState(
         targetValue = progress,
         animationSpec = tween(durationMillis = 400, easing = FastOutSlowInEasing),
         label = "progress"
+    )
+    val resolvedStops = if (accentStops.size >= 2) accentStops else listOf(
+        Color(0xFFE8253A),
+        Color(0xFFFF3352),
+        Color(0xFFE8253A)
     )
     
     // Glow pulse on the arc
@@ -378,7 +387,7 @@ fun RevCounterLoader(progress: Float, modifier: Modifier = Modifier) {
             
             // Background arc
             drawArc(
-                color = Color(0xFF1E293B),
+                color = trackColor,
                 startAngle = 135f,
                 sweepAngle = 270f,
                 useCenter = false,
@@ -390,7 +399,7 @@ fun RevCounterLoader(progress: Float, modifier: Modifier = Modifier) {
             // Glow behind progress arc
             val sweepAngle = 270f * animatedProgress
             drawArc(
-                color = Color(0xFFE8253A).copy(alpha = glowAlpha * 0.3f),
+                color = resolvedStops.first().copy(alpha = glowAlpha * 0.3f),
                 startAngle = 135f,
                 sweepAngle = sweepAngle,
                 useCenter = false,
@@ -402,11 +411,7 @@ fun RevCounterLoader(progress: Float, modifier: Modifier = Modifier) {
             // Progress arc
             drawArc(
                 brush = Brush.sweepGradient(
-                    colors = listOf(
-                        Color(0xFFE8253A),
-                        Color(0xFFFF3352),
-                        Color(0xFFE8253A)
-                    )
+                    colors = resolvedStops
                 ),
                 startAngle = 135f,
                 sweepAngle = sweepAngle,
@@ -445,7 +450,7 @@ fun RevCounterLoader(progress: Float, modifier: Modifier = Modifier) {
                 fontSize = 11.sp,
                 fontWeight = FontWeight.ExtraBold,
                 letterSpacing = 2.sp,
-                color = Color(0xFF475569)
+                color = resolvedStops.first().copy(alpha = 0.8f)
             )
         }
     }

@@ -14,7 +14,7 @@ function toDbBeacon(data: Record<string, any>): Record<string, any> {
 }
 
 export const beaconsService = {
-  subscribeToBeacons(callback: (beacons: Beacon[]) => void, intervalMs: number = 4000) {
+  subscribeToBeacons(callback: (beacons: Beacon[]) => void, intervalMs: number = 4000, onError?: (error: unknown) => void) {
     let lastBeacons: string = "";
     const interval = setInterval(async () => {
       try {
@@ -25,7 +25,7 @@ export const beaconsService = {
           callback(beacons);
         }
       } catch (e) {
-        // Opcional: manejar error
+        onError?.(e);
       }
     }, intervalMs);
     return () => clearInterval(interval);
@@ -108,12 +108,10 @@ export const beaconsService = {
   },
   /**
    * Cambia el modo de una baliza
+   * Usa el mismo camino que updateBeacon (upsert + comando UPDATE_CONFIG)
    */
   setBeaconMode: async (beaconId: string, mode: BeaconUpdate["mode"]) => {
-    await api.upsert("beacons", {
-      beacon_uid: beaconId,
-      mode
-    });
+    await beaconsService.updateBeacon(beaconId, { mode });
   },
 
   /**
@@ -218,14 +216,14 @@ export const emergencyService = {
     });
   },
   activateGlobalEvacuation: async (beacons: Beacon[], userId: string, message: string, evacuationExit: string) => {
-    await Promise.all(beacons.map(beacon => api.upsert("beacons", {
-      beacon_uid: beacon.beaconId,
+    // Mismo camino que updateBeacon: upsert + comando UPDATE_CONFIG en tiempo real
+    await beaconsService.updateMultipleBeacons(beacons.map(b => b.beaconId), {
       mode: "EVACUATION",
       message,
       evacuationExit,
       color: "#FF0000",
       brightness: 100
-    })));
+    });
     await emergencyService.logEmergencyAction({
       type: "GLOBAL_EVACUATION_ON",
       triggeredByUid: userId,
@@ -233,14 +231,13 @@ export const emergencyService = {
     });
   },
   deactivateGlobalEvacuation: async (beacons: Beacon[], userId: string) => {
-    await Promise.all(beacons.map(beacon => api.upsert("beacons", {
-      beacon_uid: beacon.beaconId,
+    await beaconsService.updateMultipleBeacons(beacons.map(b => b.beaconId), {
       mode: "NORMAL",
       message: "Acceso Principal",
       evacuationExit: "",
       color: "#00FFAA",
       brightness: 90
-    })));
+    });
     await emergencyService.logEmergencyAction({
       type: "GLOBAL_EVACUATION_OFF",
       triggeredByUid: userId,
@@ -249,14 +246,13 @@ export const emergencyService = {
   },
   activateZoneEvacuation: async (zone: string, beacons: Beacon[], userId: string, message: string, evacuationExit: string) => {
     const zoneBeacons = beacons.filter(b => b.zone === zone);
-    await Promise.all(zoneBeacons.map(beacon => api.upsert("beacons", {
-      beacon_uid: beacon.beaconId,
+    await beaconsService.updateMultipleBeacons(zoneBeacons.map(b => b.beaconId), {
       mode: "EVACUATION",
       message,
       evacuationExit,
       color: "#FF0000",
       brightness: 100
-    })));
+    });
     await emergencyService.logEmergencyAction({
       type: "ZONE_EVACUATION_ON",
       zone,
@@ -266,14 +262,13 @@ export const emergencyService = {
   },
   deactivateZoneEvacuation: async (zone: string, beacons: Beacon[], userId: string) => {
     const zoneBeacons = beacons.filter(b => b.zone === zone);
-    await Promise.all(zoneBeacons.map(beacon => api.upsert("beacons", {
-      beacon_uid: beacon.beaconId,
+    await beaconsService.updateMultipleBeacons(zoneBeacons.map(b => b.beaconId), {
       mode: "NORMAL",
       message: "Acceso Principal",
       evacuationExit: "",
       color: "#00FFAA",
       brightness: 90
-    })));
+    });
     await emergencyService.logEmergencyAction({
       type: "ZONE_EVACUATION_OFF",
       zone,

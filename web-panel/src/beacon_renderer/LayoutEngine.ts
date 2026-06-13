@@ -1,5 +1,5 @@
 
-import { ArrowDirection, BeaconState, BeaconMode } from './types';
+import { ArrowDirection, BeaconState } from './types';
 
 export class LayoutEngine {
 

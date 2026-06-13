@@ -106,7 +106,7 @@ fun MomentsScreen(navController: NavController) {
         }
     }
 
-    // Simulated gallery
+    // Galería de momentos
     val myMoments = remember {
         listOf(
             Moment("1", "Salida de la carrera", "Recta principal", LocalDateTime.now().minusHours(2), "🏁", Color(0xFFE8253A), 24),
@@ -137,8 +137,29 @@ fun MomentsScreen(navController: NavController) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Momentos", fontWeight = FontWeight.Bold) },
-                navigationIcon = { IconButton(onClick = { navController.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver atrás") } },
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .background(Color(0xFFE8253A), shape = CircleShape)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            "MOMENTOS",
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontWeight = FontWeight.Black,
+                                letterSpacing = 2.sp
+                            ),
+                            color = Color.White
+                        )
+                    }
+                },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver atrás", tint = Color(0xFFE8253A))
+                    }
+                },
                 actions = { HomeIconButton { navController.navigate(Screen.Home.route) { popUpTo(Screen.Home.route) { inclusive = true } } } },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
             )

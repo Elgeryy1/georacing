@@ -2,32 +2,36 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="#080B14">
 
+    <!-- Full-screen MapView (dark satellite base) -->
     <org.maplibre.android.maps.MapView
         android:id="@+id/mapView"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <!-- Vista del HUD compacta - reducida para no ocupar tanto espacio -->
+    <!-- Premium HUD overlay - glassmorphism panel, top-left -->
     <ImageView
         android:id="@+id/hudOverlay"
-        android:layout_width="280dp"
-        android:layout_height="140dp"
+        android:layout_width="300dp"
+        android:layout_height="160dp"
         android:layout_gravity="top|start"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="8dp"
+        android:layout_marginStart="12dp"
+        android:layout_marginTop="12dp"
         android:scaleType="fitStart"
         android:adjustViewBounds="true"
-        android:contentDescription="Navigation HUD" />
+        android:contentDescription="Navigation HUD"
+        android:elevation="8dp" />
 
-    <!-- Waze-style Speedometer -->
+    <!-- Premium Speedometer - neon glow gauge, bottom-left -->
     <com.georacing.georacing.car.SpeedometerView
         android:id="@+id/speedometer"
-        android:layout_width="100dp"
-        android:layout_height="100dp"
+        android:layout_width="110dp"
+        android:layout_height="110dp"
         android:layout_gravity="bottom|start"
-        android:layout_marginStart="24dp"
-        android:layout_marginBottom="24dp" />
+        android:layout_marginStart="20dp"
+        android:layout_marginBottom="20dp"
+        android:elevation="12dp" />
 
 </FrameLayout>

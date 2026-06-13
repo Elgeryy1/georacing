@@ -4,12 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.georacing.georacing.domain.model.EcoMetrics
 import com.georacing.georacing.domain.usecase.CalculateEcoMetricsUseCase
-import com.georacing.georacing.infrastructure.health.HealthConnectManager
+import com.georacing.georacing.data.health.HealthConnectManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 // Estado de la Vista
 sealed class EcoUiState {
@@ -29,8 +28,8 @@ class EcoViewModel(
     val uiState: StateFlow<EcoUiState> = _uiState.asStateFlow()
 
     // Este es el contrato que enviaremos a la UI (Compose)
-    val permissionsContract = healthConnectManager.requestPermissionsActivityContract()
-    val requiredPermissions = healthConnectManager.requiredPermissions
+    val permissionsContract = HealthConnectManager.getPermissionRequestContract()
+    val requiredPermissions = HealthConnectManager.PERMISSIONS
 
     init {
         checkHealthConnectStatus()
@@ -49,7 +48,7 @@ class EcoViewModel(
                 return@launch
             }
 
-            if (!healthConnectManager.hasAllPermissions()) {
+            if (!healthConnectManager.hasPermissions()) {
                 _uiState.value = EcoUiState.PermissionsRequired
                 return@launch
             }
@@ -83,3 +82,4 @@ class EcoViewModel(
         }
     }
 }
+

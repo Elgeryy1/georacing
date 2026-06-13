@@ -62,21 +62,36 @@ class RouteRepository {
             val fullUrl = "${OsrmConfig.getBaseUrl()}route/v1/driving/$coordinates?overview=full&geometries=polyline6&steps=true"
             Log.d("RouteRepository", "Obteniendo ruta OSRM desde: $fullUrl")
             
-            val response = osrmService.getRoute(coordinates)
+            // annotations=maxspeed solo funciona con OSRM local (Docker con perfil maxspeed)
+            // El servidor público (router.project-osrm.org) devuelve HTTP 400 con ese parámetro
+            val annotationsParam = if (OsrmConfig.getCurrentEnvironment() == OsrmConfig.OsrmEnvironment.LOCAL) {
+                "maxspeed"
+            } else {
+                null  // No solicitar anotaciones al servidor público
+            }
+            
+            val response = osrmService.getRoute(
+                coordinates = coordinates,
+                annotations = annotationsParam
+            )
             
             if (response.code == "Ok" && response.routes.isNotEmpty()) {
                 val route = response.routes[0]
                 val points = decodePolyline(route.geometry)
                 val steps = if (route.legs.isNotEmpty()) route.legs[0].steps else emptyList()
+                val maxSpeedAnnotations = if (route.legs.isNotEmpty()) {
+                    route.legs[0].annotation?.maxspeed ?: emptyList()
+                } else emptyList()
                 
-                Log.i("RouteRepository", "Ruta obtenida: ${route.distance}m, ${route.duration}s, ${steps.size} pasos")
+                Log.i("RouteRepository", "Ruta obtenida: ${route.distance}m, ${route.duration}s, ${steps.size} pasos, ${maxSpeedAnnotations.size} maxspeed segments")
                 
                 RouteResult(
                     points = points,
                     distance = route.distance,
                     duration = route.duration,
                     steps = steps,
-                    trafficSegments = emptyList() // Sin tráfico en OSRM básico
+                    trafficSegments = emptyList(),
+                    maxSpeedAnnotations = maxSpeedAnnotations
                 )
             } else {
                 Log.e("RouteRepository", "No route found: ${response.code}")
@@ -140,7 +155,8 @@ data class RouteResult(
     val distance: Double, // meters
     val duration: Double, // seconds
     val steps: List<Step> = emptyList(),
-    val trafficSegments: List<TrafficSegment> = emptyList() // Segmentos con información de tráfico
+    val trafficSegments: List<TrafficSegment> = emptyList(),
+    val maxSpeedAnnotations: List<MaxSpeedEntry> = emptyList() // Speed limits per segment from OSM
 )
 
 data class TrafficSegment(

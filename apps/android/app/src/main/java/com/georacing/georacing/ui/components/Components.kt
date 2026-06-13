@@ -87,7 +87,7 @@ fun CockpitButton(
             if (icon != null) {
                 Icon(
                     imageVector = icon,
-                    contentDescription = text,
+                    contentDescription = null,
                     modifier = Modifier.size(22.dp)
                 )
                 Spacer(modifier = Modifier.width(10.dp))
@@ -142,7 +142,7 @@ fun RacingIcon(
     // In a real implementation, we might apply a skew transform here
     Icon(
         imageVector = icon,
-        contentDescription = "Icono",
+        contentDescription = null,
         modifier = modifier,
         tint = tint
     )

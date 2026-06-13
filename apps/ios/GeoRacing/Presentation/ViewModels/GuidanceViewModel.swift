@@ -13,6 +13,7 @@ class GuidanceViewModel: ObservableObject {
     @Published var feedbackMessage: String?
     
     private var cancellables = Set<AnyCancellable>()
+    private var isFinished = false
     private let speechService = SpeechService.shared
     private let locationManager = LocationManager.shared
     
@@ -38,6 +39,7 @@ class GuidanceViewModel: ObservableObject {
     }
     
     private func checkProgress(userLoc: CLLocationCoordinate2D) {
+        guard !isFinished else { return }
         guard let leg = currentLeg else { return }
         
         let destLoc = CLLocation(latitude: leg.to.lat, longitude: leg.to.lon)
@@ -63,6 +65,7 @@ class GuidanceViewModel: ObservableObject {
             }
         } else {
             // Finished
+            isFinished = true
             speechService.speak("Has llegado a tu destino. Disfruta de la carrera.")
             // Could trigger a finished state
             feedbackMessage = "¡Ruta Completada!"
@@ -73,6 +76,7 @@ class GuidanceViewModel: ObservableObject {
         if currentStepIndex > 0 {
             currentStepIndex -= 1
             currentLeg = itinerary.legs[currentStepIndex]
+            isFinished = false // user resumed the route from an earlier step
         }
     }
     

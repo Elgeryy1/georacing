@@ -3,6 +3,7 @@ package com.georacing.georacing.di
 import android.content.Context
 import com.georacing.georacing.data.ble.BeaconScanner
 import com.georacing.georacing.data.energy.EnergyMonitor
+import com.georacing.georacing.data.event.DefaultEventConfigRepository
 import com.georacing.georacing.data.repository.HybridCircuitStateRepository
 import com.georacing.georacing.data.repository.NetworkCircuitStateRepository
 import com.georacing.georacing.data.repository.NetworkBeaconsRepository
@@ -55,6 +56,10 @@ class AppContainer(private val context: Context) {
     
     val poiRepository by lazy {
         OfflineFirstPoiRepository(api, database.poiDao())
+    }
+
+    val eventConfigRepository by lazy {
+        DefaultEventConfigRepository(context)
     }
 
     val incidentsRepository by lazy {

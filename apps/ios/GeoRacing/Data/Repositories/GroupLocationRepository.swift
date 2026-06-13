@@ -88,6 +88,11 @@ final class GroupLocationRepository: GroupLocationRepositoryProtocol {
         return subject.eraseToAnyPublisher()
     }
 
+    func stopPolling() {
+        timer?.cancel()
+        timer = nil
+    }
+
     func updateMyLocation(groupName: String, userId: String, location: CLLocationCoordinate2D, displayName: String) async throws {
         let req = GroupLocationRequest(
             user_uuid: userId,

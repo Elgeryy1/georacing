@@ -94,6 +94,9 @@
             </Setter>
             
             <Style.Triggers>
+                <!-- NONE: ocultar la flecha -->
+                <DataTrigger Binding="{Binding CurrentArrow}" Value="NONE"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
+
                 <!-- DIRECTIONS -->
                 <!-- UP / FORWARD (0 degrees) -->
                 <DataTrigger Binding="{Binding CurrentArrow}" Value="FORWARD"><Setter Property="RenderTransform"><Setter.Value><RotateTransform Angle="0"/></Setter.Value></Setter></DataTrigger>

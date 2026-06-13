@@ -67,7 +67,14 @@ class BeaconScanner(private val context: Context) {
                 val scanRecord = scanResult.scanRecord
                 
                 // 1. Passive Beacons handling
-                val deviceName = scanRecord?.deviceName ?: device.name
+                // device.name needs BLUETOOTH_CONNECT on Android 12+; the user may
+                // have granted SCAN but not CONNECT. Reading it then throws
+                // SecurityException inside the binder callback and kills the process.
+                val deviceName = scanRecord?.deviceName ?: try {
+                    device.name
+                } catch (e: SecurityException) {
+                    null
+                }
                 val manufacturerData = scanRecord?.manufacturerSpecificData
                 val hasGeoRacingId = manufacturerData?.get(0x1234) != null
                 val isGeoRacing = hasGeoRacingId || deviceName?.contains("GEORACING", ignoreCase = true) == true
@@ -195,7 +202,7 @@ class BeaconScanner(private val context: Context) {
                         }
                     }
                 } catch (e: Exception) { }
-                delay(30000) 
+                delay(60000) 
             }
         }
     }
@@ -205,22 +212,11 @@ class BeaconScanner(private val context: Context) {
         if (isScanning) return
         try {
             val settings = ScanSettings.Builder()
-                .setScanMode(ScanSettings.SCAN_MODE_BALANCED)
+                .setScanMode(ScanSettings.SCAN_MODE_LOW_POWER)
                 .build()
-            _debugInfo.value = "Scanning (OPEN)..."
+            _debugInfo.value = "Scanning (LOW_POWER)..."
             scanner?.startScan(null, settings, scanCallback)
             isScanning = true
-            
-            scope.launch {
-                while (isScanning) {
-                    delay(1000)
-                    if (!_debugInfo.value.contains("Found")) {
-                         if (!_debugInfo.value.contains("ID:") && !_debugInfo.value.contains("ERR") && !_debugInfo.value.contains("Watchdog")) {
-                             _debugInfo.value = "Scanning..."
-                         }
-                    }
-                }
-            }
         } catch (e: Exception) {
             _debugInfo.value = "Filter Error: ${e.message}"
         }

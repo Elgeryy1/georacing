@@ -11,8 +11,6 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.georacing.georacing.car.PoiRepository
-import com.georacing.georacing.debug.ScenarioSimulator
-import com.georacing.georacing.domain.model.CircuitMode
 import com.georacing.georacing.navigation.NavigationEngine
 import com.georacing.georacing.navigation.NavigationState
 import com.georacing.georacing.utils.TTSManager
@@ -73,20 +71,9 @@ class CircuitNavigationViewModel(
     // WAZE-STYLE DATA FLOWS
     // ==========================================
     
-    // Circuit State (Green/Red Flag)
-    private val _circuitMode = MutableStateFlow(CircuitMode.GREEN_FLAG)
-    val circuitMode: StateFlow<CircuitMode> = _circuitMode.asStateFlow()
-    
-    // Active Hazards (for pop-up alerts)
-    private val _activeHazards = MutableStateFlow<List<ScenarioSimulator.RoadHazard>>(emptyList())
-    val activeHazards: StateFlow<List<ScenarioSimulator.RoadHazard>> = _activeHazards.asStateFlow()
-    
     // Speed tracking
     private val _currentSpeed = MutableStateFlow(0f)
     val currentSpeed: StateFlow<Float> = _currentSpeed.asStateFlow()
-    
-    private val _speedLimit = MutableStateFlow<Int?>(null)
-    val speedLimit: StateFlow<Int?> = _speedLimit.asStateFlow()
     
     // Callback de ubicación
     private val locationCallback = object : LocationCallback() {
@@ -131,35 +118,6 @@ class CircuitNavigationViewModel(
             }
         }
         
-        // ==========================================
-        // WAZE-STYLE OBSERVERS
-        // ==========================================
-        
-        // Observar estado del circuito desde ScenarioSimulator
-        viewModelScope.launch {
-            ScenarioSimulator.crowdIntensity.collect { intensity ->
-                _circuitMode.value = when {
-                    intensity > 0.9f -> CircuitMode.RED_FLAG
-                    intensity > 0.7f -> CircuitMode.SAFETY_CAR
-                    intensity > 0.5f -> CircuitMode.YELLOW_FLAG
-                    else -> CircuitMode.GREEN_FLAG
-                }
-            }
-        }
-        
-        // Observar hazards activos
-        viewModelScope.launch {
-            ScenarioSimulator.activeHazards.collect { hazards ->
-                _activeHazards.value = hazards
-            }
-        }
-        
-        // Observar límite de velocidad (inicialmente simulado)
-        viewModelScope.launch {
-            ScenarioSimulator.speedLimit.collect { limit ->
-                _speedLimit.value = limit.toInt()
-            }
-        }
     }
     
     /**

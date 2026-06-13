@@ -296,7 +296,7 @@ fun GeoRacingNavHost(
         }
         composable(Screen.Wrapped.route) {
             com.georacing.georacing.ui.screens.share.WrappedScreen(
-                onNavigateBack = { navController.popBackStack() },
+                onNavigateBack = { navController.navigateUp() },
                 healthConnectManager = appContainer.healthConnectManager,
                 gamificationRepository = appContainer.gamificationRepository
             )

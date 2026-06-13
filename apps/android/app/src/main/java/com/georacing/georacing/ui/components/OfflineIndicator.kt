@@ -96,7 +96,7 @@ fun OfflineIndicator(
             // Icono offline
             Icon(
                 imageVector = Icons.Default.WifiOff,
-                contentDescription = "Sin conexión WiFi",
+                contentDescription = null,
                 tint = Color(0xFFF8FAFC),
                 modifier = Modifier.size(20.dp)
             )
@@ -116,7 +116,7 @@ fun OfflineIndicator(
             // Icono BLE pulsando
             Icon(
                 imageVector = Icons.Default.Bluetooth,
-                contentDescription = "Estado Bluetooth",
+                contentDescription = null,
                 tint = Color(0xFFF8FAFC).copy(alpha = blePulse.coerceIn(0f, 1f)),
                 modifier = Modifier.size(20.dp)
             )

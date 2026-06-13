@@ -6,129 +6,124 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
-// ═══════════════════════════════════════════════════════
-// 🏎️  GeoRacing — Telemetry Typography System (Phase 6)
-// ═══════════════════════════════════════════════════════
-// Diseñado para lectura rápida a 1 metro de distancia con gafas 
-// de sol y vibraciones en movimiento. Sin florituras.
-
-// Idealmente aquí se cargaría una fuente Geométrica o Monospace, 
-// utilizamos la fuente SansSerif nativa forzando pesos extremos.
-val TelemetryFontFamily = FontFamily.SansSerif
+// 🏎️ Racing Font System — Bold, Condensed, Sporty
+val RacingFontFamily = FontFamily.Default
 
 val Typography = Typography(
-    // ── Display: Titulares grandes, métricas principales (Velocidad, RPM) ──
+    // ── Display — Hero numbers, splash titles ──
     displayLarge = TextStyle(
-        fontFamily = TelemetryFontFamily,
+        fontFamily = RacingFontFamily,
         fontWeight = FontWeight.Black,
         fontSize = 57.sp,
-        lineHeight = 64.sp,
-        letterSpacing = (-0.25).sp
+        lineHeight = 60.sp,
+        letterSpacing = (-1.5).sp, // Tight tracking for impact
+        fontFeatureSettings = "tnum"
     ),
     displayMedium = TextStyle(
-        fontFamily = TelemetryFontFamily,
+        fontFamily = RacingFontFamily,
         fontWeight = FontWeight.Black,
         fontSize = 45.sp,
-        lineHeight = 52.sp,
-        letterSpacing = 0.sp
+        lineHeight = 48.sp,
+        letterSpacing = (-0.5).sp,
+        fontFeatureSettings = "tnum"
     ),
     displaySmall = TextStyle(
-        fontFamily = TelemetryFontFamily,
-        fontWeight = FontWeight.Bold,
+        fontFamily = RacingFontFamily,
+        fontWeight = FontWeight.ExtraBold,
         fontSize = 36.sp,
-        lineHeight = 44.sp,
-        letterSpacing = 0.sp
-    ),
-
-    // ── Headline: Cabeceras de sección de los paneles de telemetría ──
-    headlineLarge = TextStyle(
-        fontFamily = TelemetryFontFamily,
-        fontWeight = FontWeight.Bold,
-        fontSize = 32.sp,
         lineHeight = 40.sp,
-        letterSpacing = 0.sp
+        letterSpacing = (-0.25).sp,
+        fontFeatureSettings = "tnum"
+    ),
+    // ── Headline — Section headers ──
+    headlineLarge = TextStyle(
+        fontFamily = RacingFontFamily,
+        fontWeight = FontWeight.ExtraBold,
+        fontSize = 32.sp,
+        lineHeight = 36.sp,
+        letterSpacing = 0.sp,
+        fontFeatureSettings = "tnum"
     ),
     headlineMedium = TextStyle(
-        fontFamily = TelemetryFontFamily,
-        fontWeight = FontWeight.Bold,
+        fontFamily = RacingFontFamily,
+        fontWeight = FontWeight.ExtraBold,
         fontSize = 28.sp,
-        lineHeight = 36.sp,
-        letterSpacing = 0.sp
+        lineHeight = 32.sp,
+        letterSpacing = 0.sp,
+        fontFeatureSettings = "tnum"
     ),
     headlineSmall = TextStyle(
-        fontFamily = TelemetryFontFamily,
+        fontFamily = RacingFontFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 24.sp,
-        lineHeight = 32.sp,
-        letterSpacing = 0.sp
+        lineHeight = 28.sp,
+        letterSpacing = 0.15.sp,
+        fontFeatureSettings = "tnum"
     ),
-
-    // ── Title: Títulos de tarjetas y componentes ──
+    // ── Title — Card/section titles ──
     titleLarge = TextStyle(
-        fontFamily = TelemetryFontFamily,
+        fontFamily = RacingFontFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 22.sp,
-        lineHeight = 28.sp,
-        letterSpacing = 0.sp
+        lineHeight = 26.sp,
+        letterSpacing = 0.15.sp
     ),
     titleMedium = TextStyle(
-        fontFamily = TelemetryFontFamily,
+        fontFamily = RacingFontFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 16.sp,
-        lineHeight = 24.sp,
+        lineHeight = 22.sp,
         letterSpacing = 0.15.sp
     ),
     titleSmall = TextStyle(
-        fontFamily = TelemetryFontFamily,
+        fontFamily = RacingFontFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 14.sp,
-        lineHeight = 20.sp,
-        letterSpacing = 0.1.sp
+        lineHeight = 18.sp,
+        letterSpacing = 0.2.sp
     ),
-
-    // ── Body: Lectura de descripciones largas y notificaciones (Alta legibilidad) ──
+    // ── Body — Content text ──
     bodyLarge = TextStyle(
-        fontFamily = TelemetryFontFamily,
-        fontWeight = FontWeight.Medium,
+        fontFamily = RacingFontFamily,
+        fontWeight = FontWeight.Normal,
         fontSize = 16.sp,
-        lineHeight = 28.sp, // Line height holgado
-        letterSpacing = 0.15.sp
+        lineHeight = 24.sp,
+        letterSpacing = 0.3.sp
     ),
     bodyMedium = TextStyle(
-        fontFamily = TelemetryFontFamily,
-        fontWeight = FontWeight.Normal,
+        fontFamily = RacingFontFamily,
+        fontWeight = FontWeight.Medium,
         fontSize = 14.sp,
-        lineHeight = 24.sp,
-        letterSpacing = 0.25.sp
+        lineHeight = 20.sp,
+        letterSpacing = 0.2.sp
     ),
     bodySmall = TextStyle(
-        fontFamily = TelemetryFontFamily,
-        fontWeight = FontWeight.Normal,
+        fontFamily = RacingFontFamily,
+        fontWeight = FontWeight.Medium,
         fontSize = 12.sp,
-        lineHeight = 20.sp,
-        letterSpacing = 0.4.sp
+        lineHeight = 16.sp,
+        letterSpacing = 0.3.sp
     ),
-
-    // ── Label: Botones, badges, etiquetas de estado (Todo mayúsculas esperado) ──
+    // ── Label — Buttons, pills, status badges (UPPERCASE intended) ──
     labelLarge = TextStyle(
-        fontFamily = TelemetryFontFamily,
-        fontWeight = FontWeight.Bold,
+        fontFamily = RacingFontFamily,
+        fontWeight = FontWeight.ExtraBold,
         fontSize = 14.sp,
-        lineHeight = 20.sp,
-        letterSpacing = 0.1.sp
+        lineHeight = 18.sp,
+        letterSpacing = 1.5.sp // Wide tracking for racing look
     ),
     labelMedium = TextStyle(
-        fontFamily = TelemetryFontFamily,
-        fontWeight = FontWeight.Bold,
+        fontFamily = RacingFontFamily,
+        fontWeight = FontWeight.ExtraBold,
         fontSize = 12.sp,
         lineHeight = 16.sp,
-        letterSpacing = 0.5.sp
+        letterSpacing = 1.25.sp
     ),
     labelSmall = TextStyle(
-        fontFamily = TelemetryFontFamily,
-        fontWeight = FontWeight.Medium,
+        fontFamily = RacingFontFamily,
+        fontWeight = FontWeight.Bold,
         fontSize = 11.sp,
-        lineHeight = 16.sp,
-        letterSpacing = 0.5.sp
+        lineHeight = 14.sp,
+        letterSpacing = 1.0.sp
     )
 )

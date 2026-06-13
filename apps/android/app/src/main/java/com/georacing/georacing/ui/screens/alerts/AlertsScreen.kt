@@ -1,34 +1,40 @@
 package com.georacing.georacing.ui.screens.alerts
 
-import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.*
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.animation.fadeIn
-import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.*
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -36,400 +42,319 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.georacing.georacing.R
-import com.georacing.georacing.data.firestorelike.FirestoreLikeClient
 import com.georacing.georacing.domain.model.NewsCategory
 import com.georacing.georacing.domain.model.NewsPriority
 import com.georacing.georacing.domain.model.RaceNews
-import com.georacing.georacing.ui.components.background.CarbonBackground
-import com.georacing.georacing.ui.components.HomeIconButton
-import com.georacing.georacing.ui.glass.LiquidTopBar
-import com.georacing.georacing.ui.glass.LocalBackdrop
-import com.georacing.georacing.ui.navigation.Screen
-import com.georacing.georacing.ui.theme.*
-import kotlinx.coroutines.launch
+import com.georacing.georacing.ui.theme.RacingRed
+import com.georacing.georacing.ui.theme.CarbonBlack
+import com.georacing.georacing.ui.theme.AsphaltGrey
+import com.georacing.georacing.ui.theme.TextSecondary
+import com.georacing.georacing.ui.theme.StatusGreen
+import com.georacing.georacing.ui.theme.StatusAmber
 
-/**
- * AlertsScreen — Premium News & Alerts HUD
- * Noticias, incidencias y emergencias desde el backend Metropolis.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AlertsScreen(navController: NavController) {
-    val backdrop = LocalBackdrop.current
     var selectedCategory by remember { mutableStateOf<NewsCategory?>(null) }
-    var showContent by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { showContent = true }
-
-    // Noticias + Incidencias + Emergencias desde el backend
-    var allNews by remember { mutableStateOf<List<RaceNews>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
-    var loadError by remember { mutableStateOf<String?>(null) }
-
-    // Carga news + incidents (Panel Metropolis) + emergencies
-    suspend fun loadNews() {
-        isLoading = true
-        loadError = null
-        try {
-            val combined = mutableListOf<RaceNews>()
-
-            // 1) Tabla "news" — noticias editoriales
-            try {
-                val newsResponse = FirestoreLikeClient.api.read("news")
-                combined += newsResponse.mapNotNull { map ->
-                    try {
-                        RaceNews(
-                            id = map["id"]?.toString() ?: return@mapNotNull null,
-                            title = map["title"]?.toString() ?: "",
-                            content = map["content"]?.toString() ?: "",
-                            timestamp = (map["timestamp"] as? Number)?.toLong() ?: System.currentTimeMillis(),
-                            category = try { NewsCategory.valueOf(map["category"]?.toString() ?: "RACE_UPDATE") } catch (_: Exception) { NewsCategory.RACE_UPDATE },
-                            priority = try { NewsPriority.valueOf(map["priority"]?.toString() ?: "LOW") } catch (_: Exception) { NewsPriority.LOW }
-                        )
-                    } catch (_: Exception) { null }
-                }
-            } catch (e: Exception) {
-                Log.w("AlertsScreen", "No se pudieron cargar news: ${e.message}")
-            }
-
-            // 2) Tabla "incidents" — incidencias gestionadas desde Panel Metropolis
-            try {
-                val incidentsResponse = FirestoreLikeClient.api.read("incidents")
-                combined += incidentsResponse.mapNotNull { map ->
-                    try {
-                        val status = map["status"]?.toString()?.uppercase() ?: "ACTIVE"
-                        if (status == "RESOLVED") return@mapNotNull null
-
-                        val level = map["level"]?.toString()?.uppercase() ?: "INFO"
-                        val priority = when (level) {
-                            "CRITICAL" -> NewsPriority.HIGH
-                            "WARNING" -> NewsPriority.MEDIUM
-                            else -> NewsPriority.LOW
-                        }
-
-                        RaceNews(
-                            id = "incident_${map["id"]}",
-                            title = "⚠️ ${map["category"]?.toString() ?: "Incidencia"}",
-                            content = map["description"]?.toString() ?: "",
-                            timestamp = parseTimestamp(map["created_at"]),
-                            category = NewsCategory.SAFETY,
-                            priority = priority
-                        )
-                    } catch (_: Exception) { null }
-                }
-            } catch (e: Exception) {
-                Log.w("AlertsScreen", "No se pudieron cargar incidents: ${e.message}")
-            }
-
-            // 3) Tabla "emergencies" — emergencias activas del Panel
-            try {
-                val emergResponse = FirestoreLikeClient.api.read("emergencies")
-                combined += emergResponse.mapNotNull { map ->
-                    try {
-                        val status = map["status"]?.toString()?.uppercase() ?: "ACTIVE"
-                        if (status == "RESOLVED") return@mapNotNull null
-
-                        val level = map["level"]?.toString()?.uppercase() ?: "WARNING"
-                        val priority = when (level) {
-                            "CRITICAL" -> NewsPriority.HIGH
-                            "WARNING" -> NewsPriority.HIGH
-                            "ADVISORY" -> NewsPriority.MEDIUM
-                            else -> NewsPriority.LOW
-                        }
-
-                        RaceNews(
-                            id = "emergency_${map["id"]}",
-                            title = "🚨 ${map["title"]?.toString() ?: "Emergencia"}",
-                            content = map["description"]?.toString() ?: "",
-                            timestamp = parseTimestamp(map["startedAt"] ?: map["created_at"]),
-                            category = NewsCategory.SAFETY,
-                            priority = priority
-                        )
-                    } catch (_: Exception) { null }
-                }
-            } catch (e: Exception) {
-                Log.w("AlertsScreen", "No se pudieron cargar emergencies: ${e.message}")
-            }
-
-            allNews = combined.sortedByDescending { it.timestamp }
-        } catch (e: Exception) {
-            Log.w("AlertsScreen", "Error general cargando alertas: ${e.message}")
-            loadError = e.message
-            allNews = emptyList()
-        }
-        isLoading = false
+    
+    // Noticias fake para demo
+    val allNews = remember {
+        listOf(
+            RaceNews(
+                id = "1",
+                title = "¡La carrera comienza en 30 minutos!",
+                content = "Los pilotos se están preparando en la parrilla de salida. Se espera una salida emocionante.",
+                timestamp = System.currentTimeMillis() - 5 * 60 * 1000,
+                category = NewsCategory.RACE_UPDATE,
+                priority = NewsPriority.HIGH
+            ),
+            RaceNews(
+                id = "2",
+                title = "Cambio en la programación",
+                content = "La sesión de calificación se ha adelantado 15 minutos debido a las condiciones meteorológicas.",
+                timestamp = System.currentTimeMillis() - 30 * 60 * 1000,
+                category = NewsCategory.SCHEDULE_CHANGE,
+                priority = NewsPriority.MEDIUM
+            ),
+            RaceNews(
+                id = "3",
+                title = "Condiciones meteorológicas ideales",
+                content = "Cielo despejado y temperatura de 24°C. Condiciones perfectas para la carrera de hoy.",
+                timestamp = System.currentTimeMillis() - 60 * 60 * 1000,
+                category = NewsCategory.WEATHER,
+                priority = NewsPriority.LOW
+            ),
+            RaceNews(
+                id = "4",
+                title = "Lewis Hamilton habla antes de la carrera",
+                content = "El piloto británico se muestra confiado: 'Hemos trabajado mucho en la estrategia y el coche se siente bien'.",
+                timestamp = System.currentTimeMillis() - 90 * 60 * 1000,
+                category = NewsCategory.DRIVER_NEWS,
+                priority = NewsPriority.LOW
+            ),
+            RaceNews(
+                id = "5",
+                title = "Acceso recomendado por zona norte",
+                content = "Debido al alto tráfico, recomendamos acceder al circuito por las puertas 3 y 4 en la zona norte.",
+                timestamp = System.currentTimeMillis() - 120 * 60 * 1000,
+                category = NewsCategory.TRAFFIC,
+                priority = NewsPriority.MEDIUM
+            ),
+            RaceNews(
+                id = "6",
+                title = "Meet & Greet con los pilotos después de la carrera",
+                content = "No te pierdas la oportunidad de conocer a tus pilotos favoritos en la zona VIP a las 18:00.",
+                timestamp = System.currentTimeMillis() - 180 * 60 * 1000,
+                category = NewsCategory.EVENT,
+                priority = NewsPriority.LOW
+            )
+        )
     }
-
-    LaunchedEffect(Unit) { loadNews() }
-
-    val filteredNews = if (selectedCategory == null) allNews else allNews.filter { it.category == selectedCategory }
-
-    Box(Modifier.fillMaxSize()) {
-        CarbonBackground()
-
-        Column(Modifier.fillMaxSize()) {
-            // ── Premium LiquidTopBar ──
-            LiquidTopBar(
-                backdrop = backdrop,
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.cd_back), tint = TextPrimary)
+    
+    val filteredNews = if (selectedCategory == null) {
+        allNews
+    } else {
+        allNews.filter { it.category == selectedCategory }
+    }
+    
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                brush = Brush.verticalGradient(
+                    listOf(Color(0xFF080810), Color(0xFF0A0A16), Color(0xFF080810))
+                )
+            )
+    ) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { 
+                    Column {
+                        Text(
+                            stringResource(R.string.newsletter_title).uppercase(),
+                            fontWeight = FontWeight.Black,
+                            fontSize = 18.sp,
+                            letterSpacing = 1.sp,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        )
+                        Text(
+                            stringResource(R.string.newsletter_subtitle),
+                            fontSize = 11.sp,
+                            color = Color(0xFF64748B),
+                            letterSpacing = 0.5.sp,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        )
                     }
                 },
-                title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(Modifier.size(8.dp).clip(CircleShape).background(RacingRed))
-                        Spacer(Modifier.width(10.dp))
-                        Column {
-                            Text(stringResource(R.string.newsletter_title).uppercase(), style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
-                            Text(stringResource(R.string.newsletter_subtitle), style = MaterialTheme.typography.labelSmall, color = TextTertiary)
-                        }
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack, 
+                            contentDescription = stringResource(R.string.cd_back)
+                        )
                     }
                 },
                 actions = {
-                    HomeIconButton {
-                        navController.navigate(Screen.Home.route) {
-                            popUpTo(Screen.Home.route) { inclusive = true }
+                    com.georacing.georacing.ui.components.HomeIconButton {
+                        navController.navigate(com.georacing.georacing.ui.navigation.Screen.Home.route) {
+                            popUpTo(com.georacing.georacing.ui.navigation.Screen.Home.route) { inclusive = true }
                         }
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                    titleContentColor = Color(0xFFF8FAFC),
+                    navigationIconContentColor = Color(0xFFF8FAFC)
+                )
             )
-
-            // ── Filter Chips Row ──
-            AnimatedVisibility(
-                visible = showContent,
-                enter = fadeIn(tween(400, 100)) + slideInVertically(tween(400, 100)) { -15 }
-            ) {
-                LazyRow(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    item {
-                        PremiumFilterChip(
-                            selected = selectedCategory == null,
-                            label = stringResource(R.string.news_category_all),
-                            accentColor = RacingRed,
-                            onClick = { selectedCategory = null }
-                        )
-                    }
-                    items(NewsCategory.values()) { category ->
-                        PremiumFilterChip(
-                            selected = selectedCategory == category,
-                            label = category.displayName,
-                            accentColor = RacingRed,
-                            onClick = { selectedCategory = category }
-                        )
-                    }
-                }
-            }
-
-            // Separator line
-            Box(
-                Modifier
+        },
+        containerColor = Color.Transparent
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+        ) {
+            // Filtros de categoría
+            LazyRow(
+                modifier = Modifier
                     .fillMaxWidth()
-                    .height(1.dp)
-                    .background(
-                        Brush.horizontalGradient(
-                            listOf(Color.Transparent, MetalGrey.copy(alpha = 0.3f), Color.Transparent)
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                item {
+                    FilterChip(
+                        selected = selectedCategory == null,
+                        onClick = { selectedCategory = null },
+                        label = { 
+                            Text(
+                                stringResource(R.string.news_category_all),
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 1.sp
+                            ) 
+                        },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = Color(0xFFE8253A),
+                            selectedLabelColor = Color(0xFFF8FAFC),
+                            containerColor = Color(0xFF14141C),
+                            labelColor = Color(0xFFF8FAFC)
                         )
                     )
-            )
-
-            // ── News Content ──
-            if (filteredNews.isEmpty() && !isLoading) {
-                // Empty state
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    androidx.compose.animation.AnimatedVisibility(
-                        visible = showContent,
-                        enter = fadeIn(tween(500, 200))
+                }
+                
+                items(NewsCategory.values()) { category ->
+                    FilterChip(
+                        selected = selectedCategory == category,
+                        onClick = { selectedCategory = category },
+                        label = { 
+                            Text(
+                                category.displayName,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 1.sp
+                            ) 
+                        },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = Color(0xFFE8253A),
+                            selectedLabelColor = Color(0xFFF8FAFC),
+                            containerColor = Color(0xFF14141C),
+                            labelColor = Color(0xFFF8FAFC)
+                        )
+                    )
+                }
+            }
+            
+            HorizontalDivider(color = Color(0xFF14141C), thickness = 1.dp)
+            
+            // Lista de noticias
+            if (filteredNews.isEmpty()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(72.dp)
+                            .background(Color(0xFFE8253A).copy(alpha = 0.15f), RoundedCornerShape(16.dp)),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.padding(32.dp)
-                        ) {
-                            Box(
-                                Modifier
-                                    .size(80.dp)
-                                    .clip(RoundedCornerShape(24.dp))
-                                    .background(RacingRed.copy(alpha = 0.12f))
-                                    .drawBehind {
-                                        drawCircle(RacingRed.copy(alpha = 0.06f), radius = size.minDimension * 0.9f)
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(Icons.Default.Notifications, null, modifier = Modifier.size(40.dp), tint = RacingRed)
-                            }
-                            Spacer(Modifier.height(20.dp))
-                            Text(
-                                stringResource(R.string.news_empty_title),
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Black,
-                                color = TextPrimary,
-                                letterSpacing = 0.5.sp
-                            )
-                            Spacer(Modifier.height(8.dp))
-                            Text(
-                                stringResource(R.string.news_empty_message),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = TextTertiary,
-                                textAlign = TextAlign.Center
-                            )
-                        }
+                        Icon(
+                            Icons.Default.Notifications,
+                            contentDescription = null,
+                            modifier = Modifier.size(36.dp),
+                            tint = Color(0xFFE8253A)
+                        )
                     }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        stringResource(R.string.news_empty_title),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Black,
+                        color = Color(0xFFF8FAFC),
+                        letterSpacing = 0.5.sp
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        stringResource(R.string.news_empty_message),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color(0xFF64748B),
+                        textAlign = TextAlign.Center
+                    )
                 }
             } else {
-                var isRefreshing by remember { mutableStateOf(false) }
-                val scope = rememberCoroutineScope()
-                PullToRefreshBox(
-                    isRefreshing = isRefreshing,
-                    onRefresh = {
-                        isRefreshing = true
-                        scope.launch { loadNews(); isRefreshing = false }
-                    },
-                    modifier = Modifier.fillMaxSize()
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(1.dp)
                 ) {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.spacedBy(2.dp),
-                        contentPadding = PaddingValues(bottom = 100.dp)
-                    ) {
-                        itemsIndexed(filteredNews) { index, news ->
-                            androidx.compose.animation.AnimatedVisibility(
-                                visible = showContent,
-                                enter = fadeIn(tween(300, 150 + index * 50)) + slideInVertically(tween(300, 150 + index * 50)) { 25 }
-                            ) {
-                                PremiumNewsCard(news = news)
-                            }
-                        }
+                    items(filteredNews) { news ->
+                        NewsCard(news = news)
                     }
                 }
             }
         }
     }
+    } // Close Box
 }
 
-// ══════════════════════════════════════════════
-// ── Premium Composables ──
-// ══════════════════════════════════════════════
-
 @Composable
-fun PremiumNewsCard(news: RaceNews) {
+fun NewsCard(news: RaceNews) {
     val priorityColor = when (news.priority) {
         NewsPriority.HIGH -> RacingRed
         NewsPriority.MEDIUM -> StatusAmber
         NewsPriority.LOW -> StatusGreen
     }
-
+    
     val timeText = getTimeAgo(news.timestamp)
-
-    Box(
-        Modifier
+    
+    Card(
+        modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp)
-            .clip(RoundedCornerShape(18.dp))
-            .liquidGlass(RoundedCornerShape(18.dp), GlassLevel.L2, accentGlow = priorityColor)
+            .padding(horizontal = 16.dp, vertical = 6.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFF14141C)
+        ),
+        shape = RoundedCornerShape(16.dp)
     ) {
         Row(modifier = Modifier.padding(16.dp)) {
-            // Priority indicator with glow
+            // Indicador de prioridad
             Box(
                 modifier = Modifier
-                    .size(10.dp)
-                    .drawBehind {
-                        drawCircle(priorityColor.copy(alpha = 0.4f), radius = size.minDimension)
-                    }
+                    .size(8.dp)
                     .clip(CircleShape)
                     .background(priorityColor)
                     .align(Alignment.Top)
             )
-
-            Spacer(modifier = Modifier.width(14.dp))
-
+            
+            Spacer(modifier = Modifier.width(12.dp))
+            
             Column(modifier = Modifier.weight(1f)) {
+                // Categoría y tiempo
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Category badge
-                    Box(
-                        Modifier
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(priorityColor.copy(alpha = 0.12f))
-                            .padding(horizontal = 8.dp, vertical = 3.dp)
-                    ) {
-                        Text(
-                            news.category.displayName.uppercase(),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = priorityColor,
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = 1.5.sp,
-                            fontSize = 9.sp
-                        )
-                    }
                     Text(
-                        timeText,
+                        text = news.category.displayName.uppercase(),
                         style = MaterialTheme.typography.labelSmall,
-                        color = TextTertiary,
+                        color = priorityColor,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 1.5.sp
+                    )
+                    Text(
+                        text = timeText,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color(0xFF64748B),
                         letterSpacing = 0.5.sp
                     )
                 }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                // Título
                 Text(
-                    news.title,
+                    text = news.title,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = TextPrimary
+                    color = Color(0xFFF8FAFC)
                 )
-
+                
                 Spacer(modifier = Modifier.height(6.dp))
-
+                
+                // Contenido
                 Text(
-                    news.content,
+                    text = news.content,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = TextSecondary,
+                    color = Color(0xFFCBD5E1),
                     lineHeight = 20.sp
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun PremiumFilterChip(
-    selected: Boolean,
-    label: String,
-    accentColor: Color,
-    onClick: () -> Unit
-) {
-    val bgColor = if (selected) accentColor.copy(alpha = 0.2f) else MetalGrey.copy(alpha = 0.25f)
-    val textColor = if (selected) TextPrimary else TextSecondary
-
-    Box(
-        Modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(bgColor)
-            .then(
-                if (selected) Modifier.border(0.5.dp, accentColor.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
-                else Modifier
-            )
-            .graphicsLayer { clip = false }
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onClick
-            )
-            .padding(horizontal = 16.dp, vertical = 9.dp)
-    ) {
-        Text(
-            label,
-            style = MaterialTheme.typography.labelMedium,
-            color = textColor,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = 1.sp
-        )
     }
 }
 
@@ -439,29 +364,10 @@ fun getTimeAgo(timestamp: Long): String {
     val diff = now - timestamp
     val minutes = diff / (60 * 1000)
     val hours = diff / (60 * 60 * 1000)
-
+    
     return when {
         minutes < 1 -> stringResource(R.string.news_time_now)
         minutes < 60 -> stringResource(R.string.news_time_minutes, minutes.toInt())
         else -> stringResource(R.string.news_time_hours, hours.toInt())
-    }
-}
-
-/**
- * Parsea timestamps del backend: puede ser Long (epoch millis), String ISO ("2024-01-15 10:30:00")
- */
-private fun parseTimestamp(value: Any?): Long {
-    return when (value) {
-        is Number -> value.toLong().let { if (it < 1_000_000_000_000L) it * 1000 else it }
-        is String -> try {
-            val sdf = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
-            sdf.parse(value)?.time ?: System.currentTimeMillis()
-        } catch (_: Exception) {
-            try {
-                val sdf = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.getDefault())
-                sdf.parse(value)?.time ?: System.currentTimeMillis()
-            } catch (_: Exception) { System.currentTimeMillis() }
-        }
-        else -> System.currentTimeMillis()
     }
 }

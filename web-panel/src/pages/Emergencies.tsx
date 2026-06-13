@@ -4,19 +4,23 @@ import { useBeacons } from "../hooks/useBeacons";
 import { useZones } from "../hooks/useZones";
 import { useAuth } from "../context/AuthContext";
 import { emergencyService } from "../services/beaconService";
+import { useToast } from "../context/ToastContext";
 import { AlertTriangle, Power, Shield } from "lucide-react";
 
 export const Emergencies: React.FC = () => {
   const { beacons } = useBeacons();
   const zones = useZones(beacons);
   const { user } = useAuth();
+  const { showToast } = useToast();
 
   const [globalMessage, setGlobalMessage] = useState("");
   const [globalExit, setGlobalExit] = useState("");
   const [selectedZone, setSelectedZone] = useState("");
   const [processing, setProcessing] = useState(false);
 
-  const isGlobalEvacuationActive = beacons.every(b => b.mode === "EVACUATION");
+  // An empty list must NOT count as "all evacuating" (Array.every([]) === true),
+  // otherwise the page shows EVACUATION ACTIVE while beacons are still loading.
+  const isGlobalEvacuationActive = beacons.length > 0 && beacons.every(b => b.mode === "EVACUATION");
 
   const handleGlobalEvacuation = async () => {
     if (!user) return;
@@ -25,13 +29,16 @@ export const Emergencies: React.FC = () => {
     try {
       if (isGlobalEvacuationActive) {
         await emergencyService.deactivateGlobalEvacuation(beacons, user.uid);
+        showToast("Evacuación global desactivada", "success");
       } else {
         const message = globalMessage || "EVACUACIÓN EN CURSO. SIGA LAS FLECHAS.";
         const exit = globalExit || "EVACUATION_EXIT_DEFAULT";
         await emergencyService.activateGlobalEvacuation(beacons, user.uid, message, exit);
+        showToast("Evacuación global activada", "success");
       }
     } catch (error) {
       console.error("Error:", error);
+      showToast("Error al cambiar el estado de evacuación global", "error");
     } finally {
       setProcessing(false);
     }
@@ -46,11 +53,14 @@ export const Emergencies: React.FC = () => {
         const message = globalMessage || "EVACUACIÓN EN CURSO. SIGA LAS FLECHAS.";
         const exit = globalExit || "EVACUATION_EXIT_DEFAULT";
         await emergencyService.activateZoneEvacuation(zone, beacons, user.uid, message, exit);
+        showToast(`Zona "${zone}" en evacuación`, "success");
       } else {
         await emergencyService.deactivateZoneEvacuation(zone, beacons, user.uid);
+        showToast(`Zona "${zone}" vuelta a normal`, "success");
       }
     } catch (error) {
       console.error("Error:", error);
+      showToast("Error al cambiar la evacuación de la zona", "error");
     } finally {
       setProcessing(false);
     }
@@ -64,8 +74,10 @@ export const Emergencies: React.FC = () => {
       const message = globalMessage || "EVACUACIÓN EN CURSO. SIGA LAS FLECHAS.";
       const exit = globalExit || "EVACUATION_EXIT_DEFAULT";
       await emergencyService.activateZoneEvacuation(selectedZone, beacons, user.uid, message, exit);
+      showToast(`Zona "${selectedZone}" en evacuación`, "success");
     } catch (error) {
       console.error("Error:", error);
+      showToast("Error al activar la evacuación de la zona", "error");
     } finally {
       setProcessing(false);
     }

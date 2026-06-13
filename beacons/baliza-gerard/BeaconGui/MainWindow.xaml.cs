@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -31,6 +32,7 @@ namespace BeaconGui
         private string lastKnownTemp = "";
         private bool isRunning = false;
         private bool simulateUser = false;
+        private readonly System.Threading.SemaphoreSlim _advLock = new System.Threading.SemaphoreSlim(1, 1);
 
         public MainWindow()
         {
@@ -46,6 +48,7 @@ namespace BeaconGui
             handler.ServerCertificateCustomValidationCallback = 
                 (httpRequestMessage, cert, cetChain, policyErrors) => true;
             client = new HttpClient(handler);
+            client.Timeout = TimeSpan.FromSeconds(5);
         }
 
         private async void InitializeBeaconSystem()
@@ -103,9 +106,12 @@ namespace BeaconGui
 
                 if (section.CompanyId == MANUFACTURER_ID)
                 {
-                    if (bytes.Length >= 5 && bytes[0] == 0x01)
+                    // Paquete de usuario: [Type(1) | Hash(4) | Lat(4) | Lon(4)] = 13 bytes.
+                    // Exigir >= 13 evita contar como usuarios los paquetes de circuito (9 bytes), que también empiezan por 0x01.
+                    if (bytes.Length >= 13 && bytes[0] == 0x01)
                     {
-                        int hash = BitConverter.ToInt32(bytes, 1);
+                        // DataWriter escribe en big-endian: leer el hash igual
+                        int hash = (bytes[1] << 24) | (bytes[2] << 16) | (bytes[3] << 8) | bytes[4];
                         Dispatcher.Invoke(() => {
                             bool isNew = !detectedUsers.ContainsKey(hash);
                             detectedUsers[hash] = DateTime.Now;

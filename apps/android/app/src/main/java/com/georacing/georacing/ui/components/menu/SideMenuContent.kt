@@ -24,10 +24,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.georacing.georacing.data.event.isRouteEnabled
+import com.georacing.georacing.data.event.labelForRoute
 import com.georacing.georacing.domain.features.FeatureCategory
 import com.georacing.georacing.domain.features.FeatureRegistry
 import com.georacing.georacing.domain.features.FeatureStatus
 import com.georacing.georacing.ui.navigation.Screen
+import com.georacing.georacing.ui.theme.LocalActiveEventConfig
 import com.georacing.georacing.ui.theme.*
 
 /**
@@ -43,6 +46,7 @@ fun SideMenuContent(
     navController: NavController,
     onClose: () -> Unit
 ) {
+    val activeEvent = LocalActiveEventConfig.current
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -54,7 +58,7 @@ fun SideMenuContent(
             Spacer(Modifier.width(12.dp))
             Column {
                 Text(
-                    "GeoRacing",
+                    activeEvent.shortName,
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Black,
                     color = TextPrimary,
@@ -74,12 +78,12 @@ fun SideMenuContent(
 
         // ── Quick Nav (tabs) ──
         val quickLinks = listOf(
-            Triple("Inicio", Icons.Default.Home, Screen.Home.route),
-            Triple("Mapa", Icons.Default.Map, Screen.Map.route),
-            Triple("Alertas", Icons.Default.Notifications, Screen.Alerts.route),
-            Triple("Tienda", Icons.Default.ShoppingCart, Screen.Orders.route),
-            Triple("Ajustes", Icons.Default.Settings, Screen.Settings.route)
-        )
+            Triple(activeEvent.labelForRoute(Screen.Home.route, "Inicio"), Icons.Default.Home, Screen.Home.route),
+            Triple(activeEvent.labelForRoute(Screen.Map.route, "Mapa"), Icons.Default.Map, Screen.Map.route),
+            Triple(activeEvent.labelForRoute(Screen.Alerts.route, "Alertas"), Icons.Default.Notifications, Screen.Alerts.route),
+            Triple(activeEvent.labelForRoute(Screen.Orders.route, "Tienda"), Icons.Default.ShoppingCart, Screen.Orders.route),
+            Triple(activeEvent.labelForRoute(Screen.Settings.route, "Ajustes"), Icons.Default.Settings, Screen.Settings.route)
+        ).filter { (_, _, route) -> activeEvent.isRouteEnabled(route) }
 
         quickLinks.forEach { (text, icon, route) ->
             Row(

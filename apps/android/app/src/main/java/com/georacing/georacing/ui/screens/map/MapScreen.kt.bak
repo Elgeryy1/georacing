@@ -1,0 +1,376 @@
+package com.georacing.georacing.ui.screens.map
+
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.EventSeat
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material.icons.filled.ReportProblem
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Traffic
+import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.filled.People
+import androidx.compose.material3.BottomSheetScaffold
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberBottomSheetScaffoldState
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import com.georacing.georacing.ui.navigation.Screen
+import com.georacing.georacing.domain.repository.BeaconsRepository
+import com.georacing.georacing.domain.repository.PoiRepository
+import com.georacing.georacing.data.local.UserPreferencesDataStore
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
+import androidx.navigation.NavController
+import com.georacing.georacing.domain.model.PoiType
+import com.georacing.georacing.ui.components.CockpitButton
+import com.georacing.georacing.ui.components.Sidebar
+import com.georacing.georacing.ui.components.background.CarbonBackground
+import com.georacing.georacing.ui.components.circuit.CircuitTrack
+
+// Helper composables
+@Composable
+private fun SidebarItem(text: String, icon: ImageVector, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface)
+        Spacer(modifier = Modifier.width(16.dp))
+        Text(text, style = MaterialTheme.typography.titleMedium)
+    }
+}
+
+@Composable
+private fun FilterButton(
+    icon: ImageVector,
+    label: String,
+    isActive: Boolean,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .size(56.dp)
+            .clickable(onClick = onClick),
+        shape = CircleShape,
+        colors = CardDefaults.cardColors(
+            containerColor = if (isActive) Color(0xFFEF4444) else Color(0xFF171717)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .border(1.dp, if (isActive) Color(0xFFEF4444) else Color(0xFF404040), CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = if (isActive) Color.White else Color(0xFFA3A3A3),
+                modifier = Modifier.size(24.dp)
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MapScreen(
+    navController: NavController,
+    beaconsRepository: BeaconsRepository,
+    poiRepository: PoiRepository,
+    userPreferences: UserPreferencesDataStore
+) {
+    val viewModel: MapViewModel = viewModel(
+        factory = viewModelFactory {
+            initializer {
+                MapViewModel(beaconsRepository, poiRepository, userPreferences)
+            }
+        }
+    )
+
+    val beacons by viewModel.beacons.collectAsState()
+    val visiblePois by viewModel.visiblePois.collectAsState()
+    val userX by viewModel.userPositionX.collectAsState()
+    val userY by viewModel.userPositionY.collectAsState()
+    val selectedType by viewModel.selectedPoiType.collectAsState()
+    val seatInfo by viewModel.seatInfo.collectAsState()
+
+    val mapCenter by viewModel.mapCenter.collectAsState()
+    val mapScale by viewModel.mapScale.collectAsState()
+
+    var scale by remember { mutableStateOf(1f) }
+    var offset by remember { mutableStateOf(Offset.Zero) }
+    var isSidebarOpen by remember { mutableStateOf(false) }
+
+    LaunchedEffect(mapCenter, mapScale) {
+        scale = mapScale
+        offset = mapCenter
+    }
+
+    val scaffoldState = rememberBottomSheetScaffoldState()
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        BottomSheetScaffold(
+            scaffoldState = scaffoldState,
+            topBar = {
+                TopAppBar(
+                    title = { Text("MAPA VIVO", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.sp)) },
+                    navigationIcon = {
+                        IconButton(onClick = { isSidebarOpen = true }) {
+                            Icon(Icons.Default.Menu, contentDescription = "Menú")
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.8f),
+                        titleContentColor = MaterialTheme.colorScheme.primary,
+                        navigationIconContentColor = MaterialTheme.colorScheme.onBackground
+                    )
+                )
+            },
+            sheetContainerColor = MaterialTheme.colorScheme.surface,
+            sheetContentColor = MaterialTheme.colorScheme.onSurface,
+            sheetContent = {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("FILTROS", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.tertiary)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        item {
+                            FilterChip(
+                                selected = selectedType == null,
+                                onClick = { viewModel.filterPois(null) },
+                                label = { Text("Todos") },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                                )
+                            )
+                        }
+                        items(PoiType.values()) { type ->
+                            FilterChip(
+                                selected = selectedType == type,
+                                onClick = { viewModel.filterPois(if (selectedType == type) null else type) },
+                                label = { Text(type.name) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                                )
+                            )
+                        }
+                    }
+                    
+                    if (seatInfo != null) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        CockpitButton(
+                            text = "IR A MI LOCALIDAD (${seatInfo?.grandstand})",
+                            onClick = { viewModel.centerOnSeat() },
+                            modifier = Modifier.fillMaxWidth(),
+                            icon = Icons.Default.EventSeat
+                        )
+                    }
+                }
+            },
+            sheetPeekHeight = 140.dp,
+            containerColor = Color.Transparent
+        ) { padding ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+            ) {
+                // Carbon background
+                CarbonBackground()
+                
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .pointerInput(Unit) {
+                            detectTransformGestures { _, pan, zoom, _ ->
+                                scale *= zoom
+                                offset += pan
+                                viewModel.updateMapState(scale, offset)
+                            }
+                        }
+                ) {
+                    // Map Content Layer
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .graphicsLayer(
+                                scaleX = scale,
+                                scaleY = scale,
+                                translationX = offset.x,
+                                translationY = offset.y
+                            )
+                    ) {
+                        // Draw Circuit Track
+                        CircuitTrack()
+
+                        // Draw Beacons
+                        beacons.forEach { beacon ->
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.TopStart)
+                                    .offset(
+                                        x = (beacon.mapX * 1000).dp,
+                                        y = (beacon.mapY * 1000).dp
+                                    )
+                                    .size(12.dp)
+                                    .background(Color(0xFFFBBF24), CircleShape)
+                                    .border(2.dp, Color.Black, CircleShape)
+                            )
+                        }
+
+                        // Draw POIs
+                        visiblePois.forEach { poi ->
+                            Icon(
+                                imageVector = Icons.Default.LocationOn,
+                                contentDescription = poi.name,
+                                tint = Color(0xFFEF4444),
+                                modifier = Modifier
+                                    .align(Alignment.TopStart)
+                                    .offset(
+                                        x = (poi.mapX * 1000).dp,
+                                        y = (poi.mapY * 1000).dp
+                                    )
+                                    .size(24.dp)
+                            )
+                        }
+
+                        // Draw User Position
+                        Icon(
+                            imageVector = Icons.Default.MyLocation,
+                            contentDescription = "Mi Ubicación",
+                            tint = Color.White,
+                            modifier = Modifier
+                                .align(Alignment.TopStart)
+                                .offset(
+                                    x = (userX * 1000).dp,
+                                    y = (userY * 1000).dp
+                                )
+                                .size(32.dp)
+                                .background(Color(0xFF3B82F6).copy(alpha = 0.8f), CircleShape)
+                                .border(3.dp, Color.White, CircleShape)
+                                .padding(4.dp)
+                        )
+                    }
+                
+                // Floating filter buttons
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(16.dp)
+                        .padding(top = 80.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FilterButton(
+                        icon = Icons.Default.Traffic,
+                        label = "Congestión",
+                        isActive = false,
+                        onClick = { /* Toggle congestion */ }
+                    )
+                    FilterButton(
+                        icon = Icons.Default.DirectionsCar,
+                        label = "Parking",
+                        isActive = false,
+                        onClick = { /* Toggle parking */ }
+                    )
+                    FilterButton(
+                        icon = Icons.Default.People,
+                        label = "Densidad",
+                        isActive = false,
+                        onClick = { /* Toggle density */ }
+                    )
+                }
+            }
+        }
+        
+        // Sidebar Overlay
+        Sidebar(
+            isOpen = isSidebarOpen,
+            onClose = { isSidebarOpen = false }
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = "MENÚ",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(bottom = 24.dp)
+                )
+                
+                SidebarItem("Inicio", Icons.Default.Home) {
+                    isSidebarOpen = false
+                    navController.navigate(Screen.Home.route)
+                }
+                SidebarItem("Mi Localidad", Icons.Default.EventSeat) {
+                    isSidebarOpen = false
+                    navController.navigate(Screen.SeatSetup.route)
+                }
+                SidebarItem("Incidencias", Icons.Default.ReportProblem) {
+                    isSidebarOpen = false
+                    navController.navigate(Screen.IncidentReport.route)
+                }
+                SidebarItem("Ajustes", Icons.Default.Settings) {
+                    isSidebarOpen = false
+                    navController.navigate(Screen.Settings.route)
+                }
+            }
+        }
+    }
+}

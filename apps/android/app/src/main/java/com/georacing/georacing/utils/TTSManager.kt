@@ -26,6 +26,7 @@ object TTSManager {
      */
     private const val THRESHOLD_FAR = 500.0
     private const val THRESHOLD_MEDIUM = 200.0
+    private const val THRESHOLD_CLOSE = 100.0
     private const val THRESHOLD_NEAR = 50.0
     private const val THRESHOLD_NOW = 0.0
     
@@ -36,6 +37,7 @@ object TTSManager {
      */
     private var spoken500 = false
     private var spoken200 = false
+    private var spoken100 = false
     private var spoken50 = false
     private var spokenNow = false
     
@@ -104,15 +106,25 @@ object TTSManager {
             distanceToManeuver <= THRESHOLD_NEAR && !spoken50 -> {
                 phrase = "En 50 metros, $instruction"
                 spoken50 = true
-                spokenNow = true  // Marcar también "now" para evitar repetir
+                spokenNow = true
                 Log.d(TAG, "FASE 2.4 - Umbral 50m alcanzado (dist=${distanceToManeuver.toInt()}m)")
+            }
+            
+            // Umbral PRÓXIMO (≤100m)
+            distanceToManeuver <= THRESHOLD_CLOSE && !spoken100 -> {
+                phrase = "En 100 metros, $instruction"
+                spoken100 = true
+                spoken50 = true
+                spokenNow = true
+                Log.d(TAG, "FASE 2.4 - Umbral 100m alcanzado (dist=${distanceToManeuver.toInt()}m)")
             }
             
             // Umbral MEDIO (≤200m)
             distanceToManeuver <= THRESHOLD_MEDIUM && !spoken200 -> {
                 phrase = "En 200 metros, $instruction"
                 spoken200 = true
-                spoken50 = true    // Marcar umbrales más cercanos
+                spoken100 = true
+                spoken50 = true
                 spokenNow = true
                 Log.d(TAG, "FASE 2.4 - Umbral 200m alcanzado (dist=${distanceToManeuver.toInt()}m)")
             }
@@ -121,7 +133,8 @@ object TTSManager {
             distanceToManeuver <= THRESHOLD_FAR && !spoken500 -> {
                 phrase = "En 500 metros, $instruction"
                 spoken500 = true
-                spoken200 = true   // Marcar todos los umbrales más cercanos
+                spoken200 = true
+                spoken100 = true
                 spoken50 = true
                 spokenNow = true
                 Log.d(TAG, "FASE 2.4 - Umbral 500m alcanzado (dist=${distanceToManeuver.toInt()}m)")
@@ -199,6 +212,7 @@ object TTSManager {
         // FASE 1.3: Resetear flags nuevos
         spoken500 = false
         spoken200 = false
+        spoken100 = false
         spoken50 = false
         spokenNow = false
         lastInstruction = null

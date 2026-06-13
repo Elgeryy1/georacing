@@ -146,6 +146,7 @@ struct AnyEncodable: Encodable {
         
         switch value {
         case let int as Int: try container.encode(int)
+        case let i64 as Int64: try container.encode(i64)
         case let double as Double: try container.encode(double)
         case let string as String: try container.encode(string)
         case let bool as Bool: try container.encode(bool)

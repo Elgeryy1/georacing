@@ -28,7 +28,10 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.georacing.georacing.car.PoiRepository as CarPoiRepository
 import com.georacing.georacing.car.PoiType
+import com.georacing.georacing.data.event.isRouteEnabled
+import com.georacing.georacing.data.event.labelForRoute
 import com.georacing.georacing.ui.navigation.Screen
+import com.georacing.georacing.ui.theme.LocalActiveEventConfig
 
 private data class SearchResult(
     val title: String,
@@ -46,11 +49,12 @@ private data class Quad<A, B, C, D>(val first: A, val second: B, val third: C, v
 fun SearchScreen(navController: NavController) {
     var query by remember { mutableStateOf("") }
     val focusRequester = remember { FocusRequester() }
+    val activeEvent = LocalActiveEventConfig.current
 
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
 
     // Searchable items: combinación de POIs reales + funcionalidades de la app
-    val allItems = remember {
+    val allItems = remember(activeEvent) {
         // POIs reales del Circuit de Barcelona-Catalunya (coordenadas GPS verificadas)
         val poiItems = CarPoiRepository.getAllPois().map { poi ->
             val (icon, color, route, category) = when (poi.type) {
@@ -72,11 +76,15 @@ fun SearchScreen(navController: NavController) {
             SearchResult("Momentos", "Galería de fotos del evento", Icons.Default.CameraAlt, Color(0xFFEC4899), Screen.Moments.route, "Experiencia"),
             SearchResult("ClimaSmart", "Tiempo y recomendaciones", Icons.Default.WbSunny, Color(0xFFFFA726), Screen.ClimaSmart.route, "Experiencia"),
             SearchResult("Mi Grupo", "Compartir ubicación con amigos", Icons.Default.Groups, Color(0xFF6366F1), Screen.Group.route, "Social"),
-            SearchResult("Alertas", "Noticias y avisos del circuito", Icons.Default.Notifications, Color(0xFFEF4444), Screen.Alerts.route, "Social"),
+            SearchResult("Race Control", "Banderas y avisos del evento", Icons.Default.Notifications, Color(0xFFEF4444), Screen.Alerts.route, "Social"),
             SearchResult("Restaurantes", "Comida y bebida del circuito", Icons.Default.Restaurant, Color(0xFFFF6B2C), Screen.Orders.route, "Comida"),
         )
 
-        poiItems + appFeatures
+        val eventAwareAppFeatures = appFeatures
+            .filter { item -> activeEvent.isRouteEnabled(item.route) }
+            .map { item -> item.copy(title = activeEvent.labelForRoute(item.route, item.title).replace("ñ", "n")) }
+
+        poiItems + eventAwareAppFeatures
     }
 
     val filteredItems = remember(query) {
@@ -87,13 +95,14 @@ fun SearchScreen(navController: NavController) {
     }
 
     val recentSearches = remember { listOf("Parking", "Puerta", "Mapa", "Grupo") }
-    val quickAccess = remember {
+    val quickAccess = remember(activeEvent) {
         listOf(
             SearchResult("Emergencia", "Punto médico más cercano", Icons.Default.LocalHospital, Color(0xFFEF4444), Screen.PoiList.route, "Rápido"),
             SearchResult("Mapa", "Plano interactivo", Icons.Default.Map, Color(0xFF3B82F6), Screen.Map.route, "Rápido"),
             SearchResult("Mi Parking", "Dónde aparqué", Icons.Default.LocalParking, Color(0xFF8B8B97), Screen.Parking.route, "Rápido"),
             SearchResult("Comida", "Restaurantes y bares", Icons.Default.Restaurant, Color(0xFFFF6B2C), Screen.Orders.route, "Rápido")
-        )
+        ).filter { item -> activeEvent.isRouteEnabled(item.route) }
+            .map { item -> item.copy(title = activeEvent.labelForRoute(item.route, item.title).replace("ñ", "n")) }
     }
 
     Scaffold(
@@ -102,7 +111,7 @@ fun SearchScreen(navController: NavController) {
                 title = {
                     TextField(
                         value = query, onValueChange = { query = it },
-                        placeholder = { Text("Buscar en el circuito...", color = Color(0xFF64748B)) },
+                        placeholder = { Text("Buscar puerta, grada o fan zone...", color = Color(0xFF64748B)) },
                         singleLine = true,
                         colors = TextFieldDefaults.colors(
                             focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent,

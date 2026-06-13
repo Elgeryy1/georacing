@@ -61,8 +61,8 @@ fun Modifier.liquidGlass(
     }
     
     // Surface color con tinte azulado para profundidad
-    val surfaceColor = AsphaltGrey.copy(alpha = baseAlpha)
-    val highlightColor = accentGlow ?: NeonCyan
+    val surfaceColor = Color(0xFF14141C).copy(alpha = baseAlpha)
+    val highlightColor = accentGlow ?: Color.White
     
     this
         .background(

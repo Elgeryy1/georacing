@@ -3,58 +3,37 @@ package com.georacing.georacing.car
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.LinearGradient
 import android.graphics.Paint
+import android.graphics.Path
 import android.graphics.Rect
 import android.graphics.RectF
+import android.graphics.Shader
 import android.graphics.Typeface
 
 /**
- * HUD (Heads-Up Display) para mostrar información de navegación en el mapa.
- * 
- * Muestra:
- * - Velocidad actual y límite de velocidad
- * - Próxima instrucción con distancia
- * - Tiempo estimado de llegada
- * 
- * Se dibuja como un overlay en la esquina superior del mapa.
+ * Premium HUD overlay for GeoRacing Android Auto.
+ * Fully opaque dark panel, compact layout, automotive-grade readability.
  */
 class NavigationHUD {
     
-    private val paint = Paint().apply {
-        isAntiAlias = true
+    // ── Colors ────────────────────────────────────────────
+    private val PANEL_BG       = Color.parseColor("#FF0C1020")  // Fully opaque dark
+    private val PANEL_BG_INNER = Color.parseColor("#FF101628")  // Slightly lighter inner
+    private val ACCENT_CYAN    = Color.parseColor("#00E5FF")
+    private val ACCENT_DIM     = Color.parseColor("#33007088")  // Very subtle cyan tint
+    private val TEXT_WHITE     = Color.parseColor("#F0F2F5")
+    private val TEXT_UNIT      = Color.parseColor("#6B7A8D")
+    private val TEXT_SECONDARY = Color.parseColor("#7A8899")
+    private val SPEED_OVER     = Color.parseColor("#FF3B4F")
+    private val ETA_GREEN      = Color.parseColor("#4ADE80")
+    private val DIVIDER_COLOR  = Color.parseColor("#18FFFFFF")
+    private val LIMIT_RED      = Color.parseColor("#E53935")
+    
+    private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         textAlign = Paint.Align.LEFT
     }
-    
-    private val backgroundPaint = Paint().apply {
-        color = Color.parseColor("#DD000000") // Negro semi-transparente
-        style = Paint.Style.FILL
-        isAntiAlias = true
-    }
-    
-    private val accentPaint = Paint().apply {
-        color = Color.parseColor("#4285F4") // Azul Google
-        style = Paint.Style.FILL
-        isAntiAlias = true
-    }
-    
-    private val warningPaint = Paint().apply {
-        color = Color.parseColor("#EA4335") // Rojo Google
-        style = Paint.Style.FILL
-        isAntiAlias = true
-    }
-    
-    /**
-     * Dibuja el HUD en un bitmap que luego se puede superponer en el mapa.
-     * 
-     * @param width Ancho del canvas
-     * @param height Alto del canvas
-     * @param currentSpeedKmh Velocidad actual en km/h
-     * @param speedLimitKmh Límite de velocidad (null si no disponible)
-     * @param nextInstruction Próxima instrucción de navegación
-     * @param distanceToManeuver Distancia a la próxima maniobra en metros
-     * @param etaMinutes ETA en minutos
-     * @return Bitmap con el HUD dibujado
-     */
+
     fun createHUDBitmap(
         width: Int,
         height: Int,
@@ -63,169 +42,180 @@ class NavigationHUD {
         nextInstruction: String,
         distanceToManeuver: Double,
         etaMinutes: Int,
-        arrowSymbol: String = "↑" // Default straight
+        arrowSymbol: String = "↑"
     ): Bitmap {
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         
-        // Ajustar dimensiones para HUD más compacto
-        val padding = 8f
-        val hudWidth = width.toFloat() - (padding * 2)
-        val hudHeight = height.toFloat() - (padding * 2)
-        
-        // Posición: esquina superior izquierda
-        val left = padding
-        val top = padding
-        val right = left + hudWidth
-        val bottom = top + hudHeight
-        
-        // Fondo redondeado más compacto
+        val pad = 6f
+        val left = pad
+        val top = pad
+        val right = width - pad
+        val bottom = height - pad
         val rect = RectF(left, top, right, bottom)
-        canvas.drawRoundRect(rect, 12f, 12f, backgroundPaint)
+        val radius = 14f
         
-        // Línea superior azul (acento) más delgada
-        val accentRect = RectF(left, top, right, top + 4f)
-        canvas.drawRoundRect(accentRect, 12f, 12f, accentPaint)
+        // ── 1. Solid dark background ──────────────────────
+        val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = PANEL_BG
+            style = Paint.Style.FILL
+        }
+        canvas.drawRoundRect(rect, radius, radius, bgPaint)
         
-        var yPos = top + 24f
+        // Subtle inner gradient (slightly lighter at top)
+        val innerRect = RectF(left + 1f, top + 1f, right - 1f, bottom - 1f)
+        val gradPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            shader = LinearGradient(
+                0f, top, 0f, bottom,
+                Color.parseColor("#14FFFFFF"), Color.parseColor("#00000000"),
+                Shader.TileMode.CLAMP
+            )
+        }
+        canvas.drawRoundRect(innerRect, radius, radius, gradPaint)
         
-        // 1. VELOCÍMETRO (más compacto)
-        drawSpeedometer(canvas, left + 12f, yPos, currentSpeedKmh, speedLimitKmh)
+        // Thin border
+        val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.parseColor("#1AFFFFFF")
+            style = Paint.Style.STROKE
+            strokeWidth = 1f
+        }
+        canvas.drawRoundRect(rect, radius, radius, borderPaint)
         
-        yPos += 50f
+        // ── 2. Thin accent line at top ────────────────────
+        val accentPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            shader = LinearGradient(
+                left + 20f, top, right - 20f, top,
+                ACCENT_CYAN, Color.parseColor("#0066CC"),
+                Shader.TileMode.CLAMP
+            )
+        }
+        canvas.drawRoundRect(
+            RectF(left + 20f, top + 1.5f, right - 20f, top + 3.5f),
+            2f, 2f, accentPaint
+        )
         
-        // 2. PRÓXIMA INSTRUCCIÓN (compacta)
-        drawNextInstruction(canvas, left + 12f, yPos, nextInstruction, distanceToManeuver, arrowSymbol)
+        // ── Layout positions ──────────────────────────────
+        var y = top + 22f
+        val xLeft = left + 14f
+        val contentWidth = right - left - 28f
         
-        yPos += 35f
+        // ── 3. SPEED ROW ─────────────────────────────────
+        val isOver = speedLimitKmh != null && currentSpeedKmh > speedLimitKmh
         
-        // 3. ETA (compacta)
-        drawETA(canvas, left + 20f, yPos, etaMinutes)
+        // Speed number
+        textPaint.apply {
+            color = if (isOver) SPEED_OVER else TEXT_WHITE
+            textSize = 38f
+            typeface = Typeface.create("sans-serif-condensed", Typeface.BOLD)
+            textAlign = Paint.Align.LEFT
+        }
+        canvas.drawText("$currentSpeedKmh", xLeft, y + 30f, textPaint)
+        
+        // "km/h" label next to speed
+        val speedW = textPaint.measureText("$currentSpeedKmh")
+        textPaint.apply {
+            color = TEXT_UNIT
+            textSize = 12f
+            typeface = Typeface.create("sans-serif", Typeface.NORMAL)
+        }
+        canvas.drawText("km/h", xLeft + speedW + 4f, y + 30f, textPaint)
+        
+        // Speed limit badge (compact, right-aligned)
+        if (speedLimitKmh != null) {
+            val badgeX = right - 46f
+            val badgeY = y + 16f
+            val badgeR = 16f
+            
+            // Red ring
+            val ringP = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                style = Paint.Style.STROKE
+                strokeWidth = 3f
+                color = LIMIT_RED
+            }
+            canvas.drawCircle(badgeX, badgeY, badgeR, ringP)
+            
+            // White fill
+            val fillP = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                style = Paint.Style.FILL
+                color = Color.WHITE
+            }
+            canvas.drawCircle(badgeX, badgeY, badgeR - 3f, fillP)
+            
+            // Number
+            textPaint.apply {
+                color = Color.parseColor("#222222")
+                textSize = 14f
+                typeface = Typeface.create("sans-serif-condensed", Typeface.BOLD)
+                textAlign = Paint.Align.CENTER
+            }
+            canvas.drawText("$speedLimitKmh", badgeX, badgeY + 5f, textPaint)
+            textPaint.textAlign = Paint.Align.LEFT
+        }
+        
+        y += 42f
+        
+        // ── 4. Divider ───────────────────────────────────
+        val divP = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = DIVIDER_COLOR
+        }
+        canvas.drawRect(xLeft, y, right - 14f, y + 1f, divP)
+        y += 10f
+        
+        // ── 5. MANEUVER ROW ──────────────────────────────
+        // Arrow icon
+        textPaint.apply {
+            color = ACCENT_CYAN
+            textSize = 20f
+            typeface = Typeface.DEFAULT_BOLD
+        }
+        canvas.drawText(arrowSymbol, xLeft, y + 14f, textPaint)
+        
+        // Distance
+        textPaint.apply {
+            color = TEXT_WHITE
+            textSize = 16f
+            typeface = Typeface.create("sans-serif", Typeface.BOLD)
+        }
+        canvas.drawText(formatDistance(distanceToManeuver), xLeft + 26f, y + 14f, textPaint)
+        
+        // Instruction (truncated)
+        textPaint.apply {
+            color = TEXT_SECONDARY
+            textSize = 11f
+            typeface = Typeface.create("sans-serif", Typeface.NORMAL)
+        }
+        val maxW = contentWidth - 30f
+        val truncInstr = ellipsize(nextInstruction, textPaint, maxW)
+        canvas.drawText(truncInstr, xLeft + 26f, y + 28f, textPaint)
+        
+        y += 36f
+        
+        // ── 6. ETA ROW ───────────────────────────────────
+        // Green dot
+        val dotP = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = ETA_GREEN
+            style = Paint.Style.FILL
+        }
+        canvas.drawCircle(xLeft + 5f, y + 4f, 3f, dotP)
+        
+        textPaint.apply {
+            color = ETA_GREEN
+            textSize = 13f
+            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+        }
+        val etaStr = if (etaMinutes < 60) "$etaMinutes min" else "${etaMinutes / 60}h ${etaMinutes % 60}min"
+        canvas.drawText("ETA $etaStr", xLeft + 16f, y + 9f, textPaint)
         
         return bitmap
     }
     
-    private fun drawSpeedometer(
-        canvas: Canvas,
-        x: Float,
-        y: Float,
-        currentSpeed: Int,
-        speedLimit: Int?
-    ) {
-        // Velocidad actual (más pequeña para HUD compacto)
-        paint.apply {
-            color = if (speedLimit != null && currentSpeed > speedLimit) {
-                Color.parseColor("#EA4335") // Rojo si excede
-            } else {
-                Color.WHITE
-            }
-            textSize = 36f  // Reducido de 48f
-            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+    private fun ellipsize(text: String, paint: Paint, maxWidth: Float): String {
+        if (paint.measureText(text) <= maxWidth) return text
+        for (i in text.length downTo 1) {
+            val candidate = text.substring(0, i) + "…"
+            if (paint.measureText(candidate) <= maxWidth) return candidate
         }
-        canvas.drawText("$currentSpeed", x, y, paint)
-        
-        // "km/h" pequeño
-        paint.apply {
-            color = Color.parseColor("#9AA0A6")
-            textSize = 14f  // Reducido de 18f
-            typeface = Typeface.DEFAULT
-        }
-        val speedWidth = paint.measureText("$currentSpeed")
-        canvas.drawText("km/h", x + speedWidth + 6f, y, paint)
-        
-        // Límite de velocidad (círculo rojo más pequeño)
-        if (speedLimit != null) {
-            val limitX = x + 140f  // Más cerca
-            val limitY = y - 20f   // Más cerca
-            
-            // Círculo rojo exterior más pequeño
-            paint.apply {
-                color = Color.parseColor("#EA4335")
-                style = Paint.Style.STROKE
-                strokeWidth = 4f  // Más delgado
-            }
-            canvas.drawCircle(limitX, limitY, 22f, paint)  // Más pequeño
-            
-            // Fondo blanco interior
-            paint.apply {
-                color = Color.WHITE
-                style = Paint.Style.FILL
-            }
-            canvas.drawCircle(limitX, limitY, 18f, paint)
-            
-            // Número del límite
-            paint.apply {
-                color = Color.BLACK
-                textSize = 16f  // Reducido de 20f
-                typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-                textAlign = Paint.Align.CENTER
-            }
-            canvas.drawText("$speedLimit", limitX, limitY + 8f, paint)
-            
-            // Resetear alineación
-            paint.textAlign = Paint.Align.LEFT
-        }
-    }
-    
-    private fun drawNextInstruction(
-        canvas: Canvas,
-        x: Float,
-        y: Float,
-        instruction: String,
-        distance: Double,
-        arrowSymbol: String
-    ) {
-        // Icono de flecha más pequeño
-        paint.apply {
-            color = Color.parseColor("#4285F4")
-            textSize = 18f  // Reducido de 24f
-            typeface = Typeface.DEFAULT_BOLD
-        }
-        canvas.drawText(arrowSymbol, x, y, paint)
-        
-        // Distancia más compacta
-        paint.apply {
-            color = Color.WHITE
-            textSize = 16f  // Reducido de 20f
-            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-        }
-        val distText = formatDistance(distance)
-        canvas.drawText(distText, x + 28f, y, paint)
-        
-        // Instrucción más corta para espacio reducido
-        paint.apply {
-            color = Color.parseColor("#E8EAED")
-            textSize = 13f  // Reducido de 16f
-            typeface = Typeface.DEFAULT
-        }
-        val truncatedInstruction = if (instruction.length > 25) {  // Más corto
-            instruction.substring(0, 22) + "..."
-        } else {
-            instruction
-        }
-        canvas.drawText(truncatedInstruction, x + 28f, y + 18f, paint)  // Menos espacio
-    }
-    
-    private fun drawETA(canvas: Canvas, x: Float, y: Float, etaMinutes: Int) {
-        paint.apply {
-            color = Color.parseColor("#34A853") // Verde Google
-            textSize = 13f  // Reducido de 16f
-            typeface = Typeface.DEFAULT
-        }
-        canvas.drawText("⏱", x, y, paint)
-        
-        paint.apply {
-            color = Color.parseColor("#E8EAED")
-            textSize = 16f
-        }
-        val etaText = if (etaMinutes < 60) {
-            "$etaMinutes min"
-        } else {
-            val hours = etaMinutes / 60
-            val mins = etaMinutes % 60
-            "${hours}h ${mins}min"
-        }
-        canvas.drawText("ETA: $etaText", x + 30f, y, paint)
+        return "…"
     }
     
     private fun formatDistance(meters: Double): String {

@@ -120,7 +120,7 @@ fun WrappedScreen(
     Box(Modifier.fillMaxSize()) {
         CarbonBackground()
 
-        Column(Modifier.fillMaxSize()) {
+        Column(Modifier.fillMaxSize().statusBarsPadding()) {
             // ── Premium LiquidTopBar ──
             LiquidTopBar(
                 backdrop = backdrop,

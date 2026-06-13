@@ -100,7 +100,7 @@ class MapStyleManager(private val context: Context) {
         const val IMAGE_PARKING = "img-parking"
         const val IMAGE_GATE = "img-gate"
         
-        // Hazard Icons for Waze-style
+        // Hazard Icons
         const val IMAGE_HAZARD_POLICE = "img-hazard-police"
         const val IMAGE_HAZARD_CONSTRUCTION = "img-hazard-construction"
         const val IMAGE_HAZARD_TRAFFIC = "img-hazard-traffic"
@@ -111,23 +111,34 @@ class MapStyleManager(private val context: Context) {
         const val LAYER_HAZARDS = "hazards-layer"
         const val SOURCE_RACERS = "racers-source"
         const val LAYER_RACERS = "racers-layer"
+        
+        // Glowing route layer IDs
+        const val LAYER_ROUTE_GLOW = "route-glow-layer"
+        const val LAYER_ROUTE_OUTER = "route-outer-layer"
     }
     
     // =============================================
-    // WAZE CARTOON STYLE (Purple Roads, Wide Lines)
+    // GEORACING PREMIUM STYLE (Dark Satellite + Neon Routes)
     // =============================================
     fun buildWazeStyleJson(): String {
-        // Custom cartoon style with saturated colors
+        // Premium dark satellite base with desaturated overlay
         return """
         {
           "version": 8,
-          "name": "GeoRacing Waze Style",
+          "name": "GeoRacing Premium Dark",
           "sources": {
-            "carto-tiles": {
+            "esri-satellite": {
               "type": "raster",
-              "tiles": ["https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png"],
+              "tiles": [
+                "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+              ],
               "tileSize": 256,
-              "attribution": "© CARTO, © OpenStreetMap"
+              "attribution": "© Esri, Maxar, Earthstar Geographics"
+            },
+            "carto-labels": {
+              "type": "raster",
+              "tiles": ["https://a.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}.png"],
+              "tileSize": 256
             }
           },
           "layers": [
@@ -135,18 +146,30 @@ class MapStyleManager(private val context: Context) {
               "id": "background",
               "type": "background",
               "paint": {
-                "background-color": "#F0F4F8"
+                "background-color": "#080B14"
               }
             },
             {
-              "id": "carto-tiles",
+              "id": "satellite-tiles",
               "type": "raster",
-              "source": "carto-tiles",
+              "source": "esri-satellite",
               "minzoom": 0,
               "maxzoom": 20,
               "paint": {
-                "raster-saturation": 0.3,
-                "raster-brightness-max": 1.0
+                "raster-saturation": -0.3,
+                "raster-brightness-max": 0.7,
+                "raster-brightness-min": 0.05,
+                "raster-contrast": 0.15
+              }
+            },
+            {
+              "id": "labels-overlay",
+              "type": "raster",
+              "source": "carto-labels",
+              "minzoom": 0,
+              "maxzoom": 20,
+              "paint": {
+                "raster-opacity": 0.85
               }
             }
           ]
@@ -155,23 +178,51 @@ class MapStyleManager(private val context: Context) {
     }
     
     /**
-     * Applies Waze-style cartoon layers with purple routes
+     * Applies premium dark layers with glowing neon blue routes
      */
     fun applyWazeLayers(style: Style) {
         addImages(style)
         addHazardImages(style)
 
-        // Route Line (Purple/Magenta - Waze style, WIDER)
+        // ── Route Lines: 3-layer glow effect (outer glow → mid → bright core) ──
         if (style.getSource(SOURCE_ROUTE) == null) {
             style.addSource(GeoJsonSource(SOURCE_ROUTE))
         }
-        if (style.getLayer(LAYER_ROUTE) == null) {
-            val routeLayer = LineLayer(LAYER_ROUTE, SOURCE_ROUTE).withProperties(
-                PropertyFactory.lineColor("#C07AF0"), // Purple/Magenta
-                PropertyFactory.lineWidth(12f), // MUCH WIDER for car legibility
+        
+        // Layer 1: Wide soft glow (outermost)
+        if (style.getLayer(LAYER_ROUTE_GLOW) == null) {
+            val glowLayer = LineLayer(LAYER_ROUTE_GLOW, SOURCE_ROUTE).withProperties(
+                PropertyFactory.lineColor("#00A0FF"),
+                PropertyFactory.lineWidth(22f),
                 PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
                 PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
-                PropertyFactory.lineOpacity(0.9f)
+                PropertyFactory.lineOpacity(0.20f),
+                PropertyFactory.lineBlur(8f)
+            )
+            style.addLayer(glowLayer)
+        }
+        
+        // Layer 2: Medium glow
+        if (style.getLayer(LAYER_ROUTE_OUTER) == null) {
+            val outerLayer = LineLayer(LAYER_ROUTE_OUTER, SOURCE_ROUTE).withProperties(
+                PropertyFactory.lineColor("#00C8FF"),
+                PropertyFactory.lineWidth(14f),
+                PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
+                PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
+                PropertyFactory.lineOpacity(0.45f),
+                PropertyFactory.lineBlur(3f)
+            )
+            style.addLayer(outerLayer)
+        }
+        
+        // Layer 3: Bright core (topmost)
+        if (style.getLayer(LAYER_ROUTE) == null) {
+            val routeLayer = LineLayer(LAYER_ROUTE, SOURCE_ROUTE).withProperties(
+                PropertyFactory.lineColor("#00F0FF"), // Neon Cyan core
+                PropertyFactory.lineWidth(6f),
+                PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
+                PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
+                PropertyFactory.lineOpacity(0.95f)
             )
             style.addLayer(routeLayer)
         }
@@ -260,17 +311,40 @@ class MapStyleManager(private val context: Context) {
         // 1. Add Images
         addImages(style)
 
-        // 2. Route Line (Neon Cyan)
+        // 2. Route Line with glow effect (3-layer)
         if (style.getSource(SOURCE_ROUTE) == null) {
             style.addSource(GeoJsonSource(SOURCE_ROUTE))
         }
+        // Outer glow
+        if (style.getLayer(LAYER_ROUTE_GLOW) == null) {
+            style.addLayer(LineLayer(LAYER_ROUTE_GLOW, SOURCE_ROUTE).withProperties(
+                PropertyFactory.lineColor("#00A0FF"),
+                PropertyFactory.lineWidth(18f),
+                PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
+                PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
+                PropertyFactory.lineOpacity(0.18f),
+                PropertyFactory.lineBlur(6f)
+            ))
+        }
+        // Mid glow
+        if (style.getLayer(LAYER_ROUTE_OUTER) == null) {
+            style.addLayer(LineLayer(LAYER_ROUTE_OUTER, SOURCE_ROUTE).withProperties(
+                PropertyFactory.lineColor("#00C8FF"),
+                PropertyFactory.lineWidth(10f),
+                PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
+                PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
+                PropertyFactory.lineOpacity(0.40f),
+                PropertyFactory.lineBlur(2f)
+            ))
+        }
+        // Bright core
         if (style.getLayer(LAYER_ROUTE) == null) {
             val routeLayer = LineLayer(LAYER_ROUTE, SOURCE_ROUTE).withProperties(
-                PropertyFactory.lineColor("#00E5FF"), // Neon Cyan
+                PropertyFactory.lineColor("#00F0FF"), // Neon Cyan core
                 PropertyFactory.lineWidth(5f),
                 PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
                 PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
-                PropertyFactory.lineOpacity(1.0f)
+                PropertyFactory.lineOpacity(0.95f)
             )
             style.addLayer(routeLayer)
         }

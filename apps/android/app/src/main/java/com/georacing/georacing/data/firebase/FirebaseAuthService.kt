@@ -57,7 +57,7 @@ class FirebaseAuthService {
      * Login anónimo - SOLO PARA TESTING/DEBUG
      * En producción, los usuarios DEBEN usar Google Sign-In
      */
-    suspend fun signInAnonymously(): Result<FirebaseUser> {
+    internal suspend fun signInAnonymously(): Result<FirebaseUser> {
         return try {
             val result = auth.signInAnonymously().await()
             val user = result.user

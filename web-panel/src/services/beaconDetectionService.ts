@@ -14,12 +14,21 @@ export const beaconDetectionService = {
     const interval = setInterval(async () => {
       try {
         const beacons = await api.get<Beacon>("beacons", { mode: "UNCONFIGURED" });
-        const newBeacons: NewBeaconDetected[] = beacons.filter(b => !lastIds.has(b.beaconId)).map(b => ({
-          beaconId: b.beaconId,
-          firstSeen: b.lastSeen || b.createdAt,
-          lastSeen: b.lastSeen || undefined,
-          online: b.online ?? undefined
-        }));
+        // La API cruda devuelve beacon_uid (no beaconId): normalizamos el identificador
+        const newBeacons: NewBeaconDetected[] = beacons
+          .filter(b => {
+            const uid = (b as any).beacon_uid ?? b.beaconId;
+            return !!uid && !lastIds.has(uid);
+          })
+          .map(b => {
+            const uid = (b as any).beacon_uid ?? b.beaconId;
+            return {
+              beaconId: uid,
+              firstSeen: b.lastSeen || (b as any).last_heartbeat || b.createdAt || (b as any).created_at,
+              lastSeen: b.lastSeen || (b as any).last_heartbeat || undefined,
+              online: b.online ?? undefined
+            };
+          });
         if (newBeacons.length > 0) {
           newBeacons.forEach(b => lastIds.add(b.beaconId));
           callback(newBeacons);
@@ -34,9 +43,10 @@ export const beaconDetectionService = {
       try {
         const beacons = await api.get<Beacon>("beacons", { mode: "UNCONFIGURED" });
         beacons.forEach(b => {
-          if (!notified.has(b.beaconId)) {
-            notified.add(b.beaconId);
-            onNewBeacon(b.beaconId, b);
+          const uid = (b as any).beacon_uid ?? b.beaconId;
+          if (uid && !notified.has(uid)) {
+            notified.add(uid);
+            onNewBeacon(uid, b);
           }
         });
       } catch { }

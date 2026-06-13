@@ -26,21 +26,19 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.navigation.NavController
 import com.georacing.georacing.car.MapStyleManager
+import com.georacing.georacing.data.event.isMapLayerEnabled
+import com.georacing.georacing.data.event.isRouteEnabled
+import com.georacing.georacing.data.event.labelForMapLayer
+import com.georacing.georacing.data.event.labelForRoute
 import com.georacing.georacing.data.local.UserPreferencesDataStore
 import com.georacing.georacing.domain.model.Confidence
 import com.georacing.georacing.domain.model.NodeType
 import com.georacing.georacing.domain.repository.BeaconsRepository
 import com.georacing.georacing.ui.components.Sidebar
-import com.georacing.georacing.ui.components.menu.SideMenuContent
 import com.georacing.georacing.ui.navigation.Screen
 import com.georacing.georacing.ui.theme.*
 import com.google.gson.Gson
 import com.google.gson.JsonObject
-
-import com.georacing.georacing.ui.glass.LiquidCard
-import com.georacing.georacing.ui.glass.LiquidPill
-import com.georacing.georacing.ui.glass.LocalBackdrop
-import com.kyant.backdrop.Backdrop
 
 // Racing Dark Theme Colors
 private val RacingAccent = Color(0xFF06B6D4)    // NeonCyan
@@ -59,7 +57,7 @@ data class CategoryChip(
     val type: NodeType?
 )
 
-private val categoryChips = listOf(
+private val defaultCategoryChips = listOf(
     CategoryChip("🍔", "Comida", NodeType.FOOD),
     CategoryChip("🚻", "Baños", NodeType.RESTROOM),
     CategoryChip("👕", "Merch", NodeType.MERCHANDISE),
@@ -85,8 +83,6 @@ fun MapScreen(
     val selectedType by viewModel.selectedType.collectAsState()
     val visibleNodes by viewModel.visibleNodes.collectAsState()
     var isSidebarOpen by remember { mutableStateOf(false) }
-    var mapError by remember { mutableStateOf<String?>(null) }
-    val snackbarHostState = remember { SnackbarHostState() }
 
     // Map Lifecycle & Context
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -137,7 +133,6 @@ fun MapScreen(
                 source?.setGeoJson(featureCollection)
             } catch (e: Exception) {
                 e.printStackTrace()
-                mapError = "Error al cargar los POIs: ${e.localizedMessage}"
             }
         }
     }
@@ -164,15 +159,6 @@ fun MapScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    // Show map errors via Snackbar
-    LaunchedEffect(mapError) {
-        mapError?.let {
-            snackbarHostState.showSnackbar(it)
-            mapError = null
-        }
-    }
-
-    Box(modifier = Modifier.fillMaxSize()) {
     GoogleMapsStyleContent(
         selectedType = selectedType,
         onFilterSelect = { viewModel.filterNodes(it) },
@@ -199,7 +185,7 @@ fun MapScreen(
                 )
             }
         },
-        onSearchClick = { /* TODO: Open search */ },
+        onSearchClick = { navController.navigate(Screen.Search.route) },
         isSidebarOpen = isSidebarOpen,
         onSidebarClose = { isSidebarOpen = false },
         navController = navController,
@@ -224,10 +210,7 @@ fun MapScreen(
                                 val geoJson = context.assets.open("circuit_routes.geojson").bufferedReader().use { it.readText() }
                                 val source = style.getSourceAs<org.maplibre.android.style.sources.GeoJsonSource>(MapStyleManager.SOURCE_ROUTE)
                                 source?.setGeoJson(geoJson)
-                            } catch (e: Exception) {
-                                e.printStackTrace()
-                                mapError = "Error al cargar las rutas del circuito: ${e.localizedMessage}"
-                            }
+                            } catch (e: Exception) { e.printStackTrace() }
                             
                             if (permissionsState.allPermissionsGranted) {
                                 val locationComponent = map.locationComponent
@@ -300,28 +283,10 @@ fun MapScreen(
                 }
             }
 
-            val trafficRepository = remember { com.georacing.georacing.data.repository.NetworkTrafficRepository() }
-            val heatPoints by produceState(initialValue = emptyList<com.georacing.georacing.data.repository.HeatPoint>()) {
-                trafficRepository.observeZoneTraffic(15000).collect { zones ->
-                    value = trafficRepository.getHeatPointsFromZones(zones)
-                }
-            }
-            
-            com.georacing.georacing.ui.components.map.CrowdHeatmapOverlay(
-                heatPoints = heatPoints,
-                cameraPositionLatitude = 41.5695,
-                cameraPositionLongitude = 2.2541,
-                zoomLevel = 16f
-            )
+            // CrowdHeatmapOverlay disabled — fake data removed
         },
         permissionsGranted = permissionsState.allPermissionsGranted
     )
-
-    SnackbarHost(
-        hostState = snackbarHostState,
-        modifier = Modifier.align(Alignment.BottomCenter)
-    )
-    } // end Box
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -339,9 +304,19 @@ fun GoogleMapsStyleContent(
     mapContent: @Composable () -> Unit,
     permissionsGranted: Boolean
 ) {
+    val activeEvent = LocalActiveEventConfig.current
     // Bottom sheet state
     var selectedPlace by remember { mutableStateOf<String?>(null) }
-    val backdrop = LocalBackdrop.current
+    val categoryChips = remember(activeEvent) {
+        defaultCategoryChips.mapNotNull { chip ->
+            val key = chip.type?.name ?: return@mapNotNull chip
+            if (!activeEvent.isMapLayerEnabled(key)) {
+                null
+            } else {
+                chip.copy(label = activeEvent.labelForMapLayer(key, chip.label).replace("ñ", "n"))
+            }
+        }
+    }
     
     Box(modifier = Modifier.fillMaxSize()) {
         
@@ -355,19 +330,21 @@ fun GoogleMapsStyleContent(
             // =============================================
             // TOP: Floating Search Pill
             // =============================================
-            LiquidPill(
-                backdrop = backdrop,
+            Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .statusBarsPadding()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                surfaceColor = SearchBarBg.copy(alpha = 0.5f)
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .shadow(4.dp, RoundedCornerShape(28.dp)),
+                shape = RoundedCornerShape(28.dp),
+                colors = CardDefaults.cardColors(containerColor = SearchBarBg),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { onSearchClick() }
-                        .padding(horizontal = 4.dp, vertical = 2.dp),
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     // Menu Icon
@@ -381,7 +358,7 @@ fun GoogleMapsStyleContent(
                     
                     // Search Text
                     Text(
-                        text = "Buscar en el Circuit...",
+                        text = "Buscar puerta, grada o fan zone...",
                         color = SubtleGray,
                         style = MaterialTheme.typography.bodyLarge,
                         modifier = Modifier
@@ -421,25 +398,33 @@ fun GoogleMapsStyleContent(
                 items(categoryChips) { chip ->
                     val isSelected = selectedType == chip.type
                     
-                    LiquidPill(
-                        backdrop = backdrop,
-                        modifier = Modifier.clickable { onFilterSelect(if (isSelected) null else chip.type) },
-                        surfaceColor = if (isSelected) RacingAccent.copy(alpha = 0.2f) else ChipBg.copy(alpha = 0.5f),
-                        tint = if (isSelected) RacingAccent else Color.Unspecified
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            modifier = Modifier.padding(vertical = 4.dp, horizontal = 4.dp)
-                        ) {
-                            Text(chip.emoji, fontSize = 14.sp)
-                            Text(
-                                chip.label,
-                                color = if (isSelected) Color.White else ChipText,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                            )
-                        }
-                    }
+                    FilterChip(
+                        selected = isSelected,
+                        onClick = { onFilterSelect(if (isSelected) null else chip.type) },
+                        label = {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(chip.emoji, fontSize = 14.sp)
+                                Text(
+                                    chip.label,
+                                    color = if (isSelected) RacingAccent else ChipText
+                                )
+                            }
+                        },
+                        colors = FilterChipDefaults.filterChipColors(
+                            containerColor = ChipBg,
+                            selectedContainerColor = ChipBgSelected
+                        ),
+                        border = FilterChipDefaults.filterChipBorder(
+                            borderColor = Color(0xFF2A2A3C),
+                            selectedBorderColor = RacingAccent,
+                            enabled = true,
+                            selected = isSelected
+                        ),
+                        shape = RoundedCornerShape(20.dp)
+                    )
                 }
             }
             
@@ -497,117 +482,156 @@ fun GoogleMapsStyleContent(
         // =============================================
         // BOTTOM SHEET: Place Info / Explore
         // =============================================
-        LiquidCard(
-            backdrop = backdrop,
+        Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .padding(bottom = 84.dp), // Prevent overlap with bottom nav bar
-            cornerRadius = 32.dp,
-            surfaceColor = SheetBg.copy(alpha = 0.65f)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 12.dp, bottom = 24.dp, start = 20.dp, end = 20.dp)
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+                colors = CardDefaults.cardColors(containerColor = SheetBg),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
             ) {
-                // Drag Handle
-                Box(
+                Column(
                     modifier = Modifier
-                        .width(40.dp)
-                        .height(4.dp)
-                        .clip(RoundedCornerShape(2.dp))
-                        .background(Color(0xFF2A2A3C))
-                        .align(Alignment.CenterHorizontally)
-                )
-                
-                Spacer(modifier = Modifier.height(20.dp))
-                
-                if (selectedPlace != null) {
-                    // Selected Place Info
-                    Text(
-                        selectedPlace!!,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        color = SearchBarText
-                    )
-                } else {
-                    // Explore Mode
-                    Text(
-                        "Explorar el Circuit",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Medium,
-                        color = SearchBarText
+                        .fillMaxWidth()
+                        .padding(top = 12.dp, bottom = 20.dp, start = 20.dp, end = 20.dp)
+                ) {
+                    // Drag Handle
+                    Box(
+                        modifier = Modifier
+                            .width(40.dp)
+                            .height(4.dp)
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(Color(0xFF2A2A3C))
+                            .align(Alignment.CenterHorizontally)
                     )
                     
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(20.dp))
                     
-                    Text(
-                        "Toca el mapa para ver información de los puntos de interés",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = SubtleGray
-                    )
-                    
-                    Spacer(modifier = Modifier.height(16.dp))
-                    
-                    // Quick Actions Row
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        QuickActionButton(
-                            backdrop = backdrop,
-                            icon = Icons.Default.Navigation,
-                            label = "Navegar",
-                            onClick = { navController.navigate(Screen.CircuitDestinations.route) },
-                            modifier = Modifier.weight(1f)
+                    if (selectedPlace != null) {
+                        // Selected Place Info
+                        Text(
+                            selectedPlace!!,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = SearchBarText
                         )
-                        QuickActionButton(
-                            backdrop = backdrop,
-                            icon = Icons.Default.DirectionsWalk,
-                            label = "A mi puerta",
-                            onClick = { navController.navigate(Screen.CircuitDestinations.route) },
-                            modifier = Modifier.weight(1f)
+                    } else {
+                        // Explore Mode
+                        Text(
+                            "Explorar el evento",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = SearchBarText
                         )
-                        QuickActionButton(
-                            backdrop = backdrop,
-                            icon = Icons.Default.LocalParking,
-                            label = "Mi Coche",
-                            onClick = { /* TODO */ },
-                            modifier = Modifier.weight(1f)
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        Text(
+                            "Toca el mapa para ver información de los puntos de interés",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = SubtleGray
                         )
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        // Quick Actions Row
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            QuickActionButton(
+                                icon = Icons.Default.Navigation,
+                                label = activeEvent.ctaLabel.replace("ñ", "n"),
+                                onClick = { navController.navigate(Screen.CircuitDestinations.route) },
+                                modifier = Modifier.weight(1f)
+                            )
+                            QuickActionButton(
+                                icon = Icons.Default.DirectionsWalk,
+                                label = activeEvent.labelForRoute(Screen.CircuitDestinations.route, "A mi puerta").replace("ñ", "n"),
+                                onClick = { navController.navigate(Screen.CircuitDestinations.route) },
+                                modifier = Modifier.weight(1f)
+                            )
+                            QuickActionButton(
+                                icon = Icons.Default.LocalParking,
+                                label = activeEvent.labelForRoute(Screen.Parking.route, "Mi Coche").replace("ñ", "n"),
+                                onClick = { navController.navigate(Screen.Parking.route) },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
                     }
                 }
             }
+            // Fill the gap between the card and the bottom navigation bar + system nav
+            val navBarInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+            Spacer(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(68.dp + navBarInset)
+                    .background(SheetBg)
+            )
         }
 
-        // Sidebar — iOS parity: FeatureRegistry + categorized features
+        // Sidebar
         Sidebar(
             isOpen = isSidebarOpen,
             onClose = onSidebarClose
         ) {
-            SideMenuContent(
-                navController = navController,
-                onClose = onSidebarClose
-            )
+            Column(modifier = Modifier.padding(20.dp)) {
+                Text(
+                    text = activeEvent.shortName,
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = RacingAccent,
+                    fontWeight = FontWeight.Bold
+                )
+                
+                Spacer(modifier = Modifier.height(32.dp))
+                
+                listOf(
+                    Triple(activeEvent.labelForRoute(Screen.Home.route, "Inicio"), Icons.Default.Home, Screen.Home.route),
+                    Triple(activeEvent.labelForRoute(Screen.SeatSetup.route, "Mi Localidad"), Icons.Default.EventSeat, Screen.SeatSetup.route),
+                    Triple(activeEvent.labelForRoute(Screen.IncidentReport.route, "Incidencias"), Icons.Default.ReportProblem, Screen.IncidentReport.route),
+                    Triple("Configuración", Icons.Default.Settings, Screen.Settings.route)
+                ).filter { (_, _, route) -> activeEvent.isRouteEnabled(route) }.forEach { (text, icon, route) ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                onSidebarClose()
+                                navController.navigate(route)
+                            }
+                            .padding(vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(icon, null, tint = ChipText, modifier = Modifier.size(24.dp))
+                        Spacer(modifier = Modifier.width(20.dp))
+                        Text(
+                            text, 
+                            color = SearchBarText, 
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+                }
+            }
         }
     }
 }
 
 @Composable
 private fun QuickActionButton(
-    backdrop: Backdrop,
     icon: ImageVector,
     label: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    LiquidCard(
-        backdrop = backdrop,
-        modifier = modifier.height(80.dp),
+    OutlinedCard(
         onClick = onClick,
-        cornerRadius = 16.dp,
-        surfaceColor = Color(0xFF14141C).copy(alpha = 0.5f)
+        modifier = modifier.height(80.dp),
+        shape = RoundedCornerShape(16.dp),
+        border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(Color(0xFF2A2A3C))),
+        colors = CardDefaults.outlinedCardColors(containerColor = Color(0xFF14141C))
     ) {
         Column(
             modifier = Modifier

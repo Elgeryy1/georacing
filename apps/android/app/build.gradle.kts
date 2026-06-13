@@ -10,12 +10,12 @@ plugins {
 
 android {
     namespace = "com.georacing.georacing"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.georacing.georacing"
         minSdk = 26
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 2
         versionName = "0.1.1"
 
@@ -38,7 +38,8 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -49,11 +50,19 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-    kotlinOptions {
-        jvmTarget = "11"
-    }
     buildFeatures {
         compose = true
+        buildConfig = true
+    }
+}
+
+
+
+
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
     }
 }
 
@@ -142,6 +151,17 @@ dependencies {
     // Health Connect
     implementation("androidx.health.connect:connect-client:1.1.0-alpha07")
     
+    // Kyant Backdrop (Removed)
+    // implementation("io.github.kyant0:backdrop-android:2.0.0-alpha01")
+    
+    // Haze (Used for existing GlassSurface components, alongside Backdrop)
+    implementation("dev.chrisbanes.haze:haze:1.1.0")
+    
+    // Kyant Backdrop (Liquid Glass Effects)
+    implementation("io.github.kyant0:backdrop:1.0.5")
+    implementation("io.github.kyant0:shapes:0.3.1")
+    androidTestImplementation("io.github.kyant0:shapes:0.3.1")
+    
     // MLKit Barcode Scanning
     implementation("com.google.mlkit:barcode-scanning:17.2.0")
     
@@ -174,6 +194,7 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation("org.mockito:mockito-core:5.11.0")
     testImplementation("org.mockito.kotlin:mockito-kotlin:5.2.1")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))

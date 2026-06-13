@@ -5,7 +5,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -22,7 +21,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.georacing.georacing.domain.model.Interest
-import com.georacing.georacing.domain.model.F1Team
 import com.georacing.georacing.domain.model.TransportMethod
 import com.georacing.georacing.domain.model.UserType
 
@@ -63,7 +61,7 @@ fun OnboardingQuizScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     // Header with Progress
-                    QuizProgressBar(currentStep = currentStep, totalSteps = 5)
+                    QuizProgressBar(currentStep = currentStep, totalSteps = 3)
                     
                     Spacer(modifier = Modifier.height(24.dp))
 
@@ -86,8 +84,6 @@ fun OnboardingQuizScreen(
                             0 -> StepUserType(viewModel)
                             1 -> StepTransport(viewModel)
                             2 -> StepInterests(viewModel)
-                            3 -> StepFavoriteTeam(viewModel)
-                            4 -> StepAccessibility(viewModel)
                         }
                     }
                 }
@@ -254,7 +250,7 @@ fun StepInterests(viewModel: WelcomeViewModel) {
         Spacer(modifier = Modifier.weight(1f))
 
         Button(
-            onClick = { viewModel.nextStep() },
+            onClick = { viewModel.completeQuiz() },
             modifier = Modifier.fillMaxWidth().height(56.dp),
             enabled = selectedInterests.isNotEmpty(),
             colors = ButtonDefaults.buttonColors(
@@ -266,7 +262,7 @@ fun StepInterests(viewModel: WelcomeViewModel) {
             shape = RoundedCornerShape(12.dp)
         ) {
             Text(
-                "SIGUIENTE",
+                "PERSONALIZAR MI EXPERIENCIA",
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.5.sp
             )
@@ -341,173 +337,4 @@ fun InterestChip(
         },
         modifier = Modifier.padding(4.dp)
     )
-}
-
-@Composable
-fun StepFavoriteTeam(viewModel: WelcomeViewModel) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Text(
-            text = "¿TU EQUIPO FAVORITO?",
-            style = MaterialTheme.typography.headlineMedium.copy(
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 1.5.sp,
-                color = Color(0xFFF8FAFC)
-            ),
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-        Text(
-            text = "Personaliza tu experiencia con tu equipo",
-            style = MaterialTheme.typography.bodyMedium,
-            color = Color(0xFF64748B),
-            modifier = Modifier.padding(bottom = 24.dp)
-        )
-
-        val teams = F1Team.entries.toList()
-        
-        androidx.compose.foundation.lazy.LazyColumn(
-            modifier = Modifier.weight(1f).fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(teams.size) { index ->
-                val team = teams[index]
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp)
-                        .clickable { viewModel.selectFavoriteTeam(team) },
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF14141C))
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(24.dp)
-                                .background(Color(team.color), shape = CircleShape)
-                        )
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Text(
-                            text = team.displayName,
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFFF8FAFC)
-                        )
-                        Spacer(modifier = Modifier.weight(1f))
-                        Icon(
-                            imageVector = Icons.Default.ChevronRight,
-                            contentDescription = null,
-                            tint = Color(0xFF64748B)
-                        )
-                    }
-                }
-            }
-        }
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        TextButton(onClick = { viewModel.previousStep() }) {
-            Text("Volver")
-        }
-    }
-}
-
-@Composable
-fun StepAccessibility(viewModel: WelcomeViewModel) {
-    val needsAccessibility by viewModel.needsAccessibility.collectAsState()
-
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Text(
-            text = "ACCESIBILIDAD",
-            style = MaterialTheme.typography.headlineMedium.copy(
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 1.5.sp,
-                color = Color(0xFFF8FAFC)
-            ),
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-        Text(
-            text = "¿Necesitas rutas adaptadas?",
-            style = MaterialTheme.typography.bodyMedium,
-            color = Color(0xFF64748B),
-            modifier = Modifier.padding(bottom = 32.dp)
-        )
-
-        // Toggle accesibilidad
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = if (needsAccessibility) Color(0xFF1A2A1A) else Color(0xFF14141C)
-            )
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { viewModel.setAccessibility(!needsAccessibility) }
-                    .padding(20.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Accessible,
-                    contentDescription = null,
-                    tint = if (needsAccessibility) Color(0xFF22C55E) else Color(0xFF64748B),
-                    modifier = Modifier.size(32.dp)
-                )
-                Spacer(modifier = Modifier.width(16.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Evitar escaleras",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFFF8FAFC)
-                    )
-                    Text(
-                        text = "Rutas accesibles sin escaleras ni desniveles",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFF64748B)
-                    )
-                }
-                Switch(
-                    checked = needsAccessibility,
-                    onCheckedChange = { viewModel.setAccessibility(it) },
-                    colors = SwitchDefaults.colors(
-                        checkedTrackColor = Color(0xFF22C55E),
-                        checkedThumbColor = Color.White
-                    )
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.weight(1f))
-
-        Button(
-            onClick = { viewModel.completeQuiz() },
-            modifier = Modifier.fillMaxWidth().height(56.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFFE8253A),
-                contentColor = Color(0xFFF8FAFC)
-            ),
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Text(
-                "PERSONALIZAR MI EXPERIENCIA",
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 1.5.sp
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-        TextButton(onClick = { viewModel.previousStep() }) {
-            Text("Volver")
-        }
-    }
 }

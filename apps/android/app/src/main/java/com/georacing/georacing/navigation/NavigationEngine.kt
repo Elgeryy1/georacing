@@ -194,7 +194,13 @@ class NavigationEngine {
             return
         }
         
-        // 7. ACTUALIZAR ESTADO
+        // 7. EXTRAER LÍMITE DE VELOCIDAD REAL DEL SEGMENTO ACTUAL (OSRM maxspeed)
+        val currentSpeedLimit = getSpeedLimitForSegment(
+            segmentIndex = snapResult.closestIndex,
+            maxSpeedAnnotations = route.maxSpeedAnnotations
+        )
+        
+        // 8. ACTUALIZAR ESTADO
         _navigationState.value = currentState.copy(
             currentStepIndex = stepInfo.index,
             currentStep = stepInfo.step,
@@ -203,7 +209,8 @@ class NavigationEngine {
             estimatedTimeRemaining = estimatedTimeRemaining,
             isOffRoute = false,
             closestPointIndex = snapResult.closestIndex,
-            distanceToRoute = snapResult.distanceToRoute
+            distanceToRoute = snapResult.distanceToRoute,
+            currentSpeedLimit = currentSpeedLimit
         )
     }
     
@@ -313,6 +320,27 @@ class NavigationEngine {
     }
     
     /**
+     * Extrae el límite de velocidad real del segmento actual usando datos OSRM/OSM.
+     * Los annotations de OSRM devuelven un maxspeed por cada segmento entre puntos.
+     */
+    private fun getSpeedLimitForSegment(
+        segmentIndex: Int,
+        maxSpeedAnnotations: List<com.georacing.georacing.car.MaxSpeedEntry>
+    ): Int? {
+        if (maxSpeedAnnotations.isEmpty()) return null
+        
+        // El índice del segmento es el min de segmentIndex y el tamaño de annotations
+        // (annotations tiene N-1 entries para N points)
+        val idx = segmentIndex.coerceIn(0, maxSpeedAnnotations.size - 1)
+        val entry = maxSpeedAnnotations[idx]
+        
+        // Si el dato es desconocido o no hay límite, devolver null
+        if (entry.unknown == true || entry.none == true) return null
+        
+        return entry.speed
+    }
+    
+    /**
      * Extensión para formatear Double con decimales.
      */
     private fun Double.format(decimals: Int): String {
@@ -348,7 +376,8 @@ sealed class NavigationState {
         val estimatedTimeRemaining: Double,
         val isOffRoute: Boolean,
         val closestPointIndex: Int,
-        val distanceToRoute: Double
+        val distanceToRoute: Double,
+        val currentSpeedLimit: Int? = null  // Real speed limit from OSM/OSRM in km/h
     ) : NavigationState()
     
     /** Llegada al destino */

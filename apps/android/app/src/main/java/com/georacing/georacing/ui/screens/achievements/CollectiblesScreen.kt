@@ -40,11 +40,13 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.georacing.georacing.data.firestorelike.FirestoreLikeClient
+import androidx.compose.ui.platform.LocalContext
 import com.georacing.georacing.ui.components.background.CarbonBackground
 import com.georacing.georacing.ui.glass.LiquidTopBar
 import com.georacing.georacing.ui.glass.LocalBackdrop
 import com.georacing.georacing.ui.theme.*
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /**
  * 🎴 Pantalla de Cromos / Coleccionables Digitales — Premium Racing Edition.
@@ -54,9 +56,24 @@ fun CollectiblesScreen(
     onNavigateBack: () -> Unit = {}
 ) {
     val backdrop = LocalBackdrop.current
+    val context = LocalContext.current
+    val prefs = remember { context.getSharedPreferences("georacing_collectibles", android.content.Context.MODE_PRIVATE) }
     val allCards = remember { generateAllCollectibles() }
-    val unlockedIds = remember { mutableStateOf<Set<String>>(emptySet()) }
+
+    // Cargar IDs previamente desbloqueados desde SharedPreferences
+    val savedIds = remember {
+        prefs.getStringSet("unlocked_ids", emptySet())?.toMutableSet()?.toSet() ?: emptySet()
+    }
+
+    // IDs desbloqueados: empieza solo con los guardados
+    val unlockedIds = remember { mutableStateOf(savedIds) }
+
+    // Cromos que aparecen como "toca para desbloquear" (solo los que aún NO están guardados)
+    val pendingUnlockIds = remember {
+        mutableStateOf(setOf("c01", "c04") - savedIds)
+    }
     var isLoadingProgress by remember { mutableStateOf(true) }
+    val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         while(true) {
@@ -67,18 +84,20 @@ fun CollectiblesScreen(
                     where = mapOf("user_id" to userId)
                 )
                 val response = com.georacing.georacing.data.firestorelike.FirestoreLikeClient.api.get(req)
-                val ids = response.mapNotNull { map ->
+                val serverIds = response.mapNotNull { map ->
                     val id = map["collectible_id"]?.toString()
                     val unlocked = map["unlocked"] as? Boolean ?: false
                     if (unlocked) id else null
                 }.toSet()
-                unlockedIds.value = ids
+                // Combinar servidor + lo que ya teníamos (nunca quitar desbloqueados)
+                val current = unlockedIds.value
+                unlockedIds.value = current + serverIds
             } catch (e: Exception) {
+                // En caso de error, no tocamos nada — los desbloqueados se mantienen
                 Log.w("CollectiblesScreen", "Error cargando progreso: ${e.message}")
-                // No limpiamos los IDs en caso de error para no parpadear la UI si hay un corte de red
             }
             isLoadingProgress = false
-            delay(2000) // Poll every 2 seconds for updates
+            delay(2000)
         }
     }
 
@@ -234,6 +253,7 @@ fun CollectiblesScreen(
             ) {
                 itemsIndexed(displayedCards, key = { _, card -> card.id }) { index, card ->
                     val isUnlocked = card.id in unlockedIds.value
+                    val isPendingUnlock = card.id in pendingUnlockIds.value && !isUnlocked
 
                     var itemVisible by remember { mutableStateOf(false) }
                     LaunchedEffect(Unit) {
@@ -249,6 +269,7 @@ fun CollectiblesScreen(
                         PremiumCollectibleCard(
                             card = card,
                             isUnlocked = isUnlocked,
+                            isPendingUnlock = isPendingUnlock,
                             onClick = { selectedCard = card }
                         )
                     }
@@ -261,9 +282,43 @@ fun CollectiblesScreen(
     }
 
     selectedCard?.let { card ->
+        val isUnlocked = card.id in unlockedIds.value
+        val isPending = card.id in pendingUnlockIds.value && !isUnlocked
         PremiumCollectibleDialog(
             card = card,
-            isUnlocked = card.id in unlockedIds.value,
+            isUnlocked = isUnlocked,
+            isPendingUnlock = isPending,
+            onUnlock = {
+                // 1. Desbloquear en memoria inmediatamente
+                unlockedIds.value = unlockedIds.value + card.id
+                pendingUnlockIds.value = pendingUnlockIds.value - card.id
+                // 2. Guardar en SharedPreferences (sobrevive reinicios)
+                val allSaved = (prefs.getStringSet("unlocked_ids", emptySet())?.toMutableSet() ?: mutableSetOf())
+                allSaved.add(card.id)
+                prefs.edit().putStringSet("unlocked_ids", allSaved).apply()
+                Log.d("CollectiblesScreen", "Cromo ${card.id} desbloqueado y guardado en SharedPreferences")
+                // 3. Intentar persistir en servidor (best effort)
+                coroutineScope.launch {
+                    try {
+                        val userId = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "current_user"
+                        com.georacing.georacing.data.firestorelike.FirestoreLikeClient.api.upsert(
+                            com.georacing.georacing.data.firestorelike.FirestoreLikeApi.UpsertRequest(
+                                table = "user_collectibles",
+                                data = mapOf(
+                                    "id" to card.id,
+                                    "collectible_id" to card.id,
+                                    "user_id" to userId,
+                                    "unlocked" to true,
+                                    "unlocked_at" to System.currentTimeMillis()
+                                )
+                            )
+                        )
+                        Log.d("CollectiblesScreen", "Cromo ${card.id} persistido en servidor")
+                    } catch (e: Exception) {
+                        Log.w("CollectiblesScreen", "Error persistiendo en servidor (guardado local OK): ${e.message}")
+                    }
+                }
+            },
             onDismiss = { selectedCard = null }
         )
     }
@@ -277,6 +332,7 @@ fun CollectiblesScreen(
 private fun PremiumCollectibleCard(
     card: Collectible,
     isUnlocked: Boolean,
+    isPendingUnlock: Boolean = false,
     onClick: () -> Unit
 ) {
     val rarityColor = card.rarity.color
@@ -335,6 +391,14 @@ private fun PremiumCollectibleCard(
                         1.dp,
                         Brush.verticalGradient(
                             listOf(rarityColor.copy(alpha = 0.4f), rarityColor.copy(alpha = 0.08f))
+                        ),
+                        RoundedCornerShape(16.dp)
+                    )
+                } else if (isPendingUnlock) {
+                    Modifier.border(
+                        1.5.dp,
+                        Brush.verticalGradient(
+                            listOf(ChampagneGold.copy(alpha = 0.6f), ChampagneGold.copy(alpha = 0.15f))
                         ),
                         RoundedCornerShape(16.dp)
                     )
@@ -406,9 +470,47 @@ private fun PremiumCollectibleCard(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f) // Takes up most of the card space
+                        .weight(1f)
                         .clip(RoundedCornerShape(8.dp))
                 )
+                Spacer(Modifier.height(6.dp))
+            } else if (isPendingUnlock && card.imageRes != null) {
+                // Pending unlock: show image blurred/dimmed with unlock icon overlay
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Image(
+                        painter = painterResource(id = card.imageRes),
+                        contentDescription = card.name,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(8.dp))
+                            .alpha(0.4f)
+                    )
+                    // Pulsating unlock icon
+                    val pulseAnim = rememberInfiniteTransition(label = "pulse_${card.id}")
+                    val pulseScale by pulseAnim.animateFloat(
+                        initialValue = 0.9f,
+                        targetValue = 1.15f,
+                        animationSpec = infiniteRepeatable(
+                            tween(900, easing = EaseInOutCubic),
+                            RepeatMode.Reverse
+                        ),
+                        label = "pulse_scale"
+                    )
+                    Icon(
+                        Icons.Default.LockOpen,
+                        contentDescription = "Desbloquear",
+                        tint = ChampagneGold,
+                        modifier = Modifier
+                            .size(28.dp)
+                            .scale(pulseScale)
+                    )
+                }
                 Spacer(Modifier.height(6.dp))
             } else {
                 val emojiScale by animateFloatAsState(
@@ -426,14 +528,14 @@ private fun PremiumCollectibleCard(
             }
 
             Text(
-                text = if (isUnlocked) card.name else "???",
-                fontSize = 11.sp,
+                text = if (isUnlocked) card.name else if (isPendingUnlock) "¡Toca para desbloquear!" else "???",
+                fontSize = if (isPendingUnlock) 9.sp else 11.sp,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 letterSpacing = 0.5.sp,
-                color = if (isUnlocked) TextPrimary else TextTertiary.copy(alpha = 0.5f)
+                color = if (isUnlocked) TextPrimary else if (isPendingUnlock) ChampagneGold else TextTertiary.copy(alpha = 0.5f)
             )
 
             Spacer(Modifier.height(4.dp))
@@ -506,6 +608,8 @@ private fun RarityFilterChip(
 private fun PremiumCollectibleDialog(
     card: Collectible,
     isUnlocked: Boolean,
+    isPendingUnlock: Boolean = false,
+    onUnlock: () -> Unit = {},
     onDismiss: () -> Unit
 ) {
     val rarityColor = card.rarity.color
@@ -634,6 +738,17 @@ private fun PremiumCollectibleDialog(
                                     .clip(RoundedCornerShape(16.dp))
                                     .border(1.dp, rarityColor.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
                             )
+                        } else if (isPendingUnlock && card.imageRes != null) {
+                            Image(
+                                painter = painterResource(id = card.imageRes),
+                                contentDescription = card.name,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .size(140.dp)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .alpha(0.5f)
+                                    .border(1.dp, ChampagneGold.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+                            )
                         } else {
                             Text(
                                 text = if (isUnlocked) card.emoji else "🔒",
@@ -683,6 +798,23 @@ private fun PremiumCollectibleDialog(
                             color = TextSecondary,
                             lineHeight = 20.sp
                         )
+                    } else if (isPendingUnlock) {
+                        Text(
+                            "¡Este cromo está listo para ti!",
+                            textAlign = TextAlign.Center,
+                            fontSize = 14.sp,
+                            color = ChampagneGold,
+                            fontWeight = FontWeight.Bold,
+                            lineHeight = 20.sp
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            "Toca el botón para añadirlo a tu colección",
+                            textAlign = TextAlign.Center,
+                            fontSize = 12.sp,
+                            color = TextSecondary,
+                            lineHeight = 18.sp
+                        )
                     } else {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -705,6 +837,42 @@ private fun PremiumCollectibleDialog(
                     )
 
                     Spacer(Modifier.height(20.dp))
+
+                    if (isPendingUnlock) {
+                        // Botón de desbloqueo
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(
+                                    Brush.horizontalGradient(
+                                        listOf(ChampagneGold, NeonOrange)
+                                    )
+                                )
+                                .clickable {
+                                    onUnlock()
+                                    onDismiss()
+                                }
+                                .padding(horizontal = 32.dp, vertical = 12.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    Icons.Default.LockOpen,
+                                    contentDescription = null,
+                                    tint = CarbonBlack,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    "DESBLOQUEAR",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    letterSpacing = 2.sp,
+                                    color = CarbonBlack
+                                )
+                            }
+                        }
+                        Spacer(Modifier.height(12.dp))
+                    }
 
                     Box(
                         modifier = Modifier

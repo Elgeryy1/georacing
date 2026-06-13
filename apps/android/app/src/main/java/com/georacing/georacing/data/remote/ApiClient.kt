@@ -1,10 +1,10 @@
 package com.georacing.georacing.data.remote
 
+import com.georacing.georacing.BuildConfig
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
-// import com.georacing.georacing.BuildConfig // Removed to fix error
 import java.security.cert.X509Certificate
 import javax.net.ssl.SSLContext
 import javax.net.ssl.TrustManager
@@ -12,10 +12,10 @@ import javax.net.ssl.X509TrustManager
 
 /**
  * Unified API Client Configuration.
- * Handles Security (TLS) logic based on Build Type.
+ * Uses secure TLS in release builds, unsafe (trust-all) only in debug.
  */
 object ApiClient {
-    // Shared Base URL for all services
+    // TODO: Reemplazar con URL de producción antes del despliegue final
     const val BASE_URL = "https://georacing.example.com:4010/api/"
 
     private val secureOkHttpClient: OkHttpClient by lazy {
@@ -50,11 +50,13 @@ object ApiClient {
     }
 
     val okHttpClient: OkHttpClient
-        get() = unsafeOkHttpClient // FORCE UNSAFE for Debug/Dev
+        get() = if (BuildConfig.DEBUG) unsafeOkHttpClient else secureOkHttpClient
 
-    val retrofit: Retrofit = Retrofit.Builder()
-        .baseUrl(BASE_URL)
-        .client(unsafeOkHttpClient) // FORCE UNSAFE for Debug/Dev
-        .addConverterFactory(GsonConverterFactory.create())
-        .build()
+    val retrofit: Retrofit by lazy {
+        Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+    }
 }

@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Net.Http;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Text;
@@ -26,6 +27,7 @@ namespace BeaconActivePc
         private static ushort sequenceConfig = 0;
         private static byte currentMode = 0; // 0=NORMAL
         private static string lastKnownTemp = "";
+        private static bool advertisingStarted = false;
         
         static async Task Main(string[] args)
         {
@@ -38,6 +40,7 @@ namespace BeaconActivePc
                 return true;
             };
             client = new HttpClient(handler);
+            client.Timeout = TimeSpan.FromSeconds(5);
 
             Console.WriteLine("=== GeoRacing Active Beacon (PC) ===");
             
@@ -97,12 +100,22 @@ namespace BeaconActivePc
                     if (state != null)
                     {
                         var newMode = MapModeToByte(state.global_mode ?? state.mode);
-                        lastKnownTemp = state.temperature;
-                        
-                        // 2. Update Payload if changed or refresh TTL
-                        UpdateAdvertising(newMode);
-                        
-                        Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] API OK. Mode: {state.global_mode} -> {newMode}. Seq: {sequenceConfig}");
+                        var newTemp = state.temperature;
+
+                        // 2. Solo actualizar el advertising si cambia modo o temperatura
+                        //    (evita Stop/Start del publisher cada 2 segundos)
+                        if (!advertisingStarted || newMode != currentMode || newTemp != lastKnownTemp)
+                        {
+                            currentMode = newMode;
+                            lastKnownTemp = newTemp;
+                            UpdateAdvertising(newMode);
+                            advertisingStarted = true;
+                            Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] API OK. Mode: {state.global_mode} -> {newMode}. Seq: {sequenceConfig}");
+                        }
+                        else
+                        {
+                            Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] API OK. Sin cambios (Mode: {newMode}, Seq: {sequenceConfig})");
+                        }
                     }
                 }
                 catch (Exception ex)
@@ -136,9 +149,9 @@ namespace BeaconActivePc
             byte tempByte = 0;
             if (!string.IsNullOrEmpty(lastKnownTemp))
             {
-                 // Remove non-numeric
-                 var digits = new string(lastKnownTemp.Where(char.IsDigit).ToArray());
-                 if (byte.TryParse(digits, out byte t)) tempByte = t;
+                 // Parseo robusto: soporta decimales ("25.5") y sufijo "°C", culture-invariant
+                 if (double.TryParse(lastKnownTemp.Replace("°C", "").Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out var d))
+                     tempByte = (byte)Math.Clamp(Math.Round(d), 0, 255);
             }
 
             var writer = new DataWriter();
@@ -156,9 +169,20 @@ namespace BeaconActivePc
             var manufacturerData = new BluetoothLEManufacturerData(MANUFACTURER_ID, buffer);
 
             // Update Publisher
-            // Note: Optimally we only change if data changed, but Seq changes every time to prove liveness.
-            publisher.Stop();
-            publisher.Advertisement.ManufacturerData.Clear();
+            // Recrear el publisher completamente: WinRT no permite reutilizar de forma
+            // fiable un BluetoothLEAdvertisementPublisher después de Stop().
+            try
+            {
+                if (publisher != null)
+                {
+                    publisher.Stop();
+                    publisher.StatusChanged -= Publisher_StatusChanged;
+                }
+            }
+            catch { /* ignorar errores al detener el publisher antiguo */ }
+
+            publisher = new BluetoothLEAdvertisementPublisher();
+            publisher.StatusChanged += Publisher_StatusChanged;
             publisher.Advertisement.ManufacturerData.Add(manufacturerData);
             publisher.Start();
         }

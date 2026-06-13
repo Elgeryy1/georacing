@@ -84,14 +84,16 @@ namespace BeaconApp.Services
         /// Actualiza el payload BLE en tiempo real - solo si hay cambios
         /// </summary>
         /// <param name="mode">Modo: "NORMAL", "CONGESTION", "EMERGENCY", "RED_FLAG", "EVACUATION"</param>
-        /// <param name="temperature">Temperatura en grados (0-255)</param>
-        public void UpdateStatus(string mode, int temperature = 25)
+        /// <param name="temperature">Temperatura en grados (0-255). Si es null, se mantiene la temperatura actual.</param>
+        public void UpdateStatus(string mode, int? temperature = null)
         {
             try
             {
                 // Mapear modo string a byte
                 var newMode = MapModeToByte(mode);
-                var newTemp = (byte)Math.Clamp(temperature, 0, 255);
+                var newTemp = temperature.HasValue
+                    ? (byte)Math.Clamp(temperature.Value, 0, 255)
+                    : _currentTemp;
 
                 // Solo actualizar si hay cambios reales (evitar Stop/Start innecesarios)
                 if (newMode == _currentMode && newTemp == _currentTemp)

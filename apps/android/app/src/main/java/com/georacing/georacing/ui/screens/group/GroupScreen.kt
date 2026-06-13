@@ -4,9 +4,7 @@ import android.Manifest
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -442,7 +440,7 @@ fun GroupMemberItem(
         ) {
             Icon(
                 imageVector = Icons.Default.Person,
-                contentDescription = "Avatar del miembro",
+                contentDescription = null,
                 tint = RacingRed,
                 modifier = Modifier.size(28.dp)
             )
@@ -506,7 +504,7 @@ fun ShareQRCard(
             ) {
                 Icon(
                     imageVector = androidx.compose.material.icons.Icons.Default.QrCode,
-                    contentDescription = "Código QR",
+                    contentDescription = null,
                     modifier = Modifier.size(24.dp),
                     tint = TextPrimary
                 )
@@ -532,7 +530,7 @@ fun ShareQRCard(
             
             Icon(
                 imageVector = androidx.compose.material.icons.Icons.AutoMirrored.Filled.ArrowForward,
-                contentDescription = "Ir a compartir QR",
+                contentDescription = null,
                 tint = TextTertiary
             )
         }
@@ -586,7 +584,7 @@ fun NoActiveGroupCard(
                 border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF64748B).copy(alpha = 0.5f)),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Icon(Icons.Default.QrCode, "Unirme con código QR")
+                Icon(Icons.Default.QrCode, null)
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     "UNIRME CON QR",
@@ -603,13 +601,11 @@ fun LeaveGroupCard(
     onLeaveGroup: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var showConfirmDialog by remember { mutableStateOf(false) }
-    
     GlassCard(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
-            .clickable { showConfirmDialog = true }
+            .clickable { onLeaveGroup() }
     ) {
         Row(
             modifier = Modifier
@@ -619,7 +615,7 @@ fun LeaveGroupCard(
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.Logout,
-                contentDescription = "Salir del grupo",
+                contentDescription = null,
                 tint = Color(0xFFEF4444)
             )
             
@@ -643,43 +639,9 @@ fun LeaveGroupCard(
             
             Icon(
                 imageVector = androidx.compose.material.icons.Icons.AutoMirrored.Filled.ArrowForward,
-                contentDescription = "Ir a salir del grupo",
+                contentDescription = null,
                 tint = TextTertiary
             )
         }
-    }
-    
-    if (showConfirmDialog) {
-        AlertDialog(
-            onDismissRequest = { showConfirmDialog = false },
-            containerColor = Color(0xFF14141C),
-            title = {
-                Text(
-                    "¿Salir del grupo?",
-                    color = Color(0xFFF8FAFC),
-                    fontWeight = FontWeight.Bold
-                )
-            },
-            text = {
-                Text(
-                    "Dejarás de compartir tu ubicación con el grupo y no podrás ver a los demás miembros.",
-                    color = Color(0xFF64748B)
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    showConfirmDialog = false
-                    onLeaveGroup()
-                }) {
-                    Text("SALIR", color = Color(0xFFEF4444), fontWeight = FontWeight.ExtraBold, letterSpacing = 1.sp)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showConfirmDialog = false }) {
-                    Text("CANCELAR", color = Color(0xFF64748B))
-                }
-            },
-            modifier = Modifier.border(1.dp, Color(0xFFEF4444).copy(alpha = 0.3f), RoundedCornerShape(24.dp))
-        )
     }
 }

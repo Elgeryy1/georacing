@@ -103,6 +103,22 @@ class UserPreferencesDataStore(private val context: Context) {
         }
     }
 
+    val dashboardLayoutOverride: Flow<List<com.georacing.georacing.domain.model.WidgetType>?> =
+        context.dataStore.data.map { prefs ->
+            val output = prefs[DASHBOARD_LAYOUT] ?: return@map null
+            try {
+                output.split(",").mapNotNull {
+                    try {
+                        com.georacing.georacing.domain.model.WidgetType.valueOf(it)
+                    } catch (_: Exception) {
+                        null
+                    }
+                }
+            } catch (_: Exception) {
+                null
+            }
+        }
+
     suspend fun setDashboardLayout(widgets: List<com.georacing.georacing.domain.model.WidgetType>) {
         context.dataStore.edit { prefs ->
             prefs[DASHBOARD_LAYOUT] = widgets.joinToString(",") { it.name }

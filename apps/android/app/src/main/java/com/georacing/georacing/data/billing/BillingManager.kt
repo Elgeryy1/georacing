@@ -89,7 +89,7 @@ object BillingManager {
         }
 
         val skuList = listOf(QueryProductDetailsParams.Product.newBuilder()
-            .setProductId("android.test.purchased") 
+            .setProductId(skuId)
             .setProductType(BillingClient.ProductType.INAPP)
             .build())
 
@@ -111,16 +111,13 @@ object BillingManager {
                 
                 billingClient?.launchBillingFlow(activity, billingFlowParams)
             } else {
-                // Fallback for testing without Play Console setup
                 activity.runOnUiThread {
                     android.widget.Toast.makeText(
                         activity, 
-                        "Modo Test: Simulando Pago (Google Play no req.)", 
+                        "Producto no disponible. Inténtalo más tarde.", 
                         android.widget.Toast.LENGTH_SHORT
                     ).show()
                 }
-                // Simulate success
-                _simulationEvent.value = true
             }
         }
     }

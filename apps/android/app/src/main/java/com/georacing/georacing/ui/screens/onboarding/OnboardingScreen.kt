@@ -35,12 +35,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.lifecycle.viewmodel.initializer
-import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.navigation.NavController
 import com.georacing.georacing.data.local.UserPreferencesDataStore
 import com.georacing.georacing.ui.navigation.Screen
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -50,14 +48,6 @@ fun OnboardingScreen(
     userPreferences: UserPreferencesDataStore
 ) {
     val backdrop = com.georacing.georacing.ui.glass.LocalBackdrop.current
-    val viewModel: OnboardingViewModel = viewModel(
-        factory = viewModelFactory {
-            initializer {
-                OnboardingViewModel(userPreferences)
-            }
-        }
-    )
-
     val pagerState = rememberPagerState(pageCount = { 3 })
     val scope = rememberCoroutineScope()
 
@@ -125,9 +115,17 @@ fun OnboardingScreen(
             Spacer(modifier = Modifier.height(8.dp))
             com.georacing.georacing.ui.glass.LiquidButton(
                 onClick = {
-                    viewModel.completeOnboarding()
-                    navController.navigate(Screen.Home.route) {
-                        popUpTo(Screen.Onboarding.route) { inclusive = true }
+                    scope.launch {
+                        userPreferences.setOnboardingCompleted(true)
+                        val currentUser = FirebaseAuth.getInstance().currentUser
+                        val nextRoute = if (currentUser != null && !currentUser.isAnonymous) {
+                            Screen.Home.route
+                        } else {
+                            Screen.Login.route
+                        }
+                        navController.navigate(nextRoute) {
+                            popUpTo(Screen.Onboarding.route) { inclusive = true }
+                        }
                     }
                 },
                 backdrop = backdrop,

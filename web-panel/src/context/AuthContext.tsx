@@ -36,6 +36,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const logout = async () => {
     await signOut(auth);
+    // The mock login user never existed in Firebase, so onAuthStateChanged
+    // won't fire to clear it — reset local state explicitly.
+    setUser(null);
   };
 
   const value = {
