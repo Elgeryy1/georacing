@@ -32,6 +32,16 @@ GeoRacing solves this with a network of **smart physical beacons** — screens d
 
 The platform is composed of five components: native Android and iOS apps for attendees, a React control panel for the organization, C#/.NET beacon software for the on-site Windows screens, and a Node.js + MySQL REST API at the core.
 
+## Screenshots
+
+<p align="center">
+  <img src="docs/screenshots/home-evacuation.png" width="250" alt="Attendee app — live evacuation alert"/>
+  &nbsp;&nbsp;
+  <img src="docs/screenshots/map.png" width="250" alt="Attendee app — circuit map with pedestrian routing"/>
+</p>
+
+> Android attendee app: a real-time evacuation alert driven by the circuit state / BLE beacons (left), and the circuit map with POIs and on-foot routing (right). The hero image above is an illustrative mock of the web control panel.
+
 ## Architecture
 
 ```mermaid
