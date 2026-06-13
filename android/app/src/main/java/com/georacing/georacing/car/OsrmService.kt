@@ -25,6 +25,6 @@ interface GraphHopperService {
         @Query("calc_points") calcPoints: Boolean = true,
         @Query("points_encoded") pointsEncoded: Boolean = false,
         @Query("ch.disable") chDisable: Boolean = true, // Permite usar tráfico
-        @Query("key") apiKey: String = "e6d666e9-6e53-4c8c-9794-d15f649004c1"
+        @Query("key") apiKey: String = "YOUR_GRAPHHOPPER_API_KEY"
     ): GraphHopperResponse
 }

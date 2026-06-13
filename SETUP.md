@@ -39,6 +39,12 @@ what to fill in per component and where it goes.
 `api/.env` points at a MySQL instance. For a quick local instance:
 `cd api && docker compose up` (compose provisions MySQL and wires the env).
 
+### Android Auto routing (optional)
+The in-car navigation can use GraphHopper for driving routes. Replace
+`YOUR_GRAPHHOPPER_API_KEY` in `android/.../car/OsrmService.kt` with your own key
+from <https://www.graphhopper.com> (it falls back to the public OSRM server if
+left unset).
+
 ### Windows beacon
 On first run the beacon writes `C:\ProgramData\GeoRacing\beacon.json`. Set
 `apiBaseUrl` to your API (e.g. `https://your-api.example.com:4010/api/`).
