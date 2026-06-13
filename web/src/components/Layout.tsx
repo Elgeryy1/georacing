@@ -69,7 +69,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, onNewBeaconClick }) =>
                 <Radio className={`w-8 h-8 ${isEvacuation ? 'text-white' : 'text-blue-500'}`} />
                 <div>
                   <h1 className="text-xl font-bold text-white">PANEL DE CONTROL</h1>
-                  <p className={`text-xs ${isEvacuation ? 'text-red-200' : 'text-gray-400'}`}>Sistema de Gestión Inteligente METROPOLIS</p>
+                  <p className={`text-xs ${isEvacuation ? 'text-red-200' : 'text-gray-400'}`}>GeoRacing · gestión de eventos en tiempo real</p>
                 </div>
               </div>
             </div>

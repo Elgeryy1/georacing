@@ -19,7 +19,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/assets/preview.svg" width="820" alt="GeoRacing race control dashboard"/>
+  <img src="docs/screenshots/web-dashboard.png" width="860" alt="GeoRacing web control panel — Race Control dashboard"/>
 </p>
 
 ---
@@ -40,7 +40,7 @@ The platform is composed of five components: native Android and iOS apps for att
   <img src="docs/screenshots/map.png" width="250" alt="Attendee app — circuit map with pedestrian routing"/>
 </p>
 
-> Android attendee app: a real-time evacuation alert driven by the circuit state / BLE beacons (left), and the circuit map with POIs and on-foot routing (right). The hero image above is an illustrative mock of the web control panel.
+> Android attendee app: a real-time evacuation alert driven by the circuit state / BLE beacons (left), and the circuit map with POIs and on-foot routing (right). The image at the top is the real React control panel running against the API.
 
 ## Architecture
 
@@ -171,6 +171,8 @@ Security issues: see [SECURITY.md](SECURITY.md). Release notes live in
 
 ## License
 
-Released under the [MIT License](LICENSE).
+Released under the [MIT License](LICENSE). As a courtesy (not a license term), if
+you build a product on GeoRacing or its ideas, a quick heads-up to
+**gerard.alpo17@gmail.com** is appreciated.
 
 > **Note:** this repository is a curated export of the original project workspace. Build artifacts, duplicated versions and all credentials were removed before publication.
