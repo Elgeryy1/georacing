@@ -150,6 +150,9 @@ GeoRacing-publish/
 
 ## Getting started
 
+> **Credentials:** this repo ships no real keys — every secret is a placeholder.
+> See **[SETUP.md](SETUP.md)** for exactly what to fill in per component.
+
 Each component is self-contained and has its own README with detailed setup instructions. In short:
 
 - **Backend API** — `cd backend && npm install`, set the `DB_*` environment variables, then `node server.js`. See [backend/README.md](backend/README.md).

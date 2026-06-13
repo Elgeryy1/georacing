@@ -81,7 +81,7 @@ import kotlinx.coroutines.launch
 
 private const val TAG = "LoginScreen"
 private const val FALLBACK_WEB_CLIENT_ID =
-    "62243274149-iv3ra1epplkgsr3oeipgrej6i9r62qfs.apps.googleusercontent.com"
+    "YOUR_WEB_CLIENT_ID.apps.googleusercontent.com"
 
 @Composable
 fun LoginScreen(navController: NavController) {
